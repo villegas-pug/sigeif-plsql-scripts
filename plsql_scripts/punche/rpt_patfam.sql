@@ -1,0 +1,79 @@
+-- * 1. Listar los objetivos específicos del servicio con ID 3
+SELECT 
+   OE_ID_OBJETIVO,
+   SI_ID_SERVICIO,
+   OE_NOMBRE,
+   OE_DESCRIPCION
+FROM SSI_OBJETIVOS_ESPECIFICOS oe
+WHERE SI_ID_SERVICIO = 2
+/
+
+
+-- * 2. Listar los módulos asociados a los objetivos específicos del servicio con ID 3
+SELECT 
+   m.MO_ID_MODULO,
+   m.OE_ID_OBJETIVO,
+   m.MO_NOMBRE,
+   m.MO_DESCRIPCION
+FROM SSI_MODULOS m
+JOIN SSI_OBJETIVOS_ESPECIFICOS oe ON m.OE_ID_OBJETIVO = oe.OE_ID_OBJETIVO
+WHERE oe.SI_ID_SERVICIO = 2
+/
+
+-- * 3. Listar los temas asociados a los módulos de los objetivos específicos del servicio con ID 3
+
+SELECT 
+   u.UN_ID_UNIDAD,
+   u.MO_ID_MODULO,
+   u.UN_NOMBRE,
+   u.UN_DESCRIPCION
+FROM SSI_UNIDADES u
+JOIN SSI_MODULOS m ON u.MO_ID_MODULO = m.MO_ID_MODULO
+JOIN SSI_OBJETIVOS_ESPECIFICOS oe ON m.OE_ID_OBJETIVO = oe.OE_ID_OBJETIVO
+WHERE 
+   oe.SI_ID_SERVICIO = 2
+/
+
+
+-- * 4. Listar las sesiones asociados a las unidades de los objetivos específicos del servicio con ID 3
+
+SELECT 
+   s.SE_ID_SESION,
+   s.UN_ID_UNIDAD,
+   s.MO_ID_MODULO,
+   s.SE_NOMBRE,
+   s.SE_DESCRIPCION
+FROM SSI_UNIDAD_SESIONES s
+JOIN SSI_UNIDADES u ON s.UN_ID_UNIDAD = u.UN_ID_UNIDAD
+JOIN SSI_MODULOS m ON u.MO_ID_MODULO = m.MO_ID_MODULO
+JOIN SSI_OBJETIVOS_ESPECIFICOS oe ON m.OE_ID_OBJETIVO = oe.OE_ID_OBJETIVO
+WHERE 
+   oe.SI_ID_SERVICIO = 2 -- PUNCHE
+/
+
+
+
+-- * 5. Listar los talleres asociados a las sesiones de las unidades de los objetivos específicos del servicio con ID 3
+SELECT 
+   t.TA_ID_TALLER,
+   t.SE_ID_SESION,
+   t.TA_NOMBRE,
+   t.TA_DESCRIPCION
+FROM SSI_TALLERES t
+JOIN SSI_UNIDAD_SESIONES s ON t.SE_ID_SESION = s.SE_ID_SESION
+JOIN SSI_UNIDADES u ON s.UN_ID_UNIDAD = u.UN_ID_UNIDAD
+JOIN SSI_MODULOS m ON u.MO_ID_MODULO = m.MO_ID_MODULO
+JOIN SSI_OBJETIVOS_ESPECIFICOS oe ON m.OE_ID_OBJETIVO = oe.OE_ID_OBJETIVO
+WHERE 
+   oe.SI_ID_SERVICIO = 2 -- PUNCHE
+/
+
+
+SELECT 
+   -- TABLE_NAME
+   COLUMN_NAME
+FROM ALL_TAB_COLUMNS
+WHERE
+   TABLE_NAME = 'SSI_TALLERES'
+   -- TABLE_NAME = 'SSI_FAMILIA_INTEGRANTES'
+/

@@ -1,0 +1,19 @@
+# Documentos de Office y Reportes (Excel, Word, etc.)
+*.xlsx
+*.xls
+*.docx
+*.doc
+*.csv
+*.pdf
+
+# Archivos temporales de Office (¡Evita que se suban archivos ocultos corruptos!)
+~$*.cx
+~$*.xlsx
+~$*.docx
+
+# Carpetas del sistema o entornos virtuales (Opcional pero recomendado)
+.venv/
+venv/
+__pycache__/
+.DS_Store
+Thumbs.db

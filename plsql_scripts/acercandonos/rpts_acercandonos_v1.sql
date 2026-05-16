@@ -1,0 +1,1095 @@
+-- Active: 1776982575153@@@443@XE@USRSEGURIDAD
+
+-- * 1. MA01_Matriz FAM
+WITH cte_gestion_familias AS (
+
+   -- Seleccionamos UN SOLO integrante por familia (el cuidador principal)
+   SELECT
+      f.PF_ID_FAMILIA,
+      f.PF_COD_FAMILIA AS COD_FAM,
+      u.UORNOMBRE AS NOM_CEDIF,
+      z.ZO_DESCRIPCION AS NOM_ZONA,
+      sz.SZO_DESC_SUB_ZONA AS SUB_ZONA,
+
+      -- Datos del acompañante (equipo de trabajo)
+      MAX(pe.PERAPEPATERNO) AS PRI_APE_AF,
+      MAX(pe.PERAPEMATERNO) AS SEG_APE_AF,
+      MAX(pe.PERNOMBRE) AS NOM_AF,
+      MAX(pe.PERNRODOCUMENTO) AS DOC_AF,
+
+      -- Datos del cuidador (usamos MAX para evitar duplicados)
+      MAX(i.FI_ID_INTEGRANTE) AS FI_ID_INTEGRANTE,
+      MAX(i.FI_CUIDADOR) AS FI_CUIDADOR,
+      MAX(i.FI_PRIMER_APE) AS PRI_APE_CP,
+      MAX(i.FI_SEGUNDO_APE) AS SEG_AP_CP,
+      MAX(i.FI_NOMBRES) AS NOM_CP,
+      MAX(d.CATDESCRIPCION) AS TIP_DOC_CP,
+      MAX(i.FI_NUMERO_DOC) AS NRO_DOC_CP,
+      MAX(pnc.PA_NOMBRE) AS PAI_NAC,
+      MAX(uc.U_DEPARTAMENTO) AS DEP_RES,
+      MAX(uc.U_PROVINCIA) AS PRO_RES,
+      MAX(uc.U_DISTRITO) AS DIS_RES,
+      MAX(i.FI_DIRECCION) AS DIR_RES,
+      MAX(tp.CATDESCRIPCION) AS PAR_CP_NNA,
+      MAX(i.FI_OBSERVACIONES) AS PAR_CP_OTRO,
+      MAX(ts.CATDESCRIPCION) AS SEX_CP,
+      MAX(i.FI_FEC_NAC) AS FEC_NAC_CP,
+      MAX(i.FI_EDAD) AS EDAD_CP,
+      MAX(
+         CASE
+            WHEN cd.CATDESCRIPCION IS NOT NULL THEN 'SI'
+            ELSE 'NO'
+         END
+      ) AS TIE_DIS_CP,
+      MAX(lm.CATDESCRIPCION) AS LEN_MAT_CP,
+      MAX(olm.CATDESCRIPCION) AS LEN_MAT_ESP_CP,
+      MAX(cet.CATDESCRIPCION) AS AUT_IDE_ET_CP,
+      MAX(i.FI_OTRO_ETNIA) AS AUT_IDE_ET_ESP_CP,
+      f.PF_TIPO_EGRESO AS TIP_EGR,
+      f.PF_FECHA_EGRESO AS FEC_EGR,
+      CASE
+         WHEN f.PF_ESTADO = 0 THEN 'INACTIVO'
+         WHEN f.PF_ESTADO = 1 THEN 'ACTIVO'
+         WHEN f.PF_ESTADO = 2 THEN 'CERRADO'
+      END AS EST_ACT
+   FROM SSI_ZONA_INTERVENCION z
+   JOIN SSI_POTENCIALES_FAMILIAS f ON z.ZO_ID_ZONA = f.ZO_ID_ZONA
+   JOIN SSI_FAMILIA_INTEGRANTES i ON f.PF_ID_FAMILIA = i.PF_ID_FAMILIA
+   LEFT JOIN TGCATALOGO d ON i.CA_ID_TIPDOC = d.IDCATALOGO
+   LEFT JOIN SSI_SUBZONAS sz ON z.ZO_ID_ZONA = sz.ZO_ID_ZONA
+   LEFT JOIN TGUNIDADORGANICA u ON z.UOR_ID_UNIDADORG = u.IDUNIDADORGANICA
+   LEFT JOIN SSI_EQUIPO_TRABAJO et ON f.EQ_ID_EQUIPO = et.EQ_ID_EQUIPO AND et.EQ_ESTADO = 1
+   LEFT JOIN TRPERSONAL ps ON ps.IDPERSONAL = et.PER_ID_PERSONAL
+   LEFT JOIN TGPERSONA pe ON pe.IDPERSONA = ps.PRHPERSONA
+   LEFT JOIN SSI_UBIGEO_NOMBRES uc ON i.UBI_ID_DEPARTAMENTO = uc.U_ID_DEPARTAMENTO
+                                   AND i.UBI_ID_PROVINCIA = uc.U_ID_PROVINCIA
+                                   AND i.UBI_ID_DISTRITO = uc.U_ID_DISTRITO
+   LEFT JOIN TG_PAIS pnc ON i.PA_ID_PAIS_NACIMIENTO = pnc.IDPAIS
+   LEFT JOIN TGCATALOGO tp ON i.CA_ID_PARENTESCO = tp.IDCATALOGO
+   LEFT JOIN TGCATALOGO ts ON i.CA_ID_SEXO = ts.IDCATALOGO
+   LEFT JOIN TGCATALOGO cd ON i.CA_ID_DISCAPACIDAD = cd.IDCATALOGO
+   LEFT JOIN TGCATALOGO lm ON i.CA_ID_LENGUA_MATERNA = lm.IDCATALOGO
+   LEFT JOIN TGCATALOGO olm ON i.FI_OTRO_IDIOMA = olm.IDCATALOGO
+   LEFT JOIN TGCATALOGO cet ON i.CA_ID_ETNIA = cet.IDCATALOGO
+   WHERE
+      f.PF_ESTADO = 1
+      AND f.PF_ELIMINADO = 0
+      AND i.FI_ESTADO = 1
+      AND i.FI_ELIMINADO = 0
+      AND i.FI_CUIDADOR = 1  -- Solo cuidadores
+      AND z.SI_ID_SERVICIO = 3  -- Acercándonos
+   GROUP BY
+      f.PF_ID_FAMILIA,
+      f.PF_COD_FAMILIA,
+      u.UORNOMBRE,
+      z.ZO_DESCRIPCION,
+      sz.SZO_DESC_SUB_ZONA,
+      f.PF_TIPO_EGRESO,
+      f.PF_FECHA_EGRESO,
+      f.PF_ESTADO
+),
+
+-- * 2. Subconsultas para NNA (Número de documentos y miembros)
+cte_nna AS (
+   SELECT
+      PF_ID_FAMILIA,
+      LISTAGG(FI_NUMERO_DOC, ', ') WITHIN GROUP (ORDER BY FI_ID_INTEGRANTE) AS NRO_DOC_USU,
+      COUNT(1) AS NRO_MIE_FAM,
+      COUNT(CASE WHEN FI_CUIDADOR = 0 OR FI_CUIDADOR IS NULL THEN 1 END) AS NRO_NNA_CP
+   FROM SSI_FAMILIA_INTEGRANTES
+   WHERE
+      FI_ESTADO = 1
+      AND FI_ELIMINADO = 0
+   GROUP BY PF_ID_FAMILIA
+),
+
+-- * 3. Subconsultas para respuestas de anexos (Tipo de familia, Ubicación, Vivienda, etc.)
+cte_anexos AS (
+   SELECT
+      ar.PF_ID_FAMILIA,
+      MAX(CASE WHEN ap.AP_NUM_ANEXO = 4 AND ap.AP_NUM_GRUPO = 2 AND ap.AP_NUM_PREGUNTA = 15 THEN ar.AR_RESPUESTA END) AS TIP_FAM,
+      MAX(CASE WHEN ap.AP_NUM_ANEXO = 4 AND ap.AP_NUM_GRUPO = 2 AND ap.AP_NUM_PREGUNTA = 32 THEN ar.AR_RESPUESTA END) AS UBI_VIV,
+      MAX(CASE WHEN ap.AP_NUM_ANEXO = 4 AND ap.AP_NUM_GRUPO = 2 AND ap.AP_NUM_PREGUNTA = 33 THEN ar.AR_RESPUESTA END) AS VIV_OCU,
+      MAX(CASE WHEN ap.AP_NUM_ANEXO = 4 AND ap.AP_NUM_GRUPO = 2 AND ap.AP_NUM_PREGUNTA = 34 THEN ar.AR_RESPUESTA END) AS TIP_VIV,
+      MAX(CASE WHEN ap.AP_NUM_ANEXO = 4 AND ap.AP_NUM_GRUPO = 2 AND ap.AP_NUM_PREGUNTA = 36 AND REGEXP_LIKE(ar.AR_RESPUESTA, '^\d{4}-\d{2}-\d{2}$') THEN TO_CHAR(TO_DATE(ar.AR_RESPUESTA, 'YYYY-MM-DD'), 'DD/MM/YYYY') END) AS FEC_ING,
+      MAX(CASE WHEN ap.AP_NUM_ANEXO = 4 AND ap.AP_NUM_GRUPO = 2 AND ap.AP_NUM_PREGUNTA = 37 THEN ar.AR_RESPUESTA END) AS MOT_ING
+   FROM SSI_ANEXOS_PREGUNTAS ap
+   JOIN SSI_ANEXOS_RESPUESTAS ar ON ap.AP_ID_PREGUNTA = ar.AP_ID_PREGUNTA
+   WHERE
+      ap.SI_ID_SERVICIO = 3  -- Acercándonos
+   GROUP BY ar.PF_ID_FAMILIA
+),
+
+-- * 4. CTEs para evaluación de riesgo y parental (Inicial, Intermedia, Final)
+cte_eval_riesgo_inicial AS (
+   SELECT
+      ar.PF_ID_FAMILIA,
+      SUM(NVL(ar.ar_puntaje, 0)) AS PTJE_RIESGO1,
+      CASE
+         WHEN SUM(NVL(ar.ar_puntaje, 0)) >= 27 THEN 'RIESGO ALTO'
+         WHEN SUM(NVL(ar.ar_puntaje, 0)) >= 13 THEN 'RIESGO MEDIO'
+         WHEN SUM(NVL(ar.ar_puntaje, 0)) >= 1 THEN 'RIESGO BAJO'
+         ELSE 'SIN RIESGO'
+      END AS NIVEL_RIESGO1
+   FROM SSI_ANEXOS_PREGUNTAS ap
+   JOIN SSI_ANEXOS_RESPUESTAS ar ON ap.AP_ID_PREGUNTA = ar.AP_ID_PREGUNTA
+   WHERE
+      ap.SI_ID_SERVICIO = 3  -- Acercándonos
+      AND ap.AP_NUM_ANEXO IN (2, 6)
+      AND ar.SF_ID_FASE = 2  -- Evaluación Inicial
+   GROUP BY ar.PF_ID_FAMILIA
+),
+cte_eval_riesgo_intermedia AS (
+   SELECT
+      ar.PF_ID_FAMILIA,
+      SUM(NVL(ar.ar_puntaje, 0)) AS PTJE_RIESGO2,
+      CASE
+         WHEN SUM(NVL(ar.ar_puntaje, 0)) >= 27 THEN 'RIESGO ALTO'
+         WHEN SUM(NVL(ar.ar_puntaje, 0)) >= 13 THEN 'RIESGO MEDIO'
+         WHEN SUM(NVL(ar.ar_puntaje, 0)) >= 1 THEN 'RIESGO BAJO'
+         ELSE 'SIN RIESGO'
+      END AS NIVEL_RIESGO2
+   FROM SSI_ANEXOS_PREGUNTAS ap
+   JOIN SSI_ANEXOS_RESPUESTAS ar ON ap.AP_ID_PREGUNTA = ar.AP_ID_PREGUNTA
+   WHERE
+      ap.SI_ID_SERVICIO = 3  -- Acercándonos
+      AND ap.AP_NUM_ANEXO IN (2, 6)
+      AND ar.SF_ID_FASE = 3  -- Evaluación Intermedia
+   GROUP BY ar.PF_ID_FAMILIA
+),
+cte_eval_riesgo_final AS (
+   SELECT
+      ar.PF_ID_FAMILIA,
+      SUM(NVL(ar.ar_puntaje, 0)) AS PTJE_RIESGO3,
+      CASE
+         WHEN SUM(NVL(ar.ar_puntaje, 0)) >= 27 THEN 'RIESGO ALTO'
+         WHEN SUM(NVL(ar.ar_puntaje, 0)) >= 13 THEN 'RIESGO MEDIO'
+         WHEN SUM(NVL(ar.ar_puntaje, 0)) >= 1 THEN 'RIESGO BAJO'
+         ELSE 'SIN RIESGO'
+      END AS NIVEL_RIESGO3
+   FROM SSI_ANEXOS_PREGUNTAS ap
+   JOIN SSI_ANEXOS_RESPUESTAS ar ON ap.AP_ID_PREGUNTA = ar.AP_ID_PREGUNTA
+   WHERE
+      ap.SI_ID_SERVICIO = 3  -- Acercándonos
+      AND ap.AP_NUM_ANEXO IN (2, 6)
+      AND ar.SF_ID_FASE = 4  -- Evaluación Final
+   GROUP BY ar.PF_ID_FAMILIA
+
+), cte_eval_parent_inicial AS (
+
+      SELECT 
+         p.*,
+         CASE
+            WHEN p.PTJE_COMP1 BETWEEN 60 AND 80 THEN 'LOGRADO'
+            WHEN p.PTJE_COMP1 BETWEEN 40 AND 59 THEN 'EN PROCESO'
+            WHEN p.PTJE_COMP1 BETWEEN 20 AND 39  THEN 'NO LOGRADO'
+            WHEN p.PTJE_COMP1 = 0 THEN 'SIN CALIFICAR'
+            ELSE NULL
+         END AS NIVEL_COMP1
+      FROM (
+
+         SELECT
+            ar.PF_ID_FAMILIA,
+            SUM(
+               CASE
+                     WHEN REGEXP_LIKE(ar.AR_RESPUESTA, '^[0-9]+(\.[0-9]+)?$') THEN TO_NUMBER(ar.AR_RESPUESTA)
+                     ELSE 0
+               END
+            ) AS PTJE_COMP1
+         FROM SSI_ANEXOS_PREGUNTAS ap
+         JOIN SSI_ANEXOS_RESPUESTAS ar ON ap.AP_ID_PREGUNTA = ar.AP_ID_PREGUNTA
+         WHERE
+            ap.SI_ID_SERVICIO = 3 -- Acercándonos
+            AND ap.AP_NUM_ANEXO = 7
+            AND ap.AP_NUM_GRUPO = 2
+            AND NVL(ar.AR_ELIMINADO, 0) = 0
+            AND ar.SF_ID_FASE = 2  -- Evaluación Inicial
+         GROUP BY
+            ar.PF_ID_FAMILIA
+
+      ) p
+
+), cte_eval_parent_intermedio AS (
+
+      SELECT 
+         p.*,
+         CASE
+            WHEN p.PTJE_COMP2 BETWEEN 60 AND 80 THEN 'LOGRADO'
+            WHEN p.PTJE_COMP2 BETWEEN 40 AND 59 THEN 'EN PROCESO'
+            WHEN p.PTJE_COMP2 BETWEEN 20 AND 39  THEN 'NO LOGRADO'
+            WHEN p.PTJE_COMP2 = 0 THEN 'SIN CALIFICAR'
+            ELSE NULL
+         END AS NIVEL_COMP2
+      FROM (
+
+         SELECT
+            ar.PF_ID_FAMILIA,
+            SUM(
+               CASE
+                     WHEN REGEXP_LIKE(ar.AR_RESPUESTA, '^[0-9]+(\.[0-9]+)?$') THEN TO_NUMBER(ar.AR_RESPUESTA)
+                     ELSE 0
+               END
+            ) AS PTJE_COMP2
+         FROM SSI_ANEXOS_PREGUNTAS ap
+         JOIN SSI_ANEXOS_RESPUESTAS ar ON ap.AP_ID_PREGUNTA = ar.AP_ID_PREGUNTA
+         WHERE
+            ap.SI_ID_SERVICIO = 3 -- Acercándonos
+            AND ap.AP_NUM_ANEXO = 7
+            AND ap.AP_NUM_GRUPO = 2
+            AND NVL(ar.AR_ELIMINADO, 0) = 0
+            AND ar.SF_ID_FASE = 3  -- Evaluación Intermedia
+         GROUP BY
+            ar.PF_ID_FAMILIA
+
+      ) p
+
+), cte_eval_parent_final AS (
+
+      SELECT 
+         p.*,
+         CASE
+            WHEN p.PTJE_COMP3 BETWEEN 60 AND 80 THEN 'LOGRADO'
+            WHEN p.PTJE_COMP3 BETWEEN 40 AND 59 THEN 'EN PROCESO'
+            WHEN p.PTJE_COMP3 BETWEEN 20 AND 39  THEN 'NO LOGRADO'
+            WHEN p.PTJE_COMP3 = 0 THEN 'SIN CALIFICAR'
+            ELSE NULL
+         END AS NIVEL_COMP3
+      FROM (
+
+         SELECT
+            ar.PF_ID_FAMILIA,
+            SUM(
+               CASE
+                     WHEN REGEXP_LIKE(ar.AR_RESPUESTA, '^[0-9]+(\.[0-9]+)?$') THEN TO_NUMBER(ar.AR_RESPUESTA)
+                     ELSE 0
+               END
+            ) AS PTJE_COMP3
+         FROM SSI_ANEXOS_PREGUNTAS ap
+         JOIN SSI_ANEXOS_RESPUESTAS ar ON ap.AP_ID_PREGUNTA = ar.AP_ID_PREGUNTA
+         WHERE
+            ap.SI_ID_SERVICIO = 3 -- Acercándonos
+            AND ap.AP_NUM_ANEXO = 7
+            AND ap.AP_NUM_GRUPO = 2
+            AND NVL(ar.AR_ELIMINADO, 0) = 0
+            AND ar.SF_ID_FASE = 4  -- Evaluación Final
+         GROUP BY
+            ar.PF_ID_FAMILIA
+
+      ) p
+
+), cte_eval_parent AS (
+
+      SELECT 
+         p.*,
+         CASE
+            WHEN p.PTJE_COMP BETWEEN 60 AND 80 THEN 'LOGRADO'
+            WHEN p.PTJE_COMP BETWEEN 40 AND 59 THEN 'EN PROCESO'
+            WHEN p.PTJE_COMP BETWEEN 20 AND 39  THEN 'NO LOGRADO'
+            WHEN p.PTJE_COMP = 0 THEN 'SIN CALIFICAR'
+            ELSE NULL
+         END AS RESULTADO_COMPETENCIAS
+      FROM (
+
+         SELECT
+            ar.PF_ID_FAMILIA,
+            SUM(
+               CASE
+                     WHEN REGEXP_LIKE(ar.AR_RESPUESTA, '^[0-9]+(\.[0-9]+)?$') THEN TO_NUMBER(ar.AR_RESPUESTA)
+                     ELSE 0
+               END
+            ) AS PTJE_COMP
+         FROM SSI_ANEXOS_PREGUNTAS ap
+         JOIN SSI_ANEXOS_RESPUESTAS ar ON ap.AP_ID_PREGUNTA = ar.AP_ID_PREGUNTA
+         WHERE
+            ap.SI_ID_SERVICIO = 3 -- Acercándonos
+            AND ap.AP_NUM_ANEXO = 7
+            AND ap.AP_NUM_GRUPO = 2
+            AND NVL(ar.AR_ELIMINADO, 0) = 0
+            AND ar.SF_ID_FASE IN (2, 3, 4)  -- Evaluación Inicial | Intermedia | Final
+         GROUP BY
+            ar.PF_ID_FAMILIA
+
+      ) p
+
+)
+-- *  Final: Consulta final
+SELECT
+   gf.*,
+   nna.NRO_DOC_USU,
+   nna.NRO_MIE_FAM,
+   nna.NRO_NNA_CP,
+   a.TIP_FAM,
+   a.UBI_VIV,
+   a.VIV_OCU,
+   a.TIP_VIV,
+   a.FEC_ING,
+   a.MOT_ING,
+   ri.PTJE_RIESGO1,
+   ri.NIVEL_RIESGO1,
+   rm.PTJE_RIESGO2,
+   rm.NIVEL_RIESGO2,
+   rf.PTJE_RIESGO3,
+   rf.NIVEL_RIESGO3,
+   pci.PTJE_COMP1,
+   pci.NIVEL_COMP1,
+   pco.PTJE_COMP2,
+   pco.NIVEL_COMP2,
+   pcf.PTJE_COMP3,
+   pcf.NIVEL_COMP3,
+   pc.RESULTADO_COMPETENCIAS,
+   ROW_NUMBER() OVER (ORDER BY gf.PF_ID_FAMILIA ASC) AS NRO
+FROM cte_gestion_familias gf
+LEFT JOIN cte_nna nna ON gf.PF_ID_FAMILIA = nna.PF_ID_FAMILIA
+LEFT JOIN cte_anexos a ON gf.PF_ID_FAMILIA = a.PF_ID_FAMILIA
+LEFT JOIN cte_eval_riesgo_inicial ri ON gf.PF_ID_FAMILIA = ri.PF_ID_FAMILIA
+LEFT JOIN cte_eval_riesgo_intermedia rm ON gf.PF_ID_FAMILIA = rm.PF_ID_FAMILIA
+LEFT JOIN cte_eval_riesgo_final rf ON gf.PF_ID_FAMILIA = rf.PF_ID_FAMILIA
+LEFT JOIN cte_eval_parent_inicial pci ON gf.PF_ID_FAMILIA = pci.PF_ID_FAMILIA
+LEFT JOIN cte_eval_parent_intermedio pco ON gf.PF_ID_FAMILIA = pco.PF_ID_FAMILIA
+LEFT JOIN cte_eval_parent_final pcf ON gf.PF_ID_FAMILIA = pcf.PF_ID_FAMILIA
+LEFT JOIN cte_eval_parent pc ON gf.PF_ID_FAMILIA = pc.PF_ID_FAMILIA
+ORDER BY gf.PF_ID_FAMILIA ASC
+/
+
+
+
+-- * 2. MA02_Matriz NNA
+WITH cte_gestion_acompañante AS (
+
+   SELECT
+
+      -- ! Aux
+      f.PF_ID_FAMILIA,
+
+      -- Datos generales de la familia y zona
+      f.PF_COD_FAMILIA AS COD_FAM,
+      u.UORNOMBRE AS NOM_CEDIF,
+      z.ZO_DESCRIPCION AS NOM_ZONA,
+      sz.SZO_DESC_SUB_ZONA AS SUB_ZONA,
+
+      -- Datos del acompañante (equipo de trabajo)
+      pe.PERAPEPATERNO AS PRI_APE_AF,
+      pe.PERAPEMATERNO AS SEG_APE_AF,
+      pe.PERNOMBRE AS NOM_AF,
+      pe.PERNRODOCUMENTO AS DOC_AF
+      
+   FROM SSI_ZONA_INTERVENCION z
+   JOIN SSI_POTENCIALES_FAMILIAS f ON z.ZO_ID_ZONA = f.ZO_ID_ZONA
+   LEFT JOIN SSI_SUBZONAS sz ON z.ZO_ID_ZONA = sz.ZO_ID_ZONA
+   LEFT JOIN TGUNIDADORGANICA u ON z.UOR_ID_UNIDADORG = u.IDUNIDADORGANICA
+   LEFT JOIN SSI_EQUIPO_TRABAJO et ON f.EQ_ID_EQUIPO = et.EQ_ID_EQUIPO 
+                                   AND et.EQ_ESTADO = 1
+   LEFT JOIN TRPERSONAL ps ON et.PER_ID_PERSONAL = ps.IDPERSONAL
+   LEFT JOIN TGPERSONA pe ON pe.IDPERSONA = ps.PRHPERSONA
+   -- LEFT JOIN TGCATALOGO d ON pe.PERDOCUMENTO = d.IDCATALOGO
+
+   WHERE
+      z.SI_ID_SERVICIO = 3  -- Acercándonos
+      AND f.PF_ESTADO = 1
+      AND f.PF_ELIMINADO = 0
+
+), cte_gestion_cuidador AS (
+
+   -- Seleccionamos UN SOLO integrante por familia (el cuidador principal)
+   SELECT
+
+      -- ! Aux
+      f.PF_ID_FAMILIA, 
+      i.FI_ID_INTEGRANTE,
+
+      -- Datos del cuidador (usamos MAX para evitar duplicados)
+      i.FI_PRIMER_APE AS PRI_APE_CP,
+      i.FI_SEGUNDO_APE AS SEG_AP_CP,
+      i.FI_NOMBRES AS NOM_CP,
+      tp.CATDESCRIPCION AS PAR_CP_NNA
+
+   FROM SSI_POTENCIALES_FAMILIAS f
+   JOIN SSI_FAMILIA_INTEGRANTES i ON f.PF_ID_FAMILIA = i.PF_ID_FAMILIA
+   LEFT JOIN TGCATALOGO tp ON i.CA_ID_PARENTESCO = tp.IDCATALOGO
+   WHERE
+      f.SI_ID_SERVICIO = 3  -- Acercándonos
+      AND f.PF_ESTADO = 1
+      AND f.PF_ELIMINADO = 0
+      AND i.FI_ESTADO = 1
+      AND i.FI_ELIMINADO = 0
+      AND i.FI_CUIDADOR = 1 -- Cuidadores
+
+), cte_gestion_nna AS (
+
+   SELECT
+
+      -- ! Aux
+      f.PF_ID_FAMILIA, 
+      i.FI_ID_INTEGRANTE,
+
+      -- Datos NNA
+      i.FI_PRIMER_APE AS PRI_APE_NNA,
+      i.FI_SEGUNDO_APE AS SEG_APE_NNA,
+      i.FI_NOMBRES AS NOM_NNA,
+      pnc.PA_NOMBRE AS PAI_NAC_NNA,
+      uc.U_DEPARTAMENTO AS DEP_NAC_NNA,
+      uc.U_PROVINCIA AS PRO_NAC_NNA,
+      uc.U_DISTRITO AS DIS_NAC_NNA,
+      i.FI_FEC_NAC AS FEC_NAC_NNA,
+      i.FI_EDAD AS EDAD_NNA,
+      i.FI_GRUPO_EDAD AS GRU_ETA_NNA,
+      ts.CATDESCRIPCION AS SEX_NNA,
+      d.CATDESCRIPCION AS TIP_DOC_NNA,
+      i.FI_NUMERO_DOC AS NRO_DOC_NNA,
+      tsg.CATDESCRIPCION AS TIP_SEG_NNA,
+      gi.CATDESCRIPCION AS GRA_INS_NNA,
+      (
+         CASE
+            WHEN cd.CATDESCRIPCION IS NOT NULL THEN 'SI'
+            ELSE 'NO'
+         END
+      ) AS TIE_DIS_NNA,
+      cd.CATDESCRIPCION AS TIP_DIS_NNA,
+      gd.CATDESCRIPCION AS GRA_DIS_NNA,
+      i.FI_INSCRIPCION_CONADIS as REG_CONADIS_DIS,
+      lm.CATDESCRIPCION AS LEN_MAT_NNA,
+      id.CATDESCRIPCION AS IDIOM_MAT_ESP_NNA,
+      cet.CATDESCRIPCION AS IDE_ET_NNA,
+      i.FI_OTRO_ETNIA AS IDE_ET_ESP_NNA,
+      i.FI_VICTIMA_FEMINI AS VICT_NNA,
+      i.FI_MEDIO_INGRESO_NNA_CEDIF AS MED_ING_NNA,
+      rcu.AR_RESPUESTA AS TIP_ING_NNA,
+      rfi.AR_RESPUESTA AS FEC_ING_NNA,
+      f.PF_TIPO_EGRESO AS TIP_EGR_NNA,
+      f.PF_FECHA_EGRESO AS FEC_EGR_NNA,
+      (
+         CASE
+            WHEN f.PF_ESTADO = 0 THEN 'INACTIVO'
+            WHEN f.PF_ESTADO = 1 THEN 'ACTIVO'
+            WHEN f.PF_ESTADO = 2 THEN 'CERRADO'
+         END
+      ) AS EST_ACT_NNA,
+      (FLOOR(MONTHS_BETWEEN(SYSDATE, i.FI_FEC_NAC) / 12)) AS EDAD_NNA2 -- Edad calculada
+
+   FROM SSI_POTENCIALES_FAMILIAS f
+   JOIN SSI_FAMILIA_INTEGRANTES i ON f.PF_ID_FAMILIA = i.PF_ID_FAMILIA
+   LEFT JOIN TGCATALOGO d ON i.CA_ID_TIPDOC = d.IDCATALOGO
+   LEFT JOIN SSI_UBIGEO_NOMBRES uc ON i.UBI_ID_DEPARTAMENTO = uc.U_ID_DEPARTAMENTO
+                                   AND i.UBI_ID_PROVINCIA = uc.U_ID_PROVINCIA
+                                   AND i.UBI_ID_DISTRITO = uc.U_ID_DISTRITO
+   LEFT JOIN TG_PAIS pnc ON i.PA_ID_PAIS_NACIMIENTO = pnc.IDPAIS
+   LEFT JOIN TGCATALOGO tp ON i.CA_ID_PARENTESCO = tp.IDCATALOGO
+   LEFT JOIN TGCATALOGO ts ON i.CA_ID_SEXO = ts.IDCATALOGO
+   LEFT JOIN TGCATALOGO cd ON i.CA_ID_DISCAPACIDAD = cd.IDCATALOGO
+   LEFT JOIN TGCATALOGO lm ON i.CA_ID_LENGUA_MATERNA = lm.IDCATALOGO
+   LEFT JOIN TGCATALOGO olm ON i.FI_OTRO_IDIOMA = olm.IDCATALOGO
+   LEFT JOIN TGCATALOGO cet ON i.CA_ID_ETNIA = cet.IDCATALOGO
+   LEFT JOIN TGCATALOGO tsg ON i.CA_ID_TIPO_SEGURO = tsg.IDCATALOGO
+   LEFT JOIN TGCATALOGO gi ON i.CA_ID_GRADO_INST = gi.IDCATALOGO
+   LEFT JOIN TGCATALOGO gd ON i.FI_GRADO_DISCAPACIDAD = gd.IDCATALOGO
+   LEFT JOIN TGCATALOGO id ON i.CA_ID_IDIOMA = id.IDCATALOGO
+   
+   -- ? Respuestas de anexos (usamos LEFT JOIN para traer datos aunque no tengan respuestas)
+   -- LEFT JOIN ssi_anexos_respuestas rm ON f.PF_ID_FAMILIA = rm.PF_ID_FAMILIA AND rm.AP_ID_PREGUNTA = 621 -- Numero miembros
+   -- LEFT JOIN ssi_anexos_respuestas rtf ON f.PF_ID_FAMILIA = rtf.PF_ID_FAMILIA AND rtf.AP_ID_PREGUNTA = 622 -- Tipo familia
+   -- LEFT JOIN ssi_anexos_respuestas rc ON f.PF_ID_FAMILIA = rc.PF_ID_FAMILIA AND rc.AP_ID_PREGUNTA = 630 -- Numero nna a cargo del cuidador
+   -- LEFT JOIN ssi_anexos_respuestas ruv ON f.PF_ID_FAMILIA = ruv.PF_ID_FAMILIA AND ruv.AP_ID_PREGUNTA = 639 -- Ubicacion de la vivienda
+   -- LEFT JOIN ssi_anexos_respuestas rov ON f.PF_ID_FAMILIA = rov.PF_ID_FAMILIA AND rov.AP_ID_PREGUNTA = 640 -- Ocupación de la vivienda
+   -- LEFT JOIN ssi_anexos_respuestas rtv ON f.PF_ID_FAMILIA = rtv.PF_ID_FAMILIA AND rtv.AP_ID_PREGUNTA = 641 -- Tipo vivienda
+   LEFT JOIN ssi_anexos_respuestas rcu ON f.PF_ID_FAMILIA = rcu.PF_ID_FAMILIA AND rcu.AP_ID_PREGUNTA = 642 -- Condición del usuario en el servicio
+   LEFT JOIN ssi_anexos_respuestas rfi ON f.PF_ID_FAMILIA = rfi.PF_ID_FAMILIA AND rfi.AP_ID_PREGUNTA = 643 -- Fecha de ingreso de la familia al servicio
+   -- LEFT JOIN ssi_anexos_respuestas rmi ON f.PF_ID_FAMILIA = rmi.PF_ID_FAMILIA AND rmi.AP_ID_PREGUNTA = 644 -- Motivo de la familia para ingresar al servicio
+   
+   WHERE
+      f.SI_ID_SERVICIO = 3  -- Acercándonos
+      AND f.PF_ESTADO = 1
+      AND f.PF_ELIMINADO = 0
+      AND i.FI_ESTADO = 1
+      AND i.FI_ELIMINADO = 0
+      AND (i.FI_CUIDADOR = 0 OR i.FI_CUIDADOR IS NULL) -- NNA
+
+)
+
+-- *  Final: Consulta final
+SELECT
+
+   ROW_NUMBER() OVER (ORDER BY a.PF_ID_FAMILIA ASC) AS NRO,
+   a.*,
+   c.*,
+   n.*
+   -- COUNT(1)
+
+FROM cte_gestion_acompañante a
+JOIN cte_gestion_cuidador c ON a.PF_ID_FAMILIA = c.PF_ID_FAMILIA
+JOIN cte_gestion_nna n ON c.PF_ID_FAMILIA = n.PF_ID_FAMILIA 
+                     AND c.FI_ID_INTEGRANTE != n.FI_ID_INTEGRANTE -- Evitamos unir el mismo integrante que es cuidador con el mismo como NNA
+/
+
+
+
+-- * 3. MA03_Matriz Riesgo
+
+WITH cte_gestion_acompañante AS (
+
+   SELECT
+
+      -- ! Aux
+      f.PF_ID_FAMILIA,
+
+      -- Datos generales de la familia y zona
+      f.PF_COD_FAMILIA AS COD_FAM,
+      u.UORNOMBRE AS NOM_CEDIF,
+      z.ZO_DESCRIPCION AS NOM_ZONA,
+
+      -- Datos del acompañante (equipo de trabajo)
+      pe.PERAPEPATERNO AS PRI_APE_AF,
+      pe.PERAPEMATERNO AS SEG_APE_AF,
+      pe.PERNOMBRE AS NOM_AF,
+      pe.PERNRODOCUMENTO AS DOC_AF
+      
+   FROM SSI_ZONA_INTERVENCION z
+   JOIN SSI_POTENCIALES_FAMILIAS f ON z.ZO_ID_ZONA = f.ZO_ID_ZONA
+   LEFT JOIN TGUNIDADORGANICA u ON z.UOR_ID_UNIDADORG = u.IDUNIDADORGANICA
+   LEFT JOIN SSI_EQUIPO_TRABAJO et ON f.EQ_ID_EQUIPO = et.EQ_ID_EQUIPO 
+                                   AND et.EQ_ESTADO = 1
+   LEFT JOIN TRPERSONAL ps ON et.PER_ID_PERSONAL = ps.IDPERSONAL
+   LEFT JOIN TGPERSONA pe ON pe.IDPERSONA = ps.PRHPERSONA
+   -- LEFT JOIN TGCATALOGO d ON pe.PERDOCUMENTO = d.IDCATALOGO
+
+   WHERE
+      z.SI_ID_SERVICIO = 3  -- Acercándonos
+      AND f.PF_ESTADO = 1
+      AND f.PF_ELIMINADO = 0
+
+), cte_gestion_cuidador AS (
+
+   -- Seleccionamos UN SOLO integrante por familia (el cuidador principal)
+   SELECT
+
+      -- ! Aux
+      f.PF_ID_FAMILIA, 
+
+      -- Datos del cuidador (usamos MAX para evitar duplicados)
+      i.FI_PRIMER_APE AS PRI_APE_CP,
+      i.FI_SEGUNDO_APE AS SEG_AP_CP,
+      i.FI_NOMBRES AS NOM_CP,
+      d.CATDESCRIPCION AS TIP_DOC_CP
+
+   FROM SSI_POTENCIALES_FAMILIAS f
+   JOIN SSI_FAMILIA_INTEGRANTES i ON f.PF_ID_FAMILIA = i.PF_ID_FAMILIA
+   LEFT JOIN TGCATALOGO d ON i.CA_ID_TIPDOC = d.IDCATALOGO
+   -- LEFT JOIN TGCATALOGO tp ON i.CA_ID_PARENTESCO = tp.IDCATALOGO
+   WHERE
+      f.SI_ID_SERVICIO = 3  -- Acercándonos
+      AND f.PF_ESTADO = 1
+      AND f.PF_ELIMINADO = 0
+      AND i.FI_ESTADO = 1
+      AND i.FI_ELIMINADO = 0
+      AND i.FI_CUIDADOR = 1 -- Cuidadores
+
+), cte_evaluacion_riesgo AS (
+
+   SELECT 
+      -- ! Aux
+      f.PF_ID_FAMILIA, 
+
+      fa.AR_RESPUESTA AS EVAL_MOMENTO,
+      rf.AR_RESPUESTA AS FEC_EVAL,
+      r1.AR_RESPUESTA AS RIESGO_P1,
+      r2.AR_RESPUESTA AS RIESGO_P2,
+      r3.AR_RESPUESTA AS RIESGO_P3,
+      r4.AR_RESPUESTA AS RIESGO_P4,
+      r5.AR_RESPUESTA AS RIESGO_P5,
+      r6.AR_RESPUESTA AS RIESGO_P6,
+      r7.AR_RESPUESTA AS RIESGO_P7,
+      r8.AR_RESPUESTA AS RIESGO_P8,
+      r9.AR_RESPUESTA AS RIESGO_P9,
+      r10.AR_RESPUESTA AS RIESGO_P10,
+      r11.AR_RESPUESTA AS RIESGO_P11,
+      r12.AR_RESPUESTA AS RIESGO_P12,
+      r13.AR_RESPUESTA AS RIESGO_P13,
+      r14.AR_RESPUESTA AS RIESGO_P14,
+      r15.AR_RESPUESTA AS RIESGO_P15,
+      r16.AR_RESPUESTA AS RIESGO_P16,
+      r17.AR_RESPUESTA AS RIESGO_P17,
+      r18.AR_RESPUESTA AS RIESGO_P18,
+      r19.AR_RESPUESTA AS RIESGO_P19,
+      r20.AR_RESPUESTA AS RIESGO_P20,
+      r21.AR_RESPUESTA AS RIESGO_P21,
+      (
+         
+         SELECT 
+            CASE
+               WHEN SUM(NVL(pf.PUNTAJE, 0)) >= 27 THEN 'RIESGO ALTO'
+               WHEN SUM(NVL(pf.PUNTAJE, 0)) >= 13 THEN 'RIESGO MEDIO'
+               WHEN SUM(NVL(pf.PUNTAJE, 0)) >= 1 THEN 'RIESGO BAJO'
+               ELSE 'SIN RIESGO'
+            END
+         FROM (
+
+            SELECT (
+               NVL(r1.ar_puntaje, 0) + NVL(r2.ar_puntaje, 0) + NVL(r3.ar_puntaje, 0) + 
+               NVL(r4.ar_puntaje, 0) + NVL(r5.ar_puntaje, 0) + NVL(r6.ar_puntaje, 0) + 
+               NVL(r7.ar_puntaje, 0) + NVL(r8.ar_puntaje, 0) + NVL(r9.ar_puntaje, 0) + 
+               NVL(r10.ar_puntaje, 0) + NVL(r11.ar_puntaje, 0) + NVL(r12.ar_puntaje, 0) + 
+               NVL(r13.ar_puntaje, 0) + NVL(r14.ar_puntaje, 0) + NVL(r15.ar_puntaje, 0) + 
+               NVL(r16.ar_puntaje, 0) + NVL(r17.ar_puntaje, 0) + NVL(r18.ar_puntaje, 0) + 
+               NVL(r19.ar_puntaje, 0) + NVL(r20.ar_puntaje, 0) + NVL(r21.ar_puntaje, 0)
+            ) AS PUNTAJE
+            FROM DUAL
+
+         ) pf
+
+      ) AS NIVEL_RIESGO
+
+   FROM SSI_POTENCIALES_FAMILIAS f
+   -- ? Evaluación de entrada
+   LEFT JOIN SSI_ANEXOS_RESPUESTAS rf ON f.PF_ID_FAMILIA = rf.PF_ID_FAMILIA AND rf.AP_ID_PREGUNTA = 1010 AND rf.SF_ID_FASE = 2  -- 1010 | FEC_EVAL
+   LEFT JOIN SSI_ANEXOS_RESPUESTAS r1 ON f.PF_ID_FAMILIA = r1.PF_ID_FAMILIA AND r1.AP_ID_PREGUNTA = 1025 AND r1.SF_ID_FASE = 2  -- 1025 | RIESGO_P1
+   LEFT JOIN SSI_ANEXOS_RESPUESTAS r2 ON f.PF_ID_FAMILIA = r2.PF_ID_FAMILIA AND r2.AP_ID_PREGUNTA = 1026 AND r2.SF_ID_FASE = 2  -- 1026 | RIESGO_P2
+   LEFT JOIN SSI_ANEXOS_RESPUESTAS r3 ON f.PF_ID_FAMILIA = r3.PF_ID_FAMILIA AND r3.AP_ID_PREGUNTA = 1027 AND r3.SF_ID_FASE = 2  -- 1027 | RIESGO_P3
+   LEFT JOIN SSI_ANEXOS_RESPUESTAS r4 ON f.PF_ID_FAMILIA = r4.PF_ID_FAMILIA AND r4.AP_ID_PREGUNTA = 1028 AND r4.SF_ID_FASE = 2  -- 1028 | RIESGO_P4
+   LEFT JOIN SSI_ANEXOS_RESPUESTAS r5 ON f.PF_ID_FAMILIA = r5.PF_ID_FAMILIA AND r5.AP_ID_PREGUNTA = 1029 AND r5.SF_ID_FASE = 2  -- 1029 | RIESGO_P5
+   LEFT JOIN SSI_ANEXOS_RESPUESTAS r6 ON f.PF_ID_FAMILIA = r6.PF_ID_FAMILIA AND r6.AP_ID_PREGUNTA = 1030 AND r6.SF_ID_FASE = 2  -- 1030 | RIESGO_P6
+   LEFT JOIN SSI_ANEXOS_RESPUESTAS r7 ON f.PF_ID_FAMILIA = r7.PF_ID_FAMILIA AND r7.AP_ID_PREGUNTA = 1031 AND r7.SF_ID_FASE = 2  -- 1031 | RIESGO_P7
+   LEFT JOIN SSI_ANEXOS_RESPUESTAS r8 ON f.PF_ID_FAMILIA = r8.PF_ID_FAMILIA AND r8.AP_ID_PREGUNTA = 1032 AND r8.SF_ID_FASE = 2  -- 1032 | RIESGO_P8
+   LEFT JOIN SSI_ANEXOS_RESPUESTAS r9 ON f.PF_ID_FAMILIA = r9.PF_ID_FAMILIA AND r9.AP_ID_PREGUNTA = 1033 AND r9.SF_ID_FASE = 2  -- 1033 | RIESGO_P9
+   LEFT JOIN SSI_ANEXOS_RESPUESTAS r10 ON f.PF_ID_FAMILIA = r10.PF_ID_FAMILIA AND r10.AP_ID_PREGUNTA = 1034 AND r10.SF_ID_FASE = 2  -- 1034 | RIESGO_P10
+   LEFT JOIN SSI_ANEXOS_RESPUESTAS r11 ON f.PF_ID_FAMILIA = r11.PF_ID_FAMILIA AND r11.AP_ID_PREGUNTA = 1035 AND r11.SF_ID_FASE = 2  -- 1035 | RIESGO_P11
+   LEFT JOIN SSI_ANEXOS_RESPUESTAS r12 ON f.PF_ID_FAMILIA = r12.PF_ID_FAMILIA AND r12.AP_ID_PREGUNTA = 1036 AND r12.SF_ID_FASE = 2  -- 1036 | RIESGO_P12
+   LEFT JOIN SSI_ANEXOS_RESPUESTAS r13 ON f.PF_ID_FAMILIA = r13.PF_ID_FAMILIA AND r13.AP_ID_PREGUNTA = 1037 AND r13.SF_ID_FASE = 2  -- 1037 | RIESGO_P13
+   LEFT JOIN SSI_ANEXOS_RESPUESTAS r14 ON f.PF_ID_FAMILIA = r14.PF_ID_FAMILIA AND r14.AP_ID_PREGUNTA = 1038 AND r14.SF_ID_FASE = 2  -- 1038 | RIESGO_P14
+   LEFT JOIN SSI_ANEXOS_RESPUESTAS r15 ON f.PF_ID_FAMILIA = r15.PF_ID_FAMILIA AND r15.AP_ID_PREGUNTA = 1039 AND r15.SF_ID_FASE = 2  -- 1039 | RIESGO_P15
+   LEFT JOIN SSI_ANEXOS_RESPUESTAS r16 ON f.PF_ID_FAMILIA = r16.PF_ID_FAMILIA AND r16.AP_ID_PREGUNTA = 1040 AND r16.SF_ID_FASE = 2  -- 1040 | RIESGO_P16
+   LEFT JOIN SSI_ANEXOS_RESPUESTAS r17 ON f.PF_ID_FAMILIA = r17.PF_ID_FAMILIA AND r17.AP_ID_PREGUNTA = 1041 AND r17.SF_ID_FASE = 2  -- 1041 | RIESGO_P17
+   LEFT JOIN SSI_ANEXOS_RESPUESTAS r18 ON f.PF_ID_FAMILIA = r18.PF_ID_FAMILIA AND r18.AP_ID_PREGUNTA = 1042 AND r18.SF_ID_FASE = 2  -- 1042 | RIESGO_P18
+   LEFT JOIN SSI_ANEXOS_RESPUESTAS r19 ON f.PF_ID_FAMILIA = r19.PF_ID_FAMILIA AND r19.AP_ID_PREGUNTA = 1043 AND r19.SF_ID_FASE = 2  -- 1043 | RIESGO_P19
+   LEFT JOIN SSI_ANEXOS_RESPUESTAS r20 ON f.PF_ID_FAMILIA = r20.PF_ID_FAMILIA AND r20.AP_ID_PREGUNTA = 1044 AND r20.SF_ID_FASE = 2  -- 1044 | RIESGO_P20
+   LEFT JOIN SSI_ANEXOS_RESPUESTAS r21 ON f.PF_ID_FAMILIA = r21.PF_ID_FAMILIA AND r21.AP_ID_PREGUNTA = 1045 AND r21.SF_ID_FASE = 2  -- 1045 | RIESGO_P21
+   LEFT JOIN SSI_ANEXOS_RESPUESTAS fa ON f.PF_ID_FAMILIA = fa.PF_ID_FAMILIA AND fa.AP_ID_PREGUNTA = 1047 AND fa.SF_ID_FASE = 2  -- 1047 | FASE
+   WHERE
+      f.SI_ID_SERVICIO = 3  -- Acercándonos
+      AND f.PF_ESTADO = 1
+      AND f.PF_ELIMINADO = 0
+
+)
+-- *  Final: Consulta final
+SELECT
+
+   ROW_NUMBER() OVER (ORDER BY a.PF_ID_FAMILIA ASC) AS NRO,
+   a.*,
+   c.*,
+   er.*
+
+FROM cte_gestion_acompañante a
+JOIN cte_gestion_cuidador c ON a.PF_ID_FAMILIA = c.PF_ID_FAMILIA
+JOIN cte_evaluacion_riesgo er ON c.PF_ID_FAMILIA = er.PF_ID_FAMILIA 
+/
+
+
+
+-- * 4. MA04_Matriz Competencias
+WITH cte_gestion_acompañante AS (
+
+   SELECT
+
+      -- ! Aux
+      f.PF_ID_FAMILIA,
+
+      -- Datos generales de la familia y zona
+      f.PF_COD_FAMILIA AS COD_FAM,
+      u.UORNOMBRE AS NOM_CEDIF,
+      z.ZO_DESCRIPCION AS NOM_ZONA,
+
+      -- Datos del acompañante (equipo de trabajo)
+      pe.PERAPEPATERNO AS PRI_APE_AF,
+      pe.PERAPEMATERNO AS SEG_APE_AF,
+      pe.PERNOMBRE AS NOM_AF,
+      pe.PERNRODOCUMENTO AS DOC_AF
+      
+   FROM SSI_ZONA_INTERVENCION z
+   JOIN SSI_POTENCIALES_FAMILIAS f ON z.ZO_ID_ZONA = f.ZO_ID_ZONA
+   LEFT JOIN TGUNIDADORGANICA u ON z.UOR_ID_UNIDADORG = u.IDUNIDADORGANICA
+   LEFT JOIN SSI_EQUIPO_TRABAJO et ON f.EQ_ID_EQUIPO = et.EQ_ID_EQUIPO 
+                                   AND et.EQ_ESTADO = 1
+   LEFT JOIN TRPERSONAL ps ON et.PER_ID_PERSONAL = ps.IDPERSONAL
+   LEFT JOIN TGPERSONA pe ON pe.IDPERSONA = ps.PRHPERSONA
+   -- LEFT JOIN TGCATALOGO d ON pe.PERDOCUMENTO = d.IDCATALOGO
+
+   WHERE
+      z.SI_ID_SERVICIO = 3  -- Acercándonos
+      AND f.PF_ESTADO = 1
+      AND f.PF_ELIMINADO = 0
+
+), cte_gestion_cuidador AS (
+
+   -- Seleccionamos UN SOLO integrante por familia (el cuidador principal)
+   SELECT
+
+      -- ! Aux
+      f.PF_ID_FAMILIA, 
+
+      -- Datos del cuidador (usamos MAX para evitar duplicados)
+      i.FI_PRIMER_APE AS PRI_APE_CP,
+      i.FI_SEGUNDO_APE AS SEG_AP_CP,
+      i.FI_NOMBRES AS NOM_CP,
+      d.CATDESCRIPCION AS TIP_DOC_CP
+
+   FROM SSI_POTENCIALES_FAMILIAS f
+   JOIN SSI_FAMILIA_INTEGRANTES i ON f.PF_ID_FAMILIA = i.PF_ID_FAMILIA
+   LEFT JOIN TGCATALOGO d ON i.CA_ID_TIPDOC = d.IDCATALOGO
+   -- LEFT JOIN TGCATALOGO tp ON i.CA_ID_PARENTESCO = tp.IDCATALOGO
+   WHERE
+      f.SI_ID_SERVICIO = 3  -- Acercándonos
+      AND f.PF_ESTADO = 1
+      AND f.PF_ELIMINADO = 0
+      AND i.FI_ESTADO = 1
+      AND i.FI_ELIMINADO = 0
+      AND i.FI_CUIDADOR = 1 -- Cuidadores
+
+), cte_evaluacion_compromiso AS (
+
+   SELECT 
+      -- ! Aux
+      f.PF_ID_FAMILIA, 
+
+      fa.AR_RESPUESTA AS EVAL_MOMENTO,
+      rf.AR_RESPUESTA AS FEC_EVAL,
+      r1.AR_RESPUESTA AS COMP_P1,
+      r2.AR_RESPUESTA AS COMP_P2,
+      r3.AR_RESPUESTA AS COMP_P3,
+      r4.AR_RESPUESTA AS COMP_P4,
+      r5.AR_RESPUESTA AS COMP_P5,
+      r6.AR_RESPUESTA AS COMP_P6,
+      r7.AR_RESPUESTA AS COMP_P7,
+      r8.AR_RESPUESTA AS COMP_P8,
+      r9.AR_RESPUESTA AS COMP_P9,
+      r10.AR_RESPUESTA AS COMP_P10,
+      r11.AR_RESPUESTA AS COMP_P11,
+      r12.AR_RESPUESTA AS COMP_P12,
+      r13.AR_RESPUESTA AS COMP_P13,
+      r14.AR_RESPUESTA AS COMP_P14,
+      r15.AR_RESPUESTA AS COMP_P15,
+      r16.AR_RESPUESTA AS COMP_P16,
+      r17.AR_RESPUESTA AS COMP_P17,
+      r18.AR_RESPUESTA AS COMP_P18,
+      r19.AR_RESPUESTA AS COMP_P19,
+      r20.AR_RESPUESTA AS COMP_P20,
+      (
+         
+         SELECT 
+            CASE
+               WHEN pf.PUNTAJE BETWEEN 5 AND 9 THEN 'NO LOGRADO'
+               WHEN pf.PUNTAJE BETWEEN 10 AND 14 THEN 'EN PROCESO'
+               WHEN pf.PUNTAJE BETWEEN 15 AND 20 THEN 'LOGRADO'
+            END
+         FROM (
+            SELECT 
+               (
+                  NVL(r1.AR_RESPUESTA, 0) + NVL(r2.AR_RESPUESTA, 0) + NVL(r3.AR_RESPUESTA, 0) + NVL(r4.AR_RESPUESTA, 0) + NVL(r5.AR_RESPUESTA, 0)
+               ) AS PUNTAJE 
+            FROM DUAL
+         ) pf
+
+      ) AS NIVEL_VINCULAR,
+      (
+         
+         SELECT 
+            CASE
+               WHEN pf.PUNTAJE BETWEEN 5 AND 9 THEN 'NO LOGRADO'
+               WHEN pf.PUNTAJE BETWEEN 10 AND 14 THEN 'EN PROCESO'
+               WHEN pf.PUNTAJE BETWEEN 15 AND 20 THEN 'LOGRADO'
+            END
+         FROM (
+            SELECT 
+               (
+                  NVL(r6.AR_RESPUESTA, 0) + NVL(r7.AR_RESPUESTA, 0) + NVL(r8.AR_RESPUESTA, 0) + NVL(r9.AR_RESPUESTA, 0) + NVL(r10.AR_RESPUESTA, 0)
+               ) AS PUNTAJE 
+            FROM DUAL
+         ) pf
+
+      ) AS NIVEL_FORMATIVA,
+      (
+         
+         SELECT 
+            CASE
+               WHEN pf.PUNTAJE BETWEEN 5 AND 9 THEN 'NO LOGRADO'
+               WHEN pf.PUNTAJE BETWEEN 10 AND 14 THEN 'EN PROCESO'
+               WHEN pf.PUNTAJE BETWEEN 15 AND 20 THEN 'LOGRADO'
+            END
+         FROM (
+            SELECT 
+               (
+                  NVL(r11.AR_RESPUESTA, 0) + NVL(r12.AR_RESPUESTA, 0) + NVL(r13.AR_RESPUESTA, 0) + NVL(r14.AR_RESPUESTA, 0) + NVL(r15.AR_RESPUESTA, 0)
+               ) AS PUNTAJE 
+            FROM DUAL
+         ) pf
+
+      ) AS NIVEL_PROTECTORA,
+      (
+         
+         SELECT 
+            CASE
+               WHEN pf.PUNTAJE BETWEEN 5 AND 9 THEN 'NO LOGRADO'
+               WHEN pf.PUNTAJE BETWEEN 10 AND 14 THEN 'EN PROCESO'
+               WHEN pf.PUNTAJE BETWEEN 15 AND 20 THEN 'LOGRADO'
+            END
+         FROM (
+            SELECT 
+               (
+                  NVL(r16.AR_RESPUESTA, 0) + NVL(r17.AR_RESPUESTA, 0) + NVL(r18.AR_RESPUESTA, 0) + NVL(r19.AR_RESPUESTA, 0) + NVL(r20.AR_RESPUESTA, 0)
+               ) AS PUNTAJE 
+            FROM DUAL
+         ) pf
+
+      ) AS NIVEL_REFLEXIVA,
+      (
+         
+         SELECT 
+            CASE
+               WHEN pf.PUNTAJE BETWEEN 20 AND 39 THEN 'NO LOGRADO'
+               WHEN pf.PUNTAJE BETWEEN 40 AND 59 THEN 'EN PROCESO'
+               WHEN pf.PUNTAJE BETWEEN 60 AND 80 THEN 'LOGRADO'
+            END
+         FROM (
+            SELECT 
+               (
+                  NVL(r1.AR_RESPUESTA, 0) + NVL(r2.AR_RESPUESTA, 0) + NVL(r3.AR_RESPUESTA, 0) + NVL(r4.AR_RESPUESTA, 0) + NVL(r5.AR_RESPUESTA, 0) +
+                  NVL(r6.AR_RESPUESTA, 0) + NVL(r7.AR_RESPUESTA, 0) + NVL(r8.AR_RESPUESTA, 0) + NVL(r9.AR_RESPUESTA, 0) + NVL(r10.AR_RESPUESTA, 0) +
+                  NVL(r11.AR_RESPUESTA, 0) + NVL(r12.AR_RESPUESTA, 0) + NVL(r13.AR_RESPUESTA, 0) + NVL(r14.AR_RESPUESTA, 0) + NVL(r15.AR_RESPUESTA, 0) +
+                  NVL(r16.AR_RESPUESTA, 0) + NVL(r17.AR_RESPUESTA, 0) + NVL(r18.AR_RESPUESTA, 0) + NVL(r19.AR_RESPUESTA, 0) + NVL(r20.AR_RESPUESTA, 0)
+               ) AS PUNTAJE 
+            FROM DUAL
+         ) pf
+
+      ) AS NIVEL_COMP
+
+   FROM SSI_POTENCIALES_FAMILIAS f
+   -- ? Evaluación de entrada
+   LEFT JOIN SSI_ANEXOS_RESPUESTAS fa ON f.PF_ID_FAMILIA = fa.PF_ID_FAMILIA AND fa.AP_ID_PREGUNTA = 810 AND fa.SF_ID_FASE = 2  -- 810 | FASE
+   LEFT JOIN SSI_ANEXOS_RESPUESTAS rf ON f.PF_ID_FAMILIA = rf.PF_ID_FAMILIA AND rf.AP_ID_PREGUNTA = 811 AND rf.SF_ID_FASE = 2  -- 811 | FEC_EVAL
+   LEFT JOIN SSI_ANEXOS_RESPUESTAS r1 ON f.PF_ID_FAMILIA = r1.PF_ID_FAMILIA AND r1.AP_ID_PREGUNTA = 812 AND r1.SF_ID_FASE = 2  -- 812 | COMP_P1
+   LEFT JOIN SSI_ANEXOS_RESPUESTAS r2 ON f.PF_ID_FAMILIA = r2.PF_ID_FAMILIA AND r2.AP_ID_PREGUNTA = 813 AND r2.SF_ID_FASE = 2  -- 813 | COMP_P2
+   LEFT JOIN SSI_ANEXOS_RESPUESTAS r3 ON f.PF_ID_FAMILIA = r3.PF_ID_FAMILIA AND r3.AP_ID_PREGUNTA = 814 AND r3.SF_ID_FASE = 2  -- 814 | COMP_P3
+   LEFT JOIN SSI_ANEXOS_RESPUESTAS r4 ON f.PF_ID_FAMILIA = r4.PF_ID_FAMILIA AND r4.AP_ID_PREGUNTA = 815 AND r4.SF_ID_FASE = 2  -- 815 | COMP_P4
+   LEFT JOIN SSI_ANEXOS_RESPUESTAS r5 ON f.PF_ID_FAMILIA = r5.PF_ID_FAMILIA AND r5.AP_ID_PREGUNTA = 816 AND r5.SF_ID_FASE = 2  -- 816 | COMP_P5
+   LEFT JOIN SSI_ANEXOS_RESPUESTAS r6 ON f.PF_ID_FAMILIA = r6.PF_ID_FAMILIA AND r6.AP_ID_PREGUNTA = 817 AND r6.SF_ID_FASE = 2  -- 817 | COMP_P6
+   LEFT JOIN SSI_ANEXOS_RESPUESTAS r7 ON f.PF_ID_FAMILIA = r7.PF_ID_FAMILIA AND r7.AP_ID_PREGUNTA = 818 AND r7.SF_ID_FASE = 2  -- 818 | COMP_P7
+   LEFT JOIN SSI_ANEXOS_RESPUESTAS r8 ON f.PF_ID_FAMILIA = r8.PF_ID_FAMILIA AND r8.AP_ID_PREGUNTA = 819 AND r8.SF_ID_FASE = 2  -- 819 | COMP_P8
+   LEFT JOIN SSI_ANEXOS_RESPUESTAS r9 ON f.PF_ID_FAMILIA = r9.PF_ID_FAMILIA AND r9.AP_ID_PREGUNTA = 820 AND r9.SF_ID_FASE = 2  -- 820 | COMP_P9
+   LEFT JOIN SSI_ANEXOS_RESPUESTAS r10 ON f.PF_ID_FAMILIA = r10.PF_ID_FAMILIA AND r10.AP_ID_PREGUNTA = 821 AND r10.SF_ID_FASE = 2  -- 821 | COMP_P10
+   LEFT JOIN SSI_ANEXOS_RESPUESTAS r11 ON f.PF_ID_FAMILIA = r11.PF_ID_FAMILIA AND r11.AP_ID_PREGUNTA = 822 AND r11.SF_ID_FASE = 2  -- 822 | COMP_P11
+   LEFT JOIN SSI_ANEXOS_RESPUESTAS r12 ON f.PF_ID_FAMILIA = r12.PF_ID_FAMILIA AND r12.AP_ID_PREGUNTA = 823 AND r12.SF_ID_FASE = 2  -- 823 | COMP_P12
+   LEFT JOIN SSI_ANEXOS_RESPUESTAS r13 ON f.PF_ID_FAMILIA = r13.PF_ID_FAMILIA AND r13.AP_ID_PREGUNTA = 824 AND r13.SF_ID_FASE = 2  -- 824 | COMP_P13
+   LEFT JOIN SSI_ANEXOS_RESPUESTAS r14 ON f.PF_ID_FAMILIA = r14.PF_ID_FAMILIA AND r14.AP_ID_PREGUNTA = 825 AND r14.SF_ID_FASE = 2  -- 825 | COMP_P14
+   LEFT JOIN SSI_ANEXOS_RESPUESTAS r15 ON f.PF_ID_FAMILIA = r15.PF_ID_FAMILIA AND r15.AP_ID_PREGUNTA = 826 AND r15.SF_ID_FASE = 2  -- 826 | COMP_P15
+   LEFT JOIN SSI_ANEXOS_RESPUESTAS r16 ON f.PF_ID_FAMILIA = r16.PF_ID_FAMILIA AND r16.AP_ID_PREGUNTA = 827 AND r16.SF_ID_FASE = 2  -- 827 | COMP_P16
+   LEFT JOIN SSI_ANEXOS_RESPUESTAS r17 ON f.PF_ID_FAMILIA = r17.PF_ID_FAMILIA AND r17.AP_ID_PREGUNTA = 828 AND r17.SF_ID_FASE = 2  -- 828 | COMP_P17
+   LEFT JOIN SSI_ANEXOS_RESPUESTAS r18 ON f.PF_ID_FAMILIA = r18.PF_ID_FAMILIA AND r18.AP_ID_PREGUNTA = 829 AND r18.SF_ID_FASE = 2  -- 829 | COMP_P18
+   LEFT JOIN SSI_ANEXOS_RESPUESTAS r19 ON f.PF_ID_FAMILIA = r19.PF_ID_FAMILIA AND r19.AP_ID_PREGUNTA = 830 AND r19.SF_ID_FASE = 2  -- 830 | COMP_P19
+   LEFT JOIN SSI_ANEXOS_RESPUESTAS r20 ON f.PF_ID_FAMILIA = r20.PF_ID_FAMILIA AND r20.AP_ID_PREGUNTA = 831 AND r20.SF_ID_FASE = 2  -- 831 | COMP_P20
+   WHERE
+      f.SI_ID_SERVICIO = 3  -- Acercándonos
+      AND f.PF_ESTADO = 1
+      AND f.PF_ELIMINADO = 0
+
+)
+-- *  Final: Consulta final
+SELECT
+
+   ROW_NUMBER() OVER (ORDER BY a.PF_ID_FAMILIA ASC) AS NRO,
+   a.*,
+   c.*,
+   ec.*
+
+FROM cte_gestion_acompañante a
+JOIN cte_gestion_cuidador c ON a.PF_ID_FAMILIA = c.PF_ID_FAMILIA
+JOIN cte_evaluacion_compromiso ec ON c.PF_ID_FAMILIA = ec.PF_ID_FAMILIA 
+/
+
+
+-- * 5. MA05_Matriz Sesiones
+WITH cte_gestion_acompañante AS (
+
+   SELECT
+
+      -- ! Aux
+      f.PF_ID_FAMILIA,
+
+      -- Datos generales de la familia y zona
+      f.PF_COD_FAMILIA AS COD_FAM,
+      u.UORNOMBRE AS NOM_CEDIF,
+      z.ZO_DESCRIPCION AS NOM_ZONA,
+
+      -- Datos del acompañante (equipo de trabajo)
+      pe.PERAPEPATERNO AS PRI_APE_AF,
+      pe.PERAPEMATERNO AS SEG_APE_AF,
+      pe.PERNOMBRE AS NOM_AF,
+      pe.PERNRODOCUMENTO AS DOC_AF
+      
+   FROM SSI_ZONA_INTERVENCION z
+   JOIN SSI_POTENCIALES_FAMILIAS f ON z.ZO_ID_ZONA = f.ZO_ID_ZONA
+   LEFT JOIN TGUNIDADORGANICA u ON z.UOR_ID_UNIDADORG = u.IDUNIDADORGANICA
+   LEFT JOIN SSI_EQUIPO_TRABAJO et ON f.EQ_ID_EQUIPO = et.EQ_ID_EQUIPO 
+                                   AND et.EQ_ESTADO = 1
+   LEFT JOIN TRPERSONAL ps ON et.PER_ID_PERSONAL = ps.IDPERSONAL
+   LEFT JOIN TGPERSONA pe ON pe.IDPERSONA = ps.PRHPERSONA
+   -- LEFT JOIN TGCATALOGO d ON pe.PERDOCUMENTO = d.IDCATALOGO
+
+   WHERE
+      z.SI_ID_SERVICIO = 3  -- Acercándonos
+      AND f.PF_ESTADO = 1
+      AND f.PF_ELIMINADO = 0
+
+), cte_gestion_cuidador AS (
+
+   -- Seleccionamos UN SOLO integrante por familia (el cuidador principal)
+   SELECT
+
+      -- ! Aux
+      f.PF_ID_FAMILIA, 
+
+      -- Datos del cuidador (usamos MAX para evitar duplicados)
+      i.FI_PRIMER_APE AS PRI_APE_CP,
+      i.FI_SEGUNDO_APE AS SEG_AP_CP,
+      i.FI_NOMBRES AS NOM_CP,
+      d.CATDESCRIPCION AS TIP_DOC_CP
+
+   FROM SSI_POTENCIALES_FAMILIAS f
+   JOIN SSI_FAMILIA_INTEGRANTES i ON f.PF_ID_FAMILIA = i.PF_ID_FAMILIA
+   LEFT JOIN TGCATALOGO d ON i.CA_ID_TIPDOC = d.IDCATALOGO
+   -- LEFT JOIN TGCATALOGO tp ON i.CA_ID_PARENTESCO = tp.IDCATALOGO
+   WHERE
+      f.SI_ID_SERVICIO = 3  -- Acercándonos
+      AND f.PF_ESTADO = 1
+      AND f.PF_ELIMINADO = 0
+      AND i.FI_ESTADO = 1
+      AND i.FI_ELIMINADO = 0
+      AND i.FI_CUIDADOR = 1 -- Cuidadores
+
+), cte_ejecucion_sesiones AS (
+
+   SELECT 
+
+      -- ! Aux
+      f.PF_ID_FAMILIA,
+      es.ES_ID_EJECUCION,
+
+      -- Ejecución de Sesiones
+      o.OE_DESCRIPCION AS DOM_TEM,
+      s.SE_NOMBRE AS NOM_SESION,
+      me.CATDESCRIPCION AS MED_SESION,
+      TO_CHAR(es.ES_FEC_HORA_INI, 'DD/MM/YYYY') AS FEC_SESION,
+      TO_CHAR(es.ES_FEC_HORA_INI, 'HH24:MI:SS') AS HORA_INICIO,
+      TO_CHAR(es.ES_FEC_HORA_FIN, 'HH24:MI:SS') AS HORA_TERMINO,
+      pa.CATDESCRIPCION AS PER_PRESENTES,
+      (
+         CASE 
+            WHEN es.ES_REALIZO_SESION = 1 THEN 'SI'
+            ELSE 'NO'
+         END
+      ) AS SESION_CONCLUIDA,
+      es.ES_REALIZOFECHA AS SESION_FECPROGRAMADA,
+      es.ES_CANTVECES AS CAN_REPROGRA,
+      es.ES_CANTDIAS AS DIAS_REPROGRA,
+      es.ES_MOTIVOREPRO AS MOT_REPROGRAMACION,
+      TO_CHAR(es.ES_FEC_HORA_SIGUIENTE_SESION, 'DD/MM/YYYY') AS FEC_SIGSESION,
+      TO_CHAR(es.ES_FEC_HORA_SIGUIENTE_SESION, 'HH24:MI:SS') AS HOR_SIGSESION 
+
+   FROM SSI_PATFAM p
+   JOIN SSI_DET_PATFAM dp ON p.PA_ID_PATFAM = dp.PA_ID_PATFAM
+   JOIN SSI_POTENCIALES_FAMILIAS f ON p.PF_ID_FAMILIA = f.PF_ID_FAMILIA
+   JOIN SSI_EJECUCION_SESIONES es ON dp.DP_ID_DET_PATFAM = es.DP_ID_DET_PATFAM
+   JOIN SSI_OBJETIVOS_ESPECIFICOS o ON dp.OE_ID_OBJETIVO = o.OE_ID_OBJETIVO
+   JOIN SSI_UNIDAD_SESIONES s ON dp.SE_ID_SESION = s.SE_ID_SESION
+
+   -- * Catalogos
+   LEFT JOIN TGCATALOGO me ON es.CA_ID_MODALIDAD = me.IDCATALOGO
+   LEFT JOIN TGCATALOGO pa ON TRIM(es.ES_PARTICIPANTES) = TRIM(pa.IDCATALOGO)
+
+   WHERE
+      f.SI_ID_SERVICIO = 3  -- Acercándonos
+      AND f.PF_ESTADO = 1
+      AND f.PF_ELIMINADO = 0
+)
+-- *  Final: Consulta final
+SELECT
+
+   ROW_NUMBER() OVER (ORDER BY a.PF_ID_FAMILIA ASC) AS NRO,
+   a.*,
+   c.*,
+   es.*
+
+FROM cte_gestion_acompañante a
+JOIN cte_gestion_cuidador c ON a.PF_ID_FAMILIA = c.PF_ID_FAMILIA
+JOIN cte_ejecucion_sesiones es ON c.PF_ID_FAMILIA = es.PF_ID_FAMILIA 
+ORDER BY
+   es.ES_ID_EJECUCION
+/
+
+
+-- ! Test
+
+-- ! 1. Familiar 
+SELECT 
+   -- f.* 
+   COUNT(1)
+FROM SSI_POTENCIALES_FAMILIAS f
+JOIN SSI_FAMILIA_INTEGRANTES i ON f.PF_ID_FAMILIA = i.PF_ID_FAMILIA
+WHERE 
+   f.SI_ID_SERVICIO = 3 -- Acercándonos
+   AND f.PF_ESTADO = 1
+   AND f.PF_ELIMINADO = 0
+   AND i.FI_ESTADO = 1
+   AND i.FI_ELIMINADO = 0
+   AND (i.FI_CUIDADOR = 0 OR i.FI_CUIDADOR IS NULL) -- NNA
+/
+
+-- ! 2. Buscar columnas por nombre de tabla
+
+SELECT 
+   c.TABLE_NAME,
+   c.COLUMN_NAME    
+FROM  ALL_TAB_COLUMNS c
+WHERE 
+   -- TABLE_NAME = 'SSI_FAMILIA_INTEGRANTES'
+   TABLE_NAME = 'SSI_EJECUCION_SESIONES'
+/
+
+-- ! 3. Buscar respuestas
+
+SELECT 
+   -- r.*
+   r.AR_RESPUESTA
+FROM SSI_ANEXOS_RESPUESTAS r
+WHERE 
+   r.AP_ID_PREGUNTA = 814 -- Numero miembros
+/
+
+-- ! 4. Buscar ubigeo
+SELECT * FROM SSI_UBIGEO_NOMBRES;
+/
+
+-- ! 5. Buscar preguntas por servicio
+SELECT 
+   * 
+FROM SSI_ANEXOS_PREGUNTAS p
+WHERE
+   p.SI_ID_SERVICIO = 3 -- Acercandonos
+   AND p.AP_NUM_ANEXO = 7 -- Evaluacion Riesgo
+   -- AND p.AP_NUM_GRUPO = 2
+ORDER BY 
+   p.AP_ID_PREGUNTA
+/
+
+-- ! 6. Sesiones
+SELECT * FROM SSI_EJECUCION_SESIONES
+/
+
+-- LEFT JOIN ssi_anexos_respuestas rm ON f.PF_ID_FAMILIA = rm.PF_ID_FAMILIA AND rm.AP_ID_PREGUNTA = 621 -- Numero miembros
+-- LEFT JOIN ssi_anexos_respuestas rtf ON f.PF_ID_FAMILIA = rtf.PF_ID_FAMILIA AND rtf.AP_ID_PREGUNTA = 622 -- Tipo familia
+-- LEFT JOIN ssi_anexos_respuestas rc ON f.PF_ID_FAMILIA = rc.PF_ID_FAMILIA AND rc.AP_ID_PREGUNTA = 630 -- Numero nna a cargo del cuidador
+-- LEFT JOIN ssi_anexos_respuestas ruv ON f.PF_ID_FAMILIA = ruv.PF_ID_FAMILIA AND ruv.AP_ID_PREGUNTA = 639 -- Ubicacion de la vivienda
+-- LEFT JOIN ssi_anexos_respuestas rov ON f.PF_ID_FAMILIA = rov.PF_ID_FAMILIA AND rov.AP_ID_PREGUNTA = 640 -- Ocupación de la vivienda
+-- LEFT JOIN ssi_anexos_respuestas rtv ON f.PF_ID_FAMILIA = rtv.PF_ID_FAMILIA AND rtv.AP_ID_PREGUNTA = 641 -- Tipo vivienda
+-- LEFT JOIN ssi_anexos_respuestas rcu ON f.PF_ID_FAMILIA = rcu.PF_ID_FAMILIA AND rcu.AP_ID_PREGUNTA = 642 -- Condición del usuario en el servicio
+-- LEFT JOIN ssi_anexos_respuestas rfi ON f.PF_ID_FAMILIA = rfi.PF_ID_FAMILIA AND rfi.AP_ID_PREGUNTA = 643 -- Fecha de ingreso de la familia al servicio
+-- LEFT JOIN ssi_anexos_respuestas rmi ON f.PF_ID_FAMILIA = rmi.PF_ID_FAMILIA AND rmi.AP_ID_PREGUNTA = 644 -- Motivo de la familia para ingresar al servicio
+
+
+

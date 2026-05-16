@@ -1,0 +1,2106 @@
+-- Active: 1776982575153@@@443@XE@USRSEGURIDAD
+
+/*
+*     ░  1. CRUD `SSI_SERVICIOS_INABIF`
+* ============================================================================================================================================= */
+
+-- 1.1 Insertar registros:
+-- TRUNCATE TABLE SSI_SERVICIOS_INABIF;
+INSERT INTO SSI_SERVICIOS_INABIF
+   SELECT 1, 'CEDIF', SYSDATE, 1, 0 FROM DUAL
+   UNION ALL
+   SELECT 2, 'FAMILIAS IGUALITARIAS', SYSDATE, 1, 0 FROM DUAL
+   UNION ALL
+   SELECT 3, 'ACERCANDONOS', SYSDATE, 1, 0 FROM DUAL
+/
+-- ======================================================================================================
+
+
+/*
+*  ░ 2. CRUD → `TGCATALOGO`
+* ============================================================================================================================================= */
+
+-- 2.1 Modificar la lingitud de la columna `CATDESCRIPCION`:
+ALTER TABLE TGCATALOGO 
+   MODIFY CATGRUPO NUMBER(3);
+
+-- 2.2 Insertar grupo: `PROFESIONALES POR SERVICIO`:
+/*
+   CATGRUPO = 100; CATSUBGRUPO = 1; CATTIPO = 0;                  */
+
+-- 100, 2, 0
+INSERT INTO TGCATALOGO(
+               IDCATALOGO,
+               CATGRUPO, 
+               CATSUBGRUPO,
+               CATTIPO, 
+               CATDESCRIPCION,
+               CATESTADO, 
+               CATUSUREGISTRA,
+               CATFECREGISTRA
+) 
+   SELECT 5505, 100, 0, 0, 'PROFESIONALES POR SERVICIO', 1, 1, SYSDATE FROM DUAL 
+   UNION ALL
+   SELECT 5506, 100, 1, 0, 'SERVICIO PUNCHE', 1, 1, SYSDATE FROM DUAL 
+   /* UNION ALL
+   SELECT 5507, 100, 1, 1, 'COORDINADOR', 1, 1, SYSDATE FROM DUAL  */
+   UNION ALL
+   SELECT 5508, 100, 1, 2, 'DIGITADOR', 1, 1, SYSDATE FROM DUAL 
+   UNION ALL
+   SELECT 5509, 100, 1, 3, 'ACOMPAÑANTE FAMILIAR', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5707, 100, 1, 3, 'COORDINADOR ZONAL', 1, 1, SYSDATE FROM DUAL;
+/
+
+-- ! COMMIT;
+
+-- 2.3 Crear e insertar columna abreviatura en `TGCATALOGO`:
+
+-- 2.3.1 Agregar la columna abreviatura:
+ALTER TABLE TGCATALOGO
+   ADD CATABREVIATURA VARCHAR2(15) NULL;
+
+-- 2.3.2 Insertar abreviaturas: CATGRUPO = 50 | CATSUBGRUPO = 7
+UPDATE TGCATALOGO SET CATABREVIATURA = 'DNI' WHERE IDCATALOGO = 4589;
+UPDATE TGCATALOGO SET CATABREVIATURA = 'CE' WHERE IDCATALOGO = 4590;
+UPDATE TGCATALOGO SET CATABREVIATURA = 'PAS' WHERE IDCATALOGO = 4591;
+-- ====================================================================================================== */
+
+
+/*
+*     ░ 3. Crear grupos de `Derivado por Institución o Iniciativa Propia` → `TGCATALOGO`
+* ============================================================================================================================================= */
+
+-- 2.1 Insertar grupo: `PROFESIONALES POR SERVICIO`:
+/*
+   CATGRUPO = 100; CATSUBGRUPO = 0; CATTIPO = 0;                  */
+
+-- 101, 1, 0
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5505, 101, 0, 0, 'DERIVADO POR', 1, 1, SYSDATE FROM DUAL 
+   UNION ALL
+   SELECT 5506, 101, 1, 0, 'INSTITUCIÓN O INICIATIVA PROPIA', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5507, 101, 1, 1, 'UPE', 1, 1, SYSDATE FROM DUAL 
+   UNION ALL
+   SELECT 5508, 101, 1, 2, 'ORGANIZACIÓN CIVIL', 1, 1, SYSDATE FROM DUAL 
+   UNION ALL
+   SELECT 5509, 101, 1, 3, 'OTROS SERVICIOS DE INABIF', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5510, 101, 1, 4, 'INICIATIVA PROPIA', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5511, 101, 1, 5, 'ESTABLECIMIENTO DE SALUD', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5512, 101, 1, 6, 'OTROS', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5513, 101, 1, 7, 'DEMUNA', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5514, 101, 1, 8, 'INSTITUCIÓN EDUCATIVA', 1, 1, SYSDATE FROM DUAL;
+/
+
+-- ====================================================================================================== */
+
+
+/*
+*     ░ 4. Crear grupos `Servicio de Cuidador` → `TGCATALOGO`
+* ============================================================================================================================================= */
+
+-- 2.1 Insertar grupo: `PROFESIONALES POR SERVICIO`:
+/*
+   CATGRUPO = 100; CATSUBGRUPO = 0; CATTIPO = 0;                  */
+
+-- 102, 1, 0
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5515, 102, 0, 0, 'SERVICIO DE CUIDADOR', 1, 1, SYSDATE FROM DUAL 
+   UNION ALL
+   SELECT 5516, 102, 1, 0, 'DIURNO', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5517, 102, 1, 1, 'CUNA', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5518, 102, 1, 2, 'JARDÍN', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5519, 102, 1, 3, 'DESARROLLO COMPLEMENTARIO', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5520, 102, 1, 4, 'SERVICIO DE PROMOCIÓN AL ADOLESCENTE', 1, 1, SYSDATE FROM DUAL;
+/
+-- ====================================================================================================== */
+
+
+/*
+*     ░ 5. Crear grupo: "PROBLEMAS SOCIOS FAMILIARES" → `TGCATALOGO`
+* ============================================================================================================================================= */
+
+
+-- 4.1 Insertar grupo
+-- 103, 1
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5521, 103, 0, 0, 'PROBLEMAS SOCIALES', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5522, 103, 1, 0, 'PROBLEMAS SOCIO FAMILIAR', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5523, 103, 1, 1, 'ABANDONO PATERNO Y/O MATERNO', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5524, 103, 1, 2, 'MADRE ADOLECENTE', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5525, 103, 1, 3, 'DESCUIDO FÍSICO Y MORAL DEL NNA', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5526, 103, 1, 4, 'DESORGANIZACIÓN FAMILIAR', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5527, 103, 1, 5, 'VIOLENCIA FAMILIAR', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5528, 103, 1, 6, 'CONSUMO DE DROGAS', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5529, 103, 1, 6, 'ORFANDAD', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5530, 103, 1, 6, 'PADRE O MADRE PRIVADO DE LA LIBERTAD', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5531, 103, 1, 6, 'FALTA DE COMUNICACIÓN', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5532, 103, 1, 6, 'CRISIS FAMILIAR', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5533, 103, 1, 6, 'OTROS', 1, 1, SYSDATE FROM DUAL;
+
+-- ====================================================================================================== */
+
+/*
+*     ░ 6. Crear grupo: "MOTIVO SOLICITA SERVICIO DEL CEDIF" → `TGCATALOGO`
+* ============================================================================================================================================= */
+
+
+-- 4.1 Insertar grupo
+-- 9, 13
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5534, 9, 13, 0, 'MOTIVO SOLICITA SERVICIO DEL CEDIF', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5535, 9, 13, 1, 'NO TIENE CON QUIEN DEJAR A SU HIJO/A/OS PARA TRABAJAR', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5536, 9, 13, 1, 'POR VIOLENCIA FAMILIAR', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5537, 9, 13, 1, 'PROBLEMAS DE SALUD', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5538, 9, 13, 1, 'POR ABANDONO DE UNO O AMBOS PADRES', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5539, 9, 13, 1, 'PARA ACTIVIDADES EDUCATIVAS', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5540, 9, 13, 1, 'APOYO EMOCIONAL', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5541, 9, 13, 1, 'HIJO/A CON AMISTADES PELIGROSAS', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5542, 9, 13, 1, 'PADRE O MADRE CONSUMIDOR DE DROGAS', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5543, 9, 13, 1, 'OTROS', 1, 1, SYSDATE FROM DUAL;
+
+
+-- ====================================================================================================== */
+
+
+/*
+*     ░ 7. Crear grupo: "CÓMO SE ENTERÓ DE SERVICIOS DE CEDIF" → `TGCATALOGO`
+* ============================================================================================================================================= */
+
+
+-- 4.1 Insertar grupo
+-- 9, 14
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5544, 9, 14, 0, 'CÓMO SE ENTERÓ SERVICIOS DE CEDIF', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5545, 9, 14, 1, 'POR LA PARROQUIA', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5546, 9, 14, 2, 'POR LOS MEDIOS DE COMUNICACIÓN', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5547, 9, 14, 3, 'POR ALGUNA INSTITUCIÓN EDUCATIVA', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5548, 9, 14, 4, 'POR UNA ONG', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5549, 9, 14, 5, 'POR EL CENTRO DE SALUD/POSTA/HOSPITAL', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5550, 9, 14, 6, 'POR PERSONAL DEL CEDIF', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5551, 9, 14, 7, 'POR LA UPE', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5552, 9, 14, 8, 'POR EL CEM', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5553, 9, 14, 9, 'OTRO', 1, 1, SYSDATE FROM DUAL;
+
+
+-- ====================================================================================================== */
+
+
+/*
+*     ░ 8. Adicionar tipo al grupo: "TIPO FAMILIA" → `TGCATALOGO`
+* ============================================================================================================================================= */
+
+-- 3, 6
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5554, 3, 6, 6, 'OTROS', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5997, 3, 6, 7, 'FAMILIA INCOMPLETA', 1, 1, SYSDATE FROM DUAL;
+
+-- ====================================================================================================== */
+
+
+
+/*
+*     ░ 9. Adicionar tipo al grupo: "JEFATURA FAMILIAR" → `TGCATALOGO`
+* ============================================================================================================================================= */
+
+-- 3, 6
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5555, 9, 6, 6, 'OTROS', 1, 1, SYSDATE FROM DUAL;
+
+-- ====================================================================================================== */
+
+/*
+*     ░ 10. Adicionar tipo al grupo: "TIPO ALUMBRADO" → `TGCATALOGO`
+* ============================================================================================================================================= */
+
+-- 3, 6
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5556, 1, 9, 7, 'OTROS', 1, 1, SYSDATE FROM DUAL;
+
+
+-- ====================================================================================================== */
+
+/*
+*     ░ 11. Adicionar tipo al grupo: "EL SERVICIO HIGIÉNICO" → `TGCATALOGO`
+* ============================================================================================================================================= */
+
+-- 3, 6
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5557, 53, 18, 6, 'OTROS', 1, 1, SYSDATE FROM DUAL;
+
+-- ====================================================================================================== */
+
+
+/*
+*     ░ 12. Adicionar tipo al grupo: "MATERIAL DE PISO" → `TGCATALOGO`
+* ============================================================================================================================================= */
+
+-- 3, 6
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5558, 1, 4, 11, 'OTROS', 1, 1, SYSDATE FROM DUAL;
+
+
+-- ====================================================================================================== */
+
+
+/*
+*     ░ 13. Adicionar tipo al grupo: "MATERIAL DE TECHO" → `TGCATALOGO`
+* ============================================================================================================================================= */
+
+-- 3, 6
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5559, 1, 6, 14, 'OTROS', 1, 1, SYSDATE FROM DUAL;
+
+-- ====================================================================================================== */
+
+
+/*
+*     ░ 15. Adicionar tipo al grupo: "TIPO DOCUMENTO" → `TGCATALOGO`
+* ============================================================================================================================================= */
+
+-- 50, 7
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5560, 50, 7, 4, 'PARTIDA DE NACIMIENTO', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5561, 50, 7, 5, 'SIN DOCUMENTO DE IDENTIDAD', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5562, 50, 7, 6, 'OTRO', 1, 1, SYSDATE FROM DUAL;
+
+
+-- ====================================================================================================== */
+
+
+/*
+*     ░ 16. Adicionar tipo al grupo: "MOTIVO DE EGRESO" → `TGCATALOGO`
+* ============================================================================================================================================= */
+
+-- 104, 1
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5563, 104, 0, 0, 'MOTIVO DE EGRESO', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5563, 104, 1, 0, 'MOTIVO DE EGRESO ACERCANDONOS', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5563, 104, 1, 1, 'POR CUMPLIMIENTO', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5564, 104, 1, 2, 'CAMBIO DE DOMICILIO', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5565, 104, 1, 3, 'POR TRABAJO DEL CUIDADOR PRINCIPAL', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5566, 104, 1, 4, 'DESINTERÉS DEL CUIDADOR PRINCIPAL', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5567, 104, 1, 5, 'POR MAYORÍA DE EDAD', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5568, 104, 1, 6, 'POR FALLECIMIENTO DEL CUIDADOR PRINCIPAL', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5569, 104, 1, 7, 'POR DERIVACIÓN', 1, 1, SYSDATE FROM DUAL;
+
+
+-- ====================================================================================================== */
+
+
+
+/*
+*     ░ 17. Adicionar tipo al grupo: "DOMINIO TEMÁTICO SESIONES" → `TGCATALOGO`
+* ============================================================================================================================================= */
+
+-- 104, 1
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5570,105,0,0,'DOMINIO TEMÁTICO SESIONES ACERCANDONOS',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5571,105,1,0,'SESIONES GENERALES',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5572,105,1,1,'DIAG001-DIAGNOSTICO',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5573,105,1,2,'PLAN DE ACCION FAMILIAR/IDENTIFICANDO MIS OBJETIVOS DE CRIANZA',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5574,105,1,3,'SES000-SESION DE ENCUADRE',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5575,105,2,0,'COMPETENCIAS VINCULARES',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5576,105,2,1,'GEN004-BRINDAR CALIDEZ EN LA CRIANZA',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5577,105,2,2,'GEN006-LA CALIDEZ Y LA ESTRUCTURA EN LA CRIANZA',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5578,105,2,3,'TL-IM-001-LA ALIMENTACION RESPETUOSA',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5579,105,2,4,'TL-IM-002-INTERACCIONES DE CALIDAD: LEER, CONTAR Y ESCRIBIR',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5580,105,2,5,'TL-IM-005-JUEGOS CASEROS Y JUEGOS DE MESA',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5581,105,2,6,'TL-IM-015-AFRONTAR LOS MIEDOS EN LA INFANCIA MEDIA',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5582,105,2,7,'TL-IM-019-AFRONTAR LA PERDIDA DE UN SER QUERIDO',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5583,105,2,8,'TL-IM-020-ACOMPAÑAR EN LA TRANSICION DE LA INFANCIA MEDIA A LA ADOLESCENCIA',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5584,105,2,9,'TL-PI-009-DESTETE RESPETUOSO',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5585,105,2,10,'TL-PI-015-MANEJO DEL MIEDO INFANTIL',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5586,105,2,11,'TL-PI-020-ACOMPAÑAR EL DUELO EN LA INFANCIA',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5587,105,2,12,'TL-PA-009-¿COMO HABLAR CON SU HIJO O HIJA ADOLESCENTE?',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5588,105,2,13,'TL-PA-010-¿COMO MOSTRAR AFECTO A TU HIJO ADOLESCENTE?',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5589,105,2,14,'TL-PA-016-DUELO ADOLESCENTE',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5590,105,3,0,'COMPETENCIAS FORMATIVAS',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5591,105,3,1,'GEN005-BRINDAR ESTRUCTURA EN LA CRIANZA',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5592,105,3,2,'GEN011-PRAC001-APLICANDO LA CRIANZA POSITIVA EN NIÑOS DE 6 A 9 AÑOS',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5593,105,3,3,'GEN012-PRAC001-APLICANDO LA CRIANZA POSITIVA EN NIÑOS DE 10 A 13 AÑOS',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5594,105,3,4,'TL-IM-003-COMO ACOMPAÑAR EN LOS ESTUDIOS: HABITOS Y ORGANIZACION',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5595,105,3,5,'TL-IM-004-OCIO Y TIEMPO LIBRE',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5596,105,3,6,'TL-IM-008-RUTINAS Y RESPONSABILIDADES EN CASA',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5597,105,3,7,'TL-IM-009-REGULACION DE EMOCIONES EN LA NIÑEZ',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5598,105,3,8,'TL-IM-010-COMUNICARSE CON ASERTIVIDAD',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5599,105,3,9,'TL-IM-012-MANEJO DE CONDUCTAS DESAFIANTES',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5600,105,3,10,'TL-IM-013-LAS CONSECUENCIAS EDUCATIVAS',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5601,105,3,11,'TL-IM-016-LA PARTICIPACION Y LA TOMA DE DESICIONES',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5602,105,3,12,'GEN007-PRAC001-APLICANDO LA CRIANZA POSITIVA EN NIÑOS DE 0 A 6 MESES',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5603,105,3,13,'GEN008-PRAC001-APLICANDO LA CRIANZA POSITIVA EN NIÑOS DE 6 A 12 MESES',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5604,105,3,14,'GEN009-PRAC001-APLICANDO LA CRIANZA POSITIVA EN NIÑOS DE 1 A 3 AÑOS',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5605,105,3,15,'GEN010-PRAC001-APLICANDO LA CRIANZA POSITIVA EN NIÑOS DE 3 A 5 AÑOS',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5606,105,3,16,'TL-PI-006-LEER Y COMENTAR CUENTOS',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5607,105,3,17,'TL-PI-011-LA IMPORTANCIA DE LAS RUTINAS PARA DESARROLLAR AUTONOMIA',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5608,105,3,18,'TL-PI-016-LA SOCIALIZACION DE LAS NIÑAS Y NIÑOS',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5609,105,3,19,'GEN013-PRAC001-APLICANDO LA CRIANZA POSITIVA EN NIÑOS DE 14 A 18 AÑOS',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5610,105,3,20,'TL-PA-004-AUTONOMIA E INDEPENDENCIA',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5611,105,3,21,'TL-PA-005-IDENTIFICACION Y GESTION DE EMOCIONES EN ADOLESCENTES',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5612,105,3,22,'TL-PA-007-LIBERTAD Y LIMITES EN LA ADOLESCENCIA',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5613,105,3,23,'TL-PA-008-USO DE APARATOS ELECTRONICOS: JUEGOS Y REDES SOCIALES',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5614,105,3,24,'TL-PA-013-ENAMORAMIENTO Y CURIOSIDAD SEXUAL EN LA ADOLESCENCIA',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5615,105,3,25,'TL-PA-018-PROYECTO DE VIDA ADOLESCENTE',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5616,105,3,0,'COMPETENCIAS PROTECTORAS',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5617,105,4,1,'TL-IM-006-ORIENTACIONES PARA EL USO DE TECNOLOGIAS',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5618,105,4,2,'TL-IM-007-PROMOVER LA AUTONOMIA Y AUTOESTIMA',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5619,105,4,3,'TL-IM-014-EL ACOSO ESCOLAR O EL BULLYING',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5620,105,4,4,'TL-IM-018-PREVENIR EL ABUSO SEXUAL INFANTIL',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5621,105,4,5,'TL-PI-001-LACTANCIA MATERNA',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5622,105,4,6,'TL-PI-002-ALIMENTACION RESPONSIVA',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5623,105,4,7,'TL-PI-007-ESPACIOS SEGUROS PARA LA EXPLORACION',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5624,105,4,8,'TL-PI-017-PARTICIPACION Y TOMA DE DECISIONES PARA NIÑAS Y NIÑOS',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5625,105,4,9,'TL-PI-018-EXPLORACION Y DESCUBRIMIENTO DEL PROPIO CUERPO',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5626,105,4,10,'TL-PI-019-PREVENCION DEL ABUSO SEXUAL INFANTIL',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5627,105,4,11,'TL-PA-001-RELACION CON LOS ALIMENTOS EN LA ADOLESCENCIA',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5628,105,4,12,'TL-PA-003-ALERTAS Y PELIGROS DE UNA IMAGEN CORPORAL NEGATIVA',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5629,105,4,13,'TL-PA-006-CONDUCTAS DE RIESGO EN LA ADOLESCENCIA',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5630,105,4,14,'TL-PA-011-SITUACIONES DE BULLYING O ACOSO EN LA ADOLESCENCIA',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5631,105,4,15,'TL-PA-012-ROLES EN EL BULLYING O ACOSO ESCOLAR',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5632,105,4,16,'TL-PA-014-PREVENCION DE ITS Y EMBARAZO ADOLESCENTE',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5633,105,4,17,'TL-PA-015-PREVENCION Y ALERTAS FRENTE A ABUSO SEXUAL',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5634,105,4,18,'TL-PA-017-COMO INVOLUCRARSE EN LA VIDA DE LAS Y LOS ADOLESCENTES',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5635,105,5,0,'COMPETENCIAS REFLEXIVAS',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5636,105,5,1,'GEN001-LA CRIANZA POSITIVA',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5637,105,5,2,'TL-RP-006-APRENDIENDO A DISCUTIR CON CALMA',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5638,105,5,22,'TL-RP-007-APRENDIENDO A LLEGAR A ACUERDOS',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5639,105,5,23,'TL-RP-008-APRENDIENDO A TENER CONVERSACIONES DIFICILES',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5640,105,5,24,'TL-RP-009-TRABAJANDO EN EQUIPO POR EL BIENESTAR DE NUESTRAS HIJAS E HIJOS',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5641,105,5,25,'GEN011-¿COMO PIENSAN Y SIENTEN LOS NIÑOS DE 6 A 9 AÑOS?',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5642,105,5,26,'GEN012-¿COMO PIENSAN Y SIENTEN LOS NIÑOS DE 10 A 13 AÑOS?',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5643,105,5,27,'TL-IM-011-EL VALOR DE LA AMISTAD EN LA INFANCIA MEDIA',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5644,105,5,28,'GEN007-¿COMO PIENSAN Y SIENTEN LOS NIÑOS DE 0 A 6 MESES?',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5645,105,5,29,'GEN008-¿COMO PIENSAN Y SIENTEN LOS NIÑOS DE 6 A 12 MESES?',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5646,105,5,30,'GEN009-¿COMO PIENSAN Y SIENTEN LOS NIÑOS DE 1 A 3 AÑOS?',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5647,105,5,31,'GEN010-¿COMO PIENSAN Y SIENTEN LOS NIÑOS DE 3 A 5 AÑOS?',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5648,105,5,32,'TL-PI-012-REGULACION DE EMOCIONES Y COMPORTAMIENTO',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5649,105,5,33,'TL-PI-013-COMPRENDER Y ACOMPAÑAR LAS PATALETAS',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5650,105,5,34,'TL-PI-014-CASTIGO VS REPARACION',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5651,105,5,35,'GEN013-¿COMO PIENSAN Y SIENTEN LOS NIÑOS DE 14 A 18 AÑOS?',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5652,105,5,36,'TL-AP-001-IDENTIFICANDO MIS EMOCIONES',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5653,105,5,37,'TL-AP-002-LAS EMOCIONES Y YO',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5654,105,5,38,'TL-AP-003-CONOCIENDO MI ESTRES',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5655,105,5,39,'TL-AP-004-RELACIONANDOME CON MI ESTRES',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5656,105,5,40,'TL-AP-005-DISTANCIANDOME DE LOS PENSAMIENTOS PERSEGUIDORES',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5657,105,5,41,'TL-AP-008-APRENDIENDO A RELAJARME',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5658,105,5,42,'TL-AP-010-CUIDANDO MI SALUD MENTAL',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5659,105,5,43,'TL-PA-019-CONSTRUCCION DE LA IDENTIDAD Y ACEPTACION INCONDICIONAL',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5660,105,5,44,'TL-PA-020-REPARACION Y PERDON',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5661,105,6,0,'SESIONES DE ORIENTACIÓN/ACOMPAÑAMIENTO',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5662,105,6,1,'ORIENTACIÓN EN COMPETENCIAS VINCULARES',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5663,105,6,2,'ORIENTACIÓN EN COMPETENCIAS FORMATIVAS',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5664,105,6,3,'ORIENTACIÓN EN COMPETENCIAS PROTECTORAS',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5665,105,6,4,'ORIENTACIÓN EN COMPETENCIAS REFLEXIVAS',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5666,105,6,5,'ACOMPAÑAMIENTO',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5667,105,7,0,'SESIONES DE EVALUACIÓN',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5668,105,7,1,'EVALUACION INTERMEDIA',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5669,105,7,2,'EVALUACION FINAL',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5670,105,8,0,'REPASO Y CIERRE',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5671,105,8,1,'REPASO Y CIERRE',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5672,105,9,0,'PREVENIR PARA PROTEGER',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5673,105,9,1,'Sesión de Prevención de Violencia Sexual en Niños y Niñas (0-5 años)',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5674,105,9,2,'Sesión de Empoderamiento a Cuidadores: Previniendo la Violencia Sexual en Niñas y Niños (6-11 años)',1,1,SYSDATE FROM DUAL UNION ALL
+SELECT 5675,105,9,3,'Sesión de Acompañamiento a Cuidadores: Prevención de la Violencia Sexual en la Adolescencia (12-17 años)',1,1,SYSDATE FROM DUAL;
+
+-- ====================================================================================================== */
+
+
+/*
+*     ░ 18. Adicionar tipo al grupo: "MOTIVO DE EGRESO" → `TGCATALOGO`
+* ============================================================================================================================================= */
+
+-- 104, 1
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5563, 104, 0, 0, 'MOTIVO DE EGRESO', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5563, 104, 1, 0, 'MOTIVO DE EGRESO ACERCANDONOS', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5563, 104, 1, 1, 'POR CUMPLIMIENTO', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5564, 104, 1, 2, 'CAMBIO DE DOMICILIO', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5565, 104, 1, 3, 'POR TRABAJO DEL CUIDADOR PRINCIPAL', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5566, 104, 1, 4, 'DESINTERÉS DEL CUIDADOR PRINCIPAL', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5567, 104, 1, 5, 'POR MAYORÍA DE EDAD', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5568, 104, 1, 6, 'POR FALLECIMIENTO DEL CUIDADOR PRINCIPAL', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5569, 104, 1, 7, 'POR DERIVACIÓN', 1, 1, SYSDATE FROM DUAL;
+
+-- ====================================================================================================== */
+
+/*
+*     ░ 19. Tipos de Competencias por servicio → `TGCATALOGO`
+* ============================================================================================================================================= */
+
+-- 108, 1
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5681, 108, 0, 0, 'COMPETENCIA POR SERVICIO', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5582, 108, 1, 0, 'CEDIF', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5583, 108, 1, 1, 'COMPETENCIAS VINCULARES', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5584, 108, 1, 2, 'COMPETENCIAS FORMATIVAS', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5585, 108, 1, 3, 'COMPETENCIAS PROTECTORAS', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5586, 108, 1, 4, 'COMPETENCIAS REFLEXIVAS', 1, 1, SYSDATE FROM DUAL;
+   
+-- ====================================================================================================== */
+
+
+/*
+*     ░ 20. Adicionar tipos al grupo `PARENTESCO CON EL SOLICITANTE` → `TGCATALOGO`
+* ============================================================================================================================================= */
+
+-- 51, 5
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5701, 51, 5, 14, 'MADRE', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5702, 51, 5, 15, 'PADRE', 1, 1, SYSDATE FROM DUAL;
+   
+
+-- ====================================================================================================== */
+
+/*
+*     ░ 21. Adicionar tipos al grupo `MOTIVOS DE INGRESO AL CEDIF DE ACUERDO A CRITERIOS FOCALIZACIÓN A SITUACIÓN DE RIESGO` → `TGCATALOGO`
+* ============================================================================================================================================= */
+
+-- 113, 1
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5708, 113, 0, 0, 'MOTIVOS DE INGRESO DE ACUERDO A CRITERIOS FOCALIZACIÓN EN SITUACIÓN DE RIESGO', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5709, 113, 1, 0, 'MOTIVOS DE INGRESO AL CEDIF', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5710, 113, 1, 1, 'Niños, niñas y adolescentes en situación de riesgo de quedarse solos en el hogar durante el día por ausencia temporal del padre, madre o responsable de su cuidado por motivo de trabajo', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5846, 113, 1, 1, 'Padre, madre o responsable del cuidado que no ejerce adecuadamente sus funciones familiares (formación, socializadora, cuidado y protección, afectiva, seguridad y protección económica)', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5847, 113, 1, 1, 'Familias monoparentales', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5848, 113, 1, 1, 'Jefatura femenina', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5849, 113, 1, 1, 'Jefatura masculina', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5850, 113, 1, 1, 'Familias que residen en localidades en situación de riesgo social', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5851, 113, 1, 1, 'Conductas de riesgo en la familia de origen', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5852, 113, 1, 1, 'Niños, niñas y adolescentes que pertenece a una familia que presenta violencia familiar', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5853, 113, 1, 1, 'Bajo rendimiento, ausentismo o deserción escolar', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5854, 113, 1, 1, 'Presenta desnutrición y/o anemia', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5855, 113, 1, 1, 'Vivienda con hacinamiento', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5856, 113, 1, 1, 'Inadecuadas condiciones de la vivienda (material precario y/o sin servicios básicos, como agua y desagüe, electricidad)', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5857, 113, 1, 1, 'Pertenecer a una familia en pobreza o pobreza extrema (Según el SISFOH)', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5858, 113, 1, 1, 'Paternidad, maternidad adolescente', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5859, 113, 1, 1, 'Padre y/o madre o responsable del cuidado privado de la libertad', 1, 1, SYSDATE FROM DUAL;
+
+-- ====================================================================================================== */
+
+SELECT * FROM TGCATALOGO c
+ORDER BY c.IDCATALOGO DESC
+/
+
+SELECT COUNT(1) FROM TGCATALOGO c
+WHERE c.IDCATALOGO = 5710
+/
+
+DELETE FROM TGCATALOGO c
+WHERE c.IDCATALOGO = 5710
+/
+
+-- ! COMMIT;
+ROLLBACK;
+
+
+/*
+*     ░ 22. Nuevos catalogos para fichas de CEDIF
+* ============================================================================================================================================= */
+
+-- * 22.1  III. ¿CÓMO SE ENTERÓ DE LOS SERVICIOS QUE BRINDA EL CEDIF? → 114, 1
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5711, 114, 0, 0, 'CATALOGOS DE FICHAS DE CEDIF', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5712, 114, 0, 1, 'ANEXO 2: FICHA SOCIO FAMILIAR', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5713, 114, 1, 0, 'III. ¿CÓMO SE ENTERÓ DE LOS SERVICIOS QUE BRINDA EL CEDIF?', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5714, 114, 1, 1, 'Por un vecino/a', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5715, 114, 1, 2, 'Por la Parroquia', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5716, 114, 1, 3, 'Por los medios de comunicación', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5717, 114, 1, 4, 'Por alguna Institución Educativa', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5718, 114, 1, 5, 'Por una ONG', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5719, 114, 1, 6, 'Por el Centro de Salud/Posta/Hospital', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5720, 114, 1, 7, 'Por personal del CEDIF', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5721, 114, 1, 8, 'Por el CEM', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5722, 114, 1, 9, 'Por la UPE', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5723, 114, 1, 10, 'Otro', 1, 1, SYSDATE FROM DUAL;
+
+
+-- * 22.2  IV. TIPO DE FAMILIA → 114, 2
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5724, 114, 2, 0, 'IV. TIPO DE FAMILIA', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5725, 114, 2, 1, 'Familia monoparental', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5726, 114, 2, 2, 'Familia extensa', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5727, 114, 2, 4, 'Familia nuclear', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5728, 114, 2, 5, 'Familia reconstruida', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5729, 114, 2, 7, 'Otro', 1, 1, SYSDATE FROM DUAL;
+
+
+-- * 22.3  V. JEFATURA FAMILIAR → 114, 3
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5731, 114, 3, 0, 'V. JEFATURA FAMILIAR', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5732, 114, 3, 1, 'Padre', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5733, 114, 3, 2, 'Madre', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5734, 114, 3, 3, 'Abuelo', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5735, 114, 3, 4, 'Abuela', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5736, 114, 3, 5, 'Tío', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5737, 114, 3, 6, 'Tía', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5738, 114, 3, 7, 'Hermano mayor de edad', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5739, 114, 3, 8, 'Hermana mayor de edad', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5740, 114, 3, 9, 'Otro familiar', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5860, 114, 3, 10, 'Otro no familiar', 1, 1, SYSDATE FROM DUAL;
+
+
+-- * 22.4 V. VII. CARACTERÍSTICAS DE LA VIVIENDA, AGUA Y ALUMBRADO PÚBLICO QUE USA LA FAMILIA
+
+-- * 22.4.1  → Ubicación de la vivienda (zona urbana) 114, 4
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5741, 114, 4, 0, 'Ubicación de la vivienda (zona urbana)', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5742, 114, 4, 1, 'Urbanización Popular ', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5743, 114, 4, 2, 'Asentamiento Humano', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5744, 114, 4, 3, 'Invasión Reciente', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5745, 114, 4, 4, 'Cooperativa vivienda ', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5746, 114, 4, 5, 'Cercado', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5747, 114, 4, 6, 'Otro', 1, 1, SYSDATE FROM DUAL;
+
+
+-- * 22.4.2  → Ubicación de la vivienda (zona rural) 114, 5
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5748, 114, 5, 0, 'Ubicación de la vivienda (zona urbana)', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5749, 114, 5, 1, 'Pueblo', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5750, 114, 5, 2, 'Centro Poblado ', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5751, 114, 5, 3, 'Anexo', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5752, 114, 5, 4, 'Comunidad Campesina ', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5753, 114, 5, 5, 'Barrio', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5754, 114, 5, 6, 'Otro', 1, 1, SYSDATE FROM DUAL;
+
+-- * 22.4.3  → La vivienda que ocupa es: 114, 6
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5755, 114, 6, 0, 'La vivienda que ocupa es:', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5756, 114, 6, 1, 'Alquilada ', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5757, 114, 6, 2, 'Propia', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5758, 114, 6, 3, 'Alojado ', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5759, 114, 6, 4, 'Invadida', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5760, 114, 6, 5, 'Cedida por su centro de trabajo', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5761, 114, 6, 6, 'Otro', 1, 1, SYSDATE FROM DUAL;
+
+-- * 22.4.4  → Tipo de vivienda: 114, 7
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5762, 114, 7, 0, 'Tipo de vivienda', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5763, 114, 7, 1, 'Casa independiente', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5764, 114, 7, 2, 'Choza o cabaña', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5765, 114, 7, 3, 'En Solar, callejón ', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5766, 114, 7, 4, 'En Quinta', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5767, 114, 7, 5, 'Vivienda improvisada', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5768, 114, 7, 6, 'Local no destinado para habitación humana', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5769, 114, 7, 7, 'En edificio', 1, 1, SYSDATE FROM DUAL;
+  
+-- * 22.4.5  → Material de construcción predominantes en paredes exteriores de la vivienda: 114, 8
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5770, 114, 8, 0, 'Material de construcción predominantes en paredes exteriores de la vivienda', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5771, 114, 8, 1, 'Ladrillo o bloque de cemento', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5772, 114, 8, 2, 'Piedra o sillar', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5773, 114, 8, 3, 'Adobe o tapia', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5774, 114, 8, 4, 'Estera', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5775, 114, 8, 5, 'Quincha', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5776, 114, 8, 6, 'Madera, triplay, maderba, etc.', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5777, 114, 8, 7, 'Otro', 1, 1, SYSDATE FROM DUAL;
+
+-- * 22.4.6  → El abastecimiento de agua en la vivienda procede de 114, 9
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5778, 114, 9, 0, 'El abastecimiento de agua en la vivienda procede de', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5779, 114, 9, 1, 'Red pública dentro de la vivienda', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5780, 114, 9, 2, 'Red pública fuera de la vivienda', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5781, 114, 9, 3, 'Pilón de uso público', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5782, 114, 9, 4, 'Camión cisterna u otro similar', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5783, 114, 9, 5, 'Río, acequia, manantial o similar', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5784, 114, 9, 6, 'Pozo', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5785, 114, 9, 7, 'Abastecimiento de agua por un vecino', 1, 1, SYSDATE FROM DUAL;
+
+-- * 22.4.7  → El tipo de alumbrado de la vivienda es: 114, 10
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5786, 114, 10, 0, 'El tipo de alumbrado de la vivienda es', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5787, 114, 10, 1, 'Electricidad', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5788, 114, 10, 2, 'Kerosene', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5789, 114, 10, 3, 'Petróleo / gas', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5790, 114, 10, 4, 'Vela', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5791, 114, 10, 5, 'Generador', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5792, 114, 10, 6, 'Abastecimiento de luz por un vecino', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5793, 114, 10, 7, 'Otro', 1, 1, SYSDATE FROM DUAL;
+
+-- * 22.4.8  → El servicio higiénico que tiene la vivienda, está conectado a: 114, 11
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5794, 114, 11, 0, 'El servicio higiénico que tiene la vivienda, está conectado a', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5795, 114, 11, 1, 'Red pública de la vivienda', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5796, 114, 11, 2, 'Red pública fuera de la vivienda', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5797, 114, 11, 3, 'Pozo séptico', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5798, 114, 11, 4, 'Sequía', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5799, 114, 11, 5, 'Otro', 1, 1, SYSDATE FROM DUAL;
+
+-- * 22.4.9  → El material predominante en los pisos: 114, 12
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5800, 114, 12, 0, 'El material predominante en los pisos', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5801, 114, 12, 1, 'Madera', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5802, 114, 12, 2, 'Tierra / arena', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5803, 114, 12, 3, 'Cemento', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5804, 114, 12, 4, 'Otro', 1, 1, SYSDATE FROM DUAL;
+
+-- * 22.4.10  → El material predominante en los techos es: 114, 13
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5805, 114, 13, 0, 'El material predominante en los techos es', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5806, 114, 13, 1, 'Concreto armado', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5807, 114, 13, 2, 'Madera', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5808, 114, 13, 3, 'Calamina o fibra de cemento', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5809, 114, 13, 4, 'Estera', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5810, 114, 13, 5, 'Teja', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5811, 114, 13, 6, 'Eternit', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5812, 114, 13, 7, 'Otro', 1, 1, SYSDATE FROM DUAL;
+
+-- * 22.5  → VI. COMPOSICIÓN FAMILIAR: Por sus costumbres y sus antepasados 114, 14
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5813, 114, 14, 0, 'Por sus costumbres y sus antepasados', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5814, 114, 14, 1, 'Nativo', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5815, 114, 14, 2, 'Quechua', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5816, 114, 14, 3, 'Aymara', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5817, 114, 14, 4, 'Mestizo', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5818, 114, 14, 5, 'Blanco', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5819, 114, 14, 6, 'Criollo', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5820, 114, 14, 7, 'Afroperuano', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5821, 114, 14, 8, 'Otro', 1, 1, SYSDATE FROM DUAL;
+
+
+-- * NIVEL EDUCATIVO 114, 15
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5822, 114, 15, 0, 'NIVEL EDUCATIVO', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5823, 114, 15, 1, '1.° grado de primaria', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5824, 114, 15, 2, '2.° grado de primaria', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5825, 114, 15, 3, '3.° grado de primaria', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5826, 114, 15, 4, '4.° grado de primaria', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5827, 114, 15, 5, '5.° grado de primaria', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5828, 114, 15, 6, '6.° grado de primaria', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5829, 114, 15, 7, '1.° grado de secundaria', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5830, 114, 15, 8, '2.° grado de secundaria', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5831, 114, 15, 9, '3.° grado de secundaria', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5832, 114, 15, 10, '4.° grado de secundaria', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5833, 114, 15, 11, '5.° grado de secundaria', 1, 1, SYSDATE FROM DUAL;
+
+
+-- * 2. ANEXO 1: Ficha de Preselección de la Situación de Riesgo de Desprotección Familiar de la Niña, Niño y Adolescente
+
+-- * 2.1 TIPO DE DOCUMENTO DE IDENTIDAD: → 114, 16
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5860, 114, 16, 0, 'TIPO DE DOCUMENTO DE IDENTIDAD', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5861, 114, 16, 1, 'DNI', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5862, 114, 16, 2, 'CARNÉ DE EXTRANJERÍA', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5863, 114, 16, 3, 'PASAPORTE', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5864, 114, 16, 4, 'DOCUMENTO DE IDENTIDAD EXTRANJERO', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5865, 114, 16, 5, 'PARTIDA DE NACIMIENTO', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5866, 114, 16, 6, 'CERTIFICADO DE NACIDO VIVO - CNV', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5867, 114, 16, 7, 'SIN DOCUMENTO DE IDENTIDAD', 1, 1, SYSDATE FROM DUAL;
+
+-- * 2.2 TIPO DE EDUCACIÓN: → 114, 17
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5868, 114, 17, 0, 'Básica / Regular', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5869, 114, 17, 1, 'Básica / Alternativa', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5870, 114, 17, 2, 'Básica / Especial', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5871, 114, 17, 3, 'Superior Técnica', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5872, 114, 17, 4, 'Superior Universitaria', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5873, 114, 17, 5, 'No aplica', 1, 1, SYSDATE FROM DUAL;
+   
+-- * 2.3 TIPO DE EDUCACIÓN: → 114, 18
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5874, 114, 18, 0, 'TIPO DE EDUCACIÓN', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5875, 114, 18, 1, 'Sin nivel', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5876, 114, 18, 2, 'Inicial', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5877, 114, 18, 3, 'Primaria Incompleta', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5878, 114, 18, 4, 'Primaria Completa', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5879, 114, 18, 5, 'Secundaria Incompleta', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5880, 114, 18, 6, 'Secundaria Completa', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5881, 114, 18, 7, 'Superior No Universitaria Incompleta', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5882, 114, 18, 8, 'Superior No Universitaria Completa', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5883, 114, 18, 9, 'Superior Universitario Incompleto', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5884, 114, 18, 10, 'Superior Universitario Completo', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5885, 114, 18, 11, 'Básica Especial', 1, 1, SYSDATE FROM DUAL;
+
+
+-- * 2.4 GRADO DE INSTRUCCIÓN: → 114, 19
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5886, 114, 19, 0, 'Grado de Instrucción', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5887, 114, 19, 1, 'Inicial', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5888, 114, 19, 2, '1ro prim', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5889, 114, 19, 3, '2do prim', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5890, 114, 19, 4, '3ro prim', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5891, 114, 19, 5, '4to prim', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5892, 114, 19, 6, '5to prim', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5893, 114, 19, 7, '6to prim', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5894, 114, 19, 8, '1ro sec', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5895, 114, 19, 9, '2do sec', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5896, 114, 19, 10, '3ro sec', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5897, 114, 19, 11, '4to sec', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5898, 114, 19, 12, '5to sec', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5899, 114, 19, 13, 'No aplica', 1, 1, SYSDATE FROM DUAL;
+
+
+
+-- * 2.5 Por sus costumbres y sus antepasados se siente o considera: → 114, 20
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5900, 114, 20, 0, 'Por sus costumbres y sus antepasados se siente o considera', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5901, 114, 20, 1, 'Quechua', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5902, 114, 20, 2, 'AIMARA', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5903, 114, 20, 3, 'INDÍGENA U ORIGINARIO DE LA AMAZONÍA', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5904, 114, 20, 4, 'PERTENECIENTE O PARTE DE OTRO PUEBLO INDÍGENA U ORIGINARIO', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5905, 114, 20, 5, 'NEGRO, MORENO, ZAMBO, MULATO  O AFRODESCENDIENTE', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5906, 114, 20, 6, 'BLANCO', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5907, 114, 20, 7, 'MESTIZO', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5908, 114, 20, 8, 'OTRO (ESPECIFICAR)', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5909, 114, 20, 9, 'NO RESPONDE / NO SABE', 1, 1, SYSDATE FROM DUAL;
+
+
+
+-- * 2.6 SITUACIÓN LABORAL: → 114, 21
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5910, 114, 21, 0, 'Trabajador asalariado', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5911, 114, 21, 1, 'Trabajador no asalariado', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5912, 114, 21, 2, 'Desempleado', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5913, 114, 21, 3, 'Trabajador independiente', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5914, 114, 21, 4, 'Jubilado', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5915, 114, 21, 5, 'Trabajador familiar no remunerado', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5916, 114, 21, 6, 'Trabajador del hogar', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5917, 114, 21, 7, 'Quehacer', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5918, 114, 21, 8, 'Obrero', 1, 1, SYSDATE FROM DUAL;
+
+-- * 2.7 Tiene certificado médico: → 114, 22
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5919, 114, 22, 0, 'Tiene certificado médico', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5920, 114, 22, 1, 'CON CERTIFICADO MEDICO', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5921, 114, 22, 2, 'SIN CERTIFICADO MEDICO', 1, 1, SYSDATE FROM DUAL;
+
+-- * 2.8 Tiene certificado médico: → 114, 23
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5922, 114, 23, 0, 'Grado de Discapacidad', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5923, 114, 23, 1, 'Leve', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5924, 114, 23, 2, 'Moderado', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5925, 114, 23, 3, 'Grave', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5926, 114, 23, 4, 'Severa', 1, 1, SYSDATE FROM DUAL;
+
+-- * 2.9 Perfil de ingreso del NNA: → 114, 24
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5926, 114, 24, 0, 'Perfil de ingreso del NNA', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5927, 114, 24, 1, 'Ausencia temporal de cuidadores durante el día', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5928, 114, 24, 2, 'Exposición a peligros de la calle', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5929, 114, 24, 3, 'Enfermedad grave del cuidador', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5930, 114, 24, 4, 'Pertenece a una familia que presenta violencia familiar', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5931, 114, 24, 5, 'Presenta desnutrición', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5932, 114, 24, 6, 'Vivienda con hacinamiento', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5933, 114, 24, 7, 'Vivienda de material superpuesto', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5934, 114, 24, 8, 'Vivienda sin desagüe', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5935, 114, 24, 9, 'Pertenecer a una familia en pobreza o pobreza extrema', 1, 1, SYSDATE FROM DUAL;
+   
+
+
+
+-- * 2.10 TIPO DE EDUCACIÓN: → 114, 25
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5936, 114, 25, 0, 'TIPO DE EDUCACIÓN', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5937, 114, 25, 1, 'Básica / Regular', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5938, 114, 25, 2, 'Básica / Alternativa', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5939, 114, 25, 3, 'Básica / Especial', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5940, 114, 25, 4, 'Superior Técnica', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5941, 114, 25, 5, 'Superior Universitaria', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5942, 114, 25, 6, 'No aplica', 1, 1, SYSDATE FROM DUAL;
+
+
+-- * 2.11 Grado de Instrucción: → 114, 26
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5943, 114, 26, 0, 'Grado de Instrucción', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5944, 114, 26, 1, 'Inicial', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5945, 114, 26, 2, '1ro prim', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5946, 114, 26, 3, '2do prim', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5947, 114, 26, 4, '3ro prim', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5948, 114, 26, 5, '4to prim', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5949, 114, 26, 6, '5to prim', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5950, 114, 26, 7, '6to prim', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5951, 114, 26, 8, '1ro sec', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5952, 114, 26, 9, '2do sec', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5953, 114, 26, 10, '3ro sec', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5954, 114, 26, 11, '4to sec', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5955, 114, 26, 12, '5to sec', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5956, 114, 26, 13, 'No aplica', 1, 1, SYSDATE FROM DUAL;
+
+
+-- ! ░ 3. Actualizaciones:
+
+-- * 101, 1
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5960, 101, 1, 9, 'OTROS (ESPECIFICAR)', 1, 1, SYSDATE FROM DUAL;
+
+-- * 38, 3
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5961, 38, 3, 15, 'NO SABE/NO RESPONDE', 1, 1, SYSDATE FROM DUAL;
+
+-- *  114, 24
+/* INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5962, 114, 24, 10, 'Vía de ingreso del NNA al CEDIF', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5963, 114, 24, 11, 'Medidas de protección', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5964, 114, 24, 12, 'Evaluación por el CEDIF', 1, 1, SYSDATE FROM DUAL; */
+
+
+
+-- * 2, 2
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5965, 2, 2, 8, 'Intelectual', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5966, 2, 2, 9, 'Multidiscapacidad', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5967, 2, 2, 10, 'Otro (especificar)', 1, 1, SYSDATE FROM DUAL;
+
+
+-- * 51, 5
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5702, 51, 5, 16, 'Hermano/a mayor de edad', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5703, 51, 5, 17, 'Hermano/a menor de edad', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5704, 51, 5, 18, 'Nieto/a', 1, 1, SYSDATE FROM DUAL;
+
+-- ? Nuevo 30/12/2025
+
+-- * 1. 114, 27 → Tipo de la Vivienda(Punche)
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5969, 114, 27, 0, 'Tipo de la Vivienda', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5970, 114, 27, 1, 'Casa independiente', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5971, 114, 27, 2, 'Choza o cabaña', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5972, 114, 27, 3, 'En solar, callejón', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5973, 114, 27, 4, 'En quinta', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5974, 114, 27, 5, 'Vivienda improvisada', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5975, 114, 27, 6, 'Local no destinado para habilitación humana', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5976, 114, 27, 7, 'En edificio', 1, 1, SYSDATE FROM DUAL;
+
+-- * 2. 114, 28 → Ubicación de vivienda(Punche)
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5977, 114, 28, 0, 'Ubicación de vivienda', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5978, 114, 28, 1, 'Urbana', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5979, 114, 28, 2, 'Rural', 1, 1, SYSDATE FROM DUAL;
+
+-- * 3. 114, 29 → Ocupación(Punche)
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5980, 114, 29, 0, 'Ocupación', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5981, 114, 29, 1, 'Empleado', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5982, 114, 29, 2, 'Trabajador independiente', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5983, 114, 29, 3, 'Trabajador dependiente', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5984, 114, 29, 4, 'Obrero', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5985, 114, 29, 5, 'Trabajador familiar no remunerado', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5986, 114, 29, 6, 'Trabajador del hogar', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5987, 114, 29, 7, 'Ama de casa', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5988, 114, 29, 8, 'Otro', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5989, 114, 29, 9, 'Pensionista', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5990, 114, 29, 10, 'No trabaja', 1, 1, SYSDATE FROM DUAL;
+
+
+-- * 4. 114, 30 → Tipo de seguro(Punche)
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5991, 114, 30, 0, 'Tipo de seguro', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5992, 114, 30, 1, 'SIS', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5993, 114, 30, 2, 'ESSALUD', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5994, 114, 30, 3, 'Privado', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5995, 114, 30, 4, 'Fuerzas armadas oConstructedas', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5996, 114, 30, 5, 'No se encuentra afiliado a un seguro', 1, 1, SYSDATE FROM DUAL;
+
+-- ? Nuevo 08/01/2026
+
+-- * 1. 114, 31 → Vía de ingreso del NNA al CEDIF(Cedif)
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5998, 114, 31, 0, 'Vía de ingreso del NNA al CEDIF', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5999, 114, 31, 1, 'Medidas de protección', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 6000, 114, 31, 2, 'Evaluación por el CEDIF', 1, 1, SYSDATE FROM DUAL;
+
+-- * 2. 114, 32 → Medio de ingreso del NNA al CEDIF(Cedif)
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 6001, 114, 32, 0, 'Medio de ingreso del NNA al CEDIF', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 6002, 114, 32, 1, 'Vía Judicial', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 6003, 114, 32, 2, 'Vía Administrativa (UPE)', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 6004, 114, 32, 3, 'Vía Administrativa (Fiscalía)', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 6005, 114, 32, 4, 'Vía Servicio de Cuidado Diurno', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 6006, 114, 32, 5, 'Otros', 1, 1, SYSDATE FROM DUAL;
+
+
+-- * 22.4.1  → Ubicación de la vivienda (zona urbana) 114, 4
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 6007, 114, 4, 7, 'No Aplica', 1, 1, SYSDATE FROM DUAL;
+
+
+-- * 22.4.2  → Ubicación de la vivienda (zona rural) 114, 5
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 6008, 114, 5, 7, 'No Aplica', 1, 1, SYSDATE FROM DUAL;
+
+
+
+-- ! Test:
+
+-- ! COMMIT;
+
+-- ! dev
+SELECT * FROM TGCATALOGO c
+WHERE c.IDCATALOGO = 5995
+/
+
+-- ! test
+SELECT * FROM TGCATALOGO c
+WHERE c.IDCATALOGO = 6176
+/
+
+-- ! prod
+SELECT * FROM TGCATALOGO c
+WHERE c.IDCATALOGO = 6278
+/
+
+
+-- ! COMMIT;
+-- ! Test
+-- ! DELETE FROM TGCATALOGO c
+-- 3, 6
+-- 114, 24
+-- 114, 16
+-- 100, 1
+SELECT * FROM TGCATALOGO c
+WHERE 
+   c.CATGRUPO = 100
+   AND c.CATSUBGRUPO = 1
+ORDER BY c.CATTIPO ASC
+/
+
+
+DELETE FROM TGCATALOGO c
+-- SELECT * FROM TGCATALOGO c
+WHERE
+   c.IDCATALOGO IN (
+      5763,
+      5765,
+      6344,
+      6345,
+      6110
+   )
+/
+
+
+
+-- ! COMMIT;
+ROLLBACK;
+
+-- grupo=38&subgrupo=3
+
+-- ! DELETE FROM TGCATALOGO c
+SELECT * FROM TGCATALOGO c
+WHERE c.IDCATALOGO BETWEEN 5968 AND 5949
+/
+
+
+-- ! Test
+-- 1
+SELECT c.*
+FROM TGCATALOGO c
+WHERE 
+   c.CATGRUPO = 114
+   -- AND c.CATSUBGRUPO = 5
+ORDER BY
+    -- c.CATGRUPO DESC
+    c.CATSUBGRUPO DESC
+    -- c.IDCATALOGO DESC
+    -- c.CATTIPO
+/
+
+-- 2
+SELECT
+    c.*
+FROM TGCATALOGO c
+ORDER BY
+    c.IDCATALOGO DESC
+/
+
+
+-- * ANEXO 2: FICHA SOCIO FAMILIAR
+-- * 22.1  III. ¿CÓMO SE ENTERÓ DE LOS SERVICIOS QUE BRINDA EL CEDIF? → 114, 1
+-- * 22.2  IV. TIPO DE FAMILIA → 114, 2
+-- * 22.3  V. JEFATURA FAMILIAR → 114, 3
+-- * 22.4 V. VII. CARACTERÍSTICAS DE LA VIVIENDA, AGUA Y ALUMBRADO PÚBLICO QUE USA LA FAMILIA
+-- * 22.4.1  → Ubicación de la vivienda (zona urbana) 114, 4
+-- * 22.4.2  → Ubicación de la vivienda (zona rural) 114, 5
+-- * 22.4.3  → La vivienda que ocupa es: 114, 6
+-- * 22.4.4  → Tipo de vivienda: 114, 7
+-- * 22.4.5  → Material de construcción predominantes en paredes exteriores de la vivienda: 114, 8
+-- * 22.4.6  → El abastecimiento de agua en la vivienda procede de 114, 9
+-- * 22.4.7  → El tipo de alumbrado de la vivienda es: 114, 10
+-- * 22.4.8  → El servicio higiénico que tiene la vivienda, está conectado a: 114, 11
+-- * 22.4.9  → El material predominante en los pisos: 114, 12
+-- * 22.4.10  → El material predominante en los techos es: 114, 13
+-- * 22.5  → VI. COMPOSICIÓN FAMILIAR: Por sus costumbres y sus antepasados 114, 14
+-- * NIVEL EDUCATIVO 114, 15
+-- ====================================================================================================== */
+
+
+
+/*
+*     ░ 23. Nuevos catalogos para fichas de PUNCHE
+* ============================================================================================================================================= */
+
+-- * 23.1 CATALOGOS DE FICHAS DE PUNCHE
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5841, 117, 0, 0, 'CATALOGOS DE FICHAS DE PUNCHE', 1, 1, SYSDATE FROM DUAL;
+
+-- * 23.2 ANEXO 17 FICHA DE SESIONES: Modalidad de realización de la sesión: → 117, 1
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT 5842, 117, 0, 1, 'ANEXO 17: FICHA DE SESIONES', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5843, 117, 1, 0, 'Modalidad de realización de la sesión:', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5844, 117, 1, 1, 'Presencial', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT 5845, 117, 1, 2, 'Teleasistencia', 1, 1, SYSDATE FROM DUAL;
+   
+-- ! COMMIT;
+
+
+
+-- ! Test
+-- 1
+SELECT 
+    c.*
+FROM TGCATALOGO c
+ORDER BY
+    c.CATGRUPO DESC 
+    -- c.CATSUBGRUPO
+    -- c.IDCATALOGO DESC
+/
+
+-- 2
+SELECT 
+    c.*
+FROM TGCATALOGO c
+ORDER BY
+    c.IDCATALOGO DESC
+/
+// ============================================================================================================================================= */
+
+
+
+/*
+*     ░ 24 Nuevos catalogos para `Acercandonos`
+* ============================================================================================================================================= */
+
+-- * 24.1 ...
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT NULL, 115, 1, 1, 'VINCULARES', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT NULL, 115, 1, 2, 'FORMATIVAS', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT NULL, 115, 1, 3, 'PROTECTORAS', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT NULL, 115, 1, 4, 'REFLEXIVAS', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT NULL, 115, 1, 5, 'PREVENIR PARA PROTEGER', 1, 1, SYSDATE FROM DUAL;
+
+-- ! COMMIT;
+// ============================================================================================================================================= */
+
+
+
+/*
+*     ░ 25 Nuevos catalogos para `CEDIF`
+* ============================================================================================================================================= */
+
+-- * 25.1 ...
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT NULL, 118, 0, 0, 'TIPO EVENTO - CEDIF', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT NULL, 118, 1, 0, 'NNA', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT NULL, 118, 1, 1, 'ATENCIONES EN ACCIONES SOCIO EDUCATIVAS', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT NULL, 118, 1, 2, 'ATENCIONES EN ACCIONES SOCIO-FORMATIVA', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT NULL, 118, 1, 3, 'ATENCIÓN EN ACCIONES ARTÍSTICO-CULTURALES', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT NULL, 118, 1, 4, 'ATENCIÓN EN ACCIONES DEPORTIVO-RECREACIONALES', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT NULL, 118, 1, 5, 'INTERVENCIÓN COMPLEMENTARIA', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT NULL, 118, 1, 6, 'TERAPIA FÍSICA', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT NULL, 118, 1, 7, 'FECHAS ESPECIALES', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT NULL, 118, 2, 0, 'FAMILIA', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT NULL, 118, 2, 1, 'INTERVENCIÓN FAMILIAR', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT NULL, 118, 2, 2, 'RECREACIÓN FAMILIAR', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT NULL, 118, 2, 3, 'TALLERES DE CAPACITACIÓN OCUPACIONAL / EMPRENDIMIENTO FAMILIAR', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT NULL, 118, 2, 4, 'FECHAS ESPECIALES', 1, 1, SYSDATE FROM DUAL;
+
+
+-- ! COMMIT;
+
+
+-- ! Test
+
+-- 1
+SELECT 
+   c.*
+   -- COUNT(1)
+FROM TGCATALOGO c
+WHERE 
+   c.CATGRUPO = 118
+   AND c.CATSUBGRUPO = 1
+ORDER BY
+    -- c.CATGRUPO DESC
+    -- c.CATSUBGRUPO DESC
+    c.IDCATALOGO ASC;
+    -- c.CATTIPO
+
+ROLLBACK;
+
+-- 1
+
+-- 2
+SELECT 
+    c.*
+FROM TGCATALOGO c
+WHERE 
+   c.CATTIPO != 0
+   AND c.CATGRUPO = 118
+ORDER BY
+    -- c.CATSUBGRUPO
+    c.IDCATALOGO ASC;
+
+-- 3
+SELECT 
+    c.*
+FROM TGCATALOGO c
+ORDER BY
+    c.IDCATALOGO DESC;
+
+
+
+
+
+-- ? PROMPT 06May2026
+
+Analiza el componente "@src\pages\talleres\GestionTalleres.vue" y propon un plan de mejora. Te doy contexto de lo que vas a cambiar:
+1. En el modal "REGISTRO DE PROGRAMACIÓN DE TALLER" en la seccion "DATOS TALLER" el orden de los combos cambia a: (1)Poblacion, (2)Tipo Evento, (3)Taller, (4)Lugar. 
+Importante: No crees componentes, solo reorganiza los existentes.
+2. El componente "comboTipoEvento" es suministrado por un endpoint y la llamada será condicional: Si el "idCatalogo" del combo "comboPoblacion" es 6131, 
+llama al endpoint GET ${this.host_punche}/findAllCatalogosByGrupos?grupo=118&subgrupo=1 y si es 6132 a GET ${this.host_punche}/findAllCatalogosByGrupos?grupo=118&subgrupo=2. 
+El cuerpo devuelto por el endpoint es ej:
+[
+   {
+      "idCatalogo": 6131,
+      "grupo": 116,
+      "subgrupo": 1,
+      "catDescripcion": "NNA",
+      "catAbreviatura": null,
+      "catTipo": 1
+   }
+]
+3. El combo comboTalleresFiltrados será suministrado por el resultado de la llamada a un endpoint, este resultado será filtrado por rangos 
+de "idTaller"(este resultado es un arreglo de objetos y tiene una propiedad idTaller), el endpoint es GET ${this.host_punche}/findAllTallers la llama al endpoint se 
+dispara cuando el usuario selecciona un "Tipo de Evento" del combo "comboTipoEvento". Las reglas para filtrar al resultado son:
+a. Si idCatalogo de comboTipoEvento es 6788, entonces se muestran los talleres en el comboTalleresFiltrados cuyo idTaller esté entre 291 y 294.
+b. Si idCatalogo de comboTipoEvento es 6789, entonces se muestran los talleres en el comboTalleresFiltrados cuyo idTaller esté entre 295 y 307.
+c. Si idCatalogo de comboTipoEvento es 6790, entonces se muestran los talleres en el comboTalleresFiltrados cuyo idTaller esté entre 308 y 312.
+d. Si idCatalogo de comboTipoEvento es 6791, entonces se muestran los talleres en el comboTalleresFiltrados cuyo idTaller esté entre 313 y 319.
+e. Si idCatalogo de comboTipoEvento es 6792, entonces se muestran los talleres en el comboTalleresFiltrados cuyo idTaller esté entre 320 y 324.
+f. Si idCatalogo de comboTipoEvento es 6793, entonces se muestran los talleres en el comboTalleresFiltrados cuyo idTaller esté entre 325 y 326.
+g. Si idCatalogo de comboTipoEvento es 6796, entonces se muestran los talleres en el comboTalleresFiltrados cuyo idTaller esté entre 327 y 332.
+h. Si idCatalogo de comboTipoEvento es 6797, entonces se muestran los talleres en el comboTalleresFiltrados cuyo idTaller esté entre 333 y 336.
+i. Si idCatalogo de comboTipoEvento es 6798, entonces se muestran los talleres en el comboTalleresFiltrados cuyo idTaller esté entre 337 y 342.
+
+El arreglo de objetos devuelto por el endpoint GET ${this.host_punche}/findAllTallers es ej:
+[
+   {
+      "idTaller": 101,
+      "objetivoEspecifico": null,
+      "modulo": null,
+      "sesion": null,
+      "nombre": "TALLER NUVO",
+      "descripcion": null,
+      "usuRegistra": 7761,
+      "usuarioElimina": null,
+      "estado": 1,
+      "eliminado": 0
+   },
+]
+
+El combo "comboTalleresFiltrados" permite escribir buscar talleres por aproximación, es decir, si el usuario escribe "TALLER N" se muestran los talleres cuyo 
+nombre contenga esa cadena de texto y tambien para ingreso libre de talleres que no se encuentren en el combo, por lo tanto, el combo no debe ser bloqueado, 
+disabled o readonly. Si es "TEXTO LIBRE" no envia al backend el idTaller sino el texto ingresado por el usuario, tal como esta actualmente implementado, pero 
+analiza si es necesario antes de enviar al backend.
+4. Todos los componentes no deben estar bloqueados, disabled o readonly ej: combo, input, button
+
+
+-- idCatalogo comboTipoEvento
+6788, 6789, 6790, 6791, 6792, 6793, 6796, 6797, 6798
+
+-- Rangos idTaller
+291-294
+295-307
+308-312
+313-319
+320-324
+325-326
+327-332
+333-336
+337-342
+
+
+
+SELECT * FROM SSI_TALLERES t
+ORDER BY t.TA_ID_TALLER DESC
+FETCH FIRST 52 ROWS ONLY;
+
