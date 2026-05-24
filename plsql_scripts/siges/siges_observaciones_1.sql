@@ -1183,7 +1183,238 @@ WHERE
 / */
 
 
+-- * III. Consulta solicitada: join de tablas relacionadas a SSI_CODIGOS_FAMILIAS
+SELECT
+   ser.SI_NOMBRE AS NOMBRE_SERVICIO,
+   fam.PF_COD_FAMILIA AS CODIGO_FAMILIA,
+   (
+      intg.FI_NOMBRES || ' ' ||
+      intg.FI_PRIMER_APE || ' ' ||
+      intg.FI_SEGUNDO_APE
+   ) AS NOMBRE_INTEGRANTE
+FROM SSI_CODIGOS_FAMILIAS codf
+INNER JOIN SSI_SERVICIOS_INABIF ser
+   ON ser.SI_ID_SERVICIO = codf.SI_ID_SERVICIO
+LEFT JOIN SSI_POTENCIALES_FAMILIAS fam
+   ON fam.PF_ID_FAMILIA = codf.PF_ID_FAMILIA
+LEFT JOIN SSI_FAMILIA_INTEGRANTES intg
+   ON intg.FI_ID_INTEGRANTE = codf.FI_ID_INTEGRANTE
+ORDER BY
+   ser.SI_NOMBRE,
+   fam.PF_COD_FAMILIA,
+   NOMBRE_INTEGRANTE
+/
 
-[
-  { "descripcion": "FAMILIAS IGUALITARIAS" }
-]
+-- * IV. Consulta solicitada: listar ZONAS, EQUIPOS y ALIADOS
+WITH equipos_por_zona AS (
+   SELECT
+      et.ZO_ID_ZONA,
+      LISTAGG(TO_CHAR(et.EQ_ID_EQUIPO), ', ') WITHIN GROUP (ORDER BY et.EQ_ID_EQUIPO) AS EQUIPOS
+   FROM SSI_EQUIPO_TRABAJO et
+   WHERE
+      et.EQ_ELIMINADO = 0
+      AND et.EQ_ESTADO = 1
+   GROUP BY
+      et.ZO_ID_ZONA
+),
+aliados_por_zona AS (
+   SELECT
+      al.ZO_ID_ZONA,
+      LISTAGG(TO_CHAR(al.AL_ID_ALIADO), ', ') WITHIN GROUP (ORDER BY al.AL_ID_ALIADO) AS ALIADOS
+   FROM SSI_ALIADOS al
+   WHERE
+      al.AL_ELIMINADO = 0
+      AND al.AL_ESTADO = 1
+   GROUP BY
+      al.ZO_ID_ZONA
+)
+SELECT
+   zo.ZO_ID_ZONA,
+   zo.ZO_DESCRIPCION AS ZONA,
+   NVL(epz.EQUIPOS, 'SIN EQUIPOS') AS EQUIPOS,
+   NVL(apz.ALIADOS, 'SIN ALIADOS') AS ALIADOS
+FROM SSI_ZONA_INTERVENCION zo
+LEFT JOIN equipos_por_zona epz
+   ON epz.ZO_ID_ZONA = zo.ZO_ID_ZONA
+LEFT JOIN aliados_por_zona apz
+   ON apz.ZO_ID_ZONA = zo.ZO_ID_ZONA
+WHERE
+   zo.ZO_ELIMINADO = 0
+   AND zo.ZO_ESTADO = 1
+ORDER BY
+   zo.ZO_ID_ZONA
+/
+
+-- =============================================================
+-- Tipo      : PROCEDURE
+-- Nombre    : PRC_SSI_ANEXO_CAB_AUDIO_CRUD
+-- Proposito : Ejecutar operaciones CRUD sobre la tabla
+--             SSI_ANEXO_CABECERA_AUDIO.
+-- Parametros:
+--    p_accion             IN  VARCHAR2   -- C: Crear, R: Consultar, U: Actualizar, D: Eliminar logico
+--    p_aca_id_audio       IN  SSI_ANEXO_CABECERA_AUDIO.ACA_ID_AUDIO%TYPE
+--    p_id_anexo_cabecera  IN  SSI_ANEXO_CABECERA_AUDIO.ID_ANEXO_CABECERA%TYPE
+--    p_aca_audio          IN  SSI_ANEXO_CABECERA_AUDIO.ACA_AUDIO%TYPE
+--    p_aca_nombre_archivo IN  SSI_ANEXO_CABECERA_AUDIO.ACA_NOMBRE_ARCHIVO%TYPE
+--    p_aca_estado         IN  SSI_ANEXO_CABECERA_AUDIO.ACA_ESTADO%TYPE
+--    p_resultado_out      OUT NUMBER
+--    p_mensaje_out        OUT VARCHAR2
+--    p_cursor_out         OUT SYS_REFCURSOR
+-- Autor     : ChatGPT
+-- Fecha     : 23/05/2026
+-- =============================================================
+CREATE OR REPLACE PROCEDURE PRC_SSI_ANEXO_CAB_AUDIO_CRUD
+(
+   p_accion              IN  VARCHAR2,
+   p_aca_id_audio        IN  SSI_ANEXO_CABECERA_AUDIO.ACA_ID_AUDIO%TYPE DEFAULT NULL,
+   p_id_anexo_cabecera   IN  SSI_ANEXO_CABECERA_AUDIO.ID_ANEXO_CABECERA%TYPE DEFAULT NULL,
+   p_aca_audio           IN  SSI_ANEXO_CABECERA_AUDIO.ACA_AUDIO%TYPE DEFAULT NULL,
+   p_aca_nombre_archivo  IN  SSI_ANEXO_CABECERA_AUDIO.ACA_NOMBRE_ARCHIVO%TYPE DEFAULT NULL,
+   p_aca_estado          IN  SSI_ANEXO_CABECERA_AUDIO.ACA_ESTADO%TYPE DEFAULT NULL,
+   p_resultado_out       OUT NUMBER,
+   p_mensaje_out         OUT VARCHAR2,
+   p_cursor_out          OUT SYS_REFCURSOR
+)
+AS
+   v_aca_id_audio     SSI_ANEXO_CABECERA_AUDIO.ACA_ID_AUDIO%TYPE;
+   v_error_code       NUMBER;
+   v_error_message    VARCHAR2(4000);
+BEGIN
+   p_resultado_out := 0;
+   p_mensaje_out   := NULL;
+   p_cursor_out    := NULL;
+
+   IF UPPER(TRIM(p_accion)) = 'C' THEN
+      v_aca_id_audio := NVL(p_aca_id_audio, SEQ_ACA_ID_AUDIO.NEXTVAL);
+
+      INSERT INTO SSI_ANEXO_CABECERA_AUDIO
+      (
+         ACA_ID_AUDIO,
+         ID_ANEXO_CABECERA,
+         ACA_AUDIO,
+         ACA_NOMBRE_ARCHIVO,
+         ACA_FECHA_REGISTRO,
+         ACA_ESTADO,
+         ACA_ELIMINADO
+      )
+      VALUES
+      (
+         v_aca_id_audio,
+         p_id_anexo_cabecera,
+         p_aca_audio,
+         p_aca_nombre_archivo,
+         SYSDATE,
+         NVL(p_aca_estado, 1),
+         0
+      );
+
+      COMMIT;
+
+      p_resultado_out := 1;
+      p_mensaje_out   := 'Registro creado correctamente. ACA_ID_AUDIO=' || v_aca_id_audio;
+
+   ELSIF UPPER(TRIM(p_accion)) = 'R' THEN
+      OPEN p_cursor_out FOR
+         SELECT
+            aca.ACA_ID_AUDIO,
+            aca.ID_ANEXO_CABECERA,
+            aca.ACA_AUDIO,
+            aca.ACA_NOMBRE_ARCHIVO,
+            aca.ACA_FECHA_REGISTRO,
+            aca.ACA_ESTADO,
+            aca.ACA_ELIMINADO
+         FROM SSI_ANEXO_CABECERA_AUDIO aca
+         WHERE
+            aca.ACA_ELIMINADO = 0
+            AND (p_aca_id_audio IS NULL OR aca.ACA_ID_AUDIO = p_aca_id_audio);
+
+      p_resultado_out := 1;
+      p_mensaje_out   := 'Consulta ejecutada correctamente.';
+
+   ELSIF UPPER(TRIM(p_accion)) = 'U' THEN
+      IF p_aca_id_audio IS NULL THEN
+         RAISE_APPLICATION_ERROR(-20010, 'Para actualizar, p_aca_id_audio es obligatorio.');
+      END IF;
+
+      UPDATE SSI_ANEXO_CABECERA_AUDIO aca
+         SET
+            aca.ID_ANEXO_CABECERA  = NVL(p_id_anexo_cabecera, aca.ID_ANEXO_CABECERA),
+            aca.ACA_AUDIO          = CASE
+                                        WHEN p_aca_audio IS NOT NULL THEN p_aca_audio
+                                        ELSE aca.ACA_AUDIO
+                                     END,
+            aca.ACA_NOMBRE_ARCHIVO = NVL(p_aca_nombre_archivo, aca.ACA_NOMBRE_ARCHIVO),
+            aca.ACA_ESTADO         = NVL(p_aca_estado, aca.ACA_ESTADO)
+      WHERE
+         aca.ACA_ID_AUDIO = p_aca_id_audio
+         AND aca.ACA_ELIMINADO = 0;
+
+      IF SQL%ROWCOUNT = 0 THEN
+         RAISE_APPLICATION_ERROR(-20011, 'No se encontro registro activo para actualizar.');
+      END IF;
+
+      COMMIT;
+
+      p_resultado_out := 1;
+      p_mensaje_out   := 'Registro actualizado correctamente.';
+
+   ELSIF UPPER(TRIM(p_accion)) = 'D' THEN
+      IF p_aca_id_audio IS NULL THEN
+         RAISE_APPLICATION_ERROR(-20012, 'Para eliminar, p_aca_id_audio es obligatorio.');
+      END IF;
+
+      UPDATE SSI_ANEXO_CABECERA_AUDIO aca
+         SET
+            aca.ACA_ELIMINADO = 1,
+            aca.ACA_ESTADO    = 0
+      WHERE
+         aca.ACA_ID_AUDIO = p_aca_id_audio
+         AND aca.ACA_ELIMINADO = 0;
+
+      IF SQL%ROWCOUNT = 0 THEN
+         RAISE_APPLICATION_ERROR(-20013, 'No se encontro registro activo para eliminar.');
+      END IF;
+
+      COMMIT;
+
+      p_resultado_out := 1;
+      p_mensaje_out   := 'Registro eliminado logicamente correctamente.';
+
+   ELSE
+      RAISE_APPLICATION_ERROR(-20014, 'Accion no valida. Use C, R, U o D.');
+   END IF;
+
+EXCEPTION
+   WHEN NO_DATA_FOUND THEN
+      v_error_code    := SQLCODE;
+      v_error_message := SQLERRM;
+      ROLLBACK;
+      p_resultado_out := 0;
+      p_mensaje_out   := 'NO_DATA_FOUND [' || v_error_code || ']: ' || v_error_message;
+      RAISE_APPLICATION_ERROR(-20001, p_mensaje_out);
+
+   WHEN TOO_MANY_ROWS THEN
+      v_error_code    := SQLCODE;
+      v_error_message := SQLERRM;
+      ROLLBACK;
+      p_resultado_out := 0;
+      p_mensaje_out   := 'TOO_MANY_ROWS [' || v_error_code || ']: ' || v_error_message;
+      RAISE_APPLICATION_ERROR(-20002, p_mensaje_out);
+
+   WHEN DUP_VAL_ON_INDEX THEN
+      v_error_code    := SQLCODE;
+      v_error_message := SQLERRM;
+      ROLLBACK;
+      p_resultado_out := 0;
+      p_mensaje_out   := 'DUP_VAL_ON_INDEX [' || v_error_code || ']: ' || v_error_message;
+      RAISE_APPLICATION_ERROR(-20003, p_mensaje_out);
+
+   WHEN OTHERS THEN
+      v_error_code    := SQLCODE;
+      v_error_message := SQLERRM;
+      ROLLBACK;
+      p_resultado_out := 0;
+      p_mensaje_out   := 'Error en PRC_SSI_ANEXO_CAB_AUDIO_CRUD [' || v_error_code || ']: ' || v_error_message;
+      RAISE_APPLICATION_ERROR(-20999, p_mensaje_out);
+END PRC_SSI_ANEXO_CAB_AUDIO_CRUD;
+/
