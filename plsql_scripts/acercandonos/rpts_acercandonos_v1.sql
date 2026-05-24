@@ -912,9 +912,9 @@ WITH cte_gestion_acompañante AS (
       f.PF_ID_FAMILIA,
 
       -- Datos generales de la familia y zona
-      f.PF_COD_FAMILIA AS COD_FAM,
       u.UORNOMBRE AS NOM_CEDIF,
-      z.ZO_DESCRIPCION AS NOM_ZONA,
+      f.EQ_ID_EQUIPO AS ID_AF,
+      f.PF_COD_FAMILIA AS COD_FAM,
 
       -- Datos del acompañante (equipo de trabajo)
       pe.PERAPEPATERNO AS PRI_APE_AF,
@@ -929,8 +929,6 @@ WITH cte_gestion_acompañante AS (
                                    AND et.EQ_ESTADO = 1
    LEFT JOIN TRPERSONAL ps ON et.PER_ID_PERSONAL = ps.IDPERSONAL
    LEFT JOIN TGPERSONA pe ON pe.IDPERSONA = ps.PRHPERSONA
-   -- LEFT JOIN TGCATALOGO d ON pe.PERDOCUMENTO = d.IDCATALOGO
-
    WHERE
       z.SI_ID_SERVICIO = 3  -- Acercándonos
       AND f.PF_ESTADO = 1
@@ -942,9 +940,10 @@ WITH cte_gestion_acompañante AS (
    SELECT
 
       -- ! Aux
-      f.PF_ID_FAMILIA, 
+      f.PF_ID_FAMILIA,
 
       -- Datos del cuidador (usamos MAX para evitar duplicados)
+      f.PF_ID_FAMILIA AS ID_CP,
       i.FI_PRIMER_APE AS PRI_APE_CP,
       i.FI_SEGUNDO_APE AS SEG_AP_CP,
       i.FI_NOMBRES AS NOM_CP,

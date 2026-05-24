@@ -1,3 +1,5 @@
+-- * I. Levantamiento de observaciones de Excel.
+
 -- * Anexo 13: Falta agregar el campo en  la ficha, sólo se activa si la respuesta es la opción "Si" en la pgta. 2.4
 
 -- * 13.1 Actualizar `AP_NUM_PREGUNTA` → `2705`
@@ -148,6 +150,13 @@ UPDATE SSI_ANEXOS_PREGUNTAS p
       p.AP_OBLIGATORIA1 = 0
 WHERE
    p.AP_ID_PREGUNTA = 3319
+/
+
+UPDATE SSI_ANEXOS_PREGUNTAS p
+   SET 
+      p.AP_OPCIONES = 'Sí | No | No sé'
+WHERE
+   p.AP_ID_PREGUNTA = 2089
 /
 -- ! COMMIT;
 -- ! ROLLBACK;
@@ -430,6 +439,414 @@ WHERE
 -- ! ROLLBACK;
 
 
+
+-- * II. Levantamiento de observaciones de reunión.
+
+
+-- * 2.1 Actualizar ubigeo y nombre
+
+-- * 2.1.1 Actualizar ubigeo y nombre
+UPDATE SSI_ESP_INTERVENCION i
+   SET 
+      i.ESP_NOMBRE = 'SEDE CENTRAL',
+      i.ESP_UBIGEO = '150121', -- Sede Central Pueblo libre
+      i.ESP_NOMBRE_RESPONSABLE = 'SEDE CENTRAL'
+WHERE
+   i.ID_ESP_INTERV = 23
+/
+
+-- * 2.1.2 Actualizar ubigeo y nombre
+INSERT INTO SSI_ESP_INTERVENCION (ID_ESP_INTERV, ID_SERVICIO, ESP_NOMBRE, ESP_UBIGEO, ESP_NOMBRE_RESPONSABLE, ID_UNIDADORGANICA_PADRE) 
+VALUES (23, 9, 'SEDE CENTRAL 1', 150121, 'SEDE CENTRAL 2', 1146);
+/
+
+INSERT INTO SSI_ESP_INTERVENCION (ID_ESP_INTERV, ID_SERVICIO, ESP_NOMBRE, ESP_UBIGEO, ESP_NOMBRE_RESPONSABLE, ID_UNIDADORGANICA_PADRE) 
+VALUES (24, 10, 'SEDE CENTRAL 2', 150121, 'SEDE CENTRAL 2', 1166);
+/
+
+SELECT * FROM SSI_ESP_INTERVENCION i
+ORDER BY
+   i.ID_ESP_INTERV DESC
+/
+
+/* DELETE SSI_ESP_INTERVENCION i
+WHERE
+   i.ID_ESP_INTERV IN (23, 24, 25) 
+/ */
+
+-- ! COMMIT;
+-- ! ROLLBACK;
+
+-- * 2.2 Cambiar de tipo NUMBER a VARCHAR2
+ALTER TABLE SSI_ANEXOS_CABECERA
+   DROP COLUMN ID_SUPERVISADO
+/
+
+ALTER TABLE SSI_ANEXOS_CABECERA
+   ADD ID_SUPERVISADO VARCHAR2(500) NULL
+/
+
+-- ! COMMIT;
+-- ! ROLLBACK;
+
+
+-- * 2.3 Validación de la fichas (🕜)
+
+-- * 2.3.1 Adicionar columna que de los usuarios que validan la ficha
+ALTER TABLE SSI_ANEXOS_CABECERA
+   ADD IDS_PERSONAL_VALIDA VARCHAR2(255) NULL
+/
+-- ! COMMIT;
+
+
+-- * 2.3.2 Actualiza personal que valida la ficha
+
+CREATE OR REPLACE PROCEDURE USP_SAVE_PERSONAL_VALIDA_ANEXO
+(
+   p_id_anexo_cabecera IN NUMBER,
+   p_ids_personal IN VARCHAR2
+)
+IS
+   id_centro_ref NUMBER;
+BEGIN
+
+   BEGIN
+
+      SAVEPOINT SAVE_PERSONAL_VALIDA_ANEXO;
+
+      UPDATE SSI_ANEXOS_CABECERA ac
+         SET ac.IDS_PERSONAL_VALIDA = (
+            CASE
+               WHEN (p_ids_personal = '' OR p_ids_personal IS NULL) THEN ''
+               ELSE (
+                  CASE
+                     WHEN (ac.IDS_PERSONAL_VALIDA = '' OR ac.IDS_PERSONAL_VALIDA IS NULL) THEN p_ids_personal
+                     ELSE (ac.IDS_PERSONAL_VALIDA || '|' || p_ids_personal)
+                  END
+               )
+            END
+         )
+      WHERE
+         ac.ID_ANEXO_CABECERA = p_id_anexo_cabecera;
+
+      COMMIT;
+
+   EXCEPTION
+      WHEN OTHERS THEN
+         ROLLBACK TO SAVEPOINT SAVE_PERSONAL_VALIDA_ANEXO;
+         DBMS_OUTPUT.PUT_LINE('Error al actualizar el personal que valida el anexo: ' || SQLERRM);
+         RAISE;
+   END;
+
+END USP_SAVE_PERSONAL_VALIDA_ANEXO;
+/
+
+-- Llamar al procedimiento almacenado:
+BEGIN
+   USP_SAVE_PERSONAL_VALIDA_ANEXO(103, '1642');
+END;
+/
+
+-- ! COMMIT;
+
+
+-- * 2.3.3 Conformidad a la ficha
+
+CREATE OR REPLACE PROCEDURE USP_SAVE_CONFORMIDAD_ANEXO_CABECERA
+(
+   p_id_anexo_cabecera IN NUMBER,
+   p_estado IN NUMBER -- ? (1) → REGISTRADO | (2) → CERRADO 
+)
+IS
+   id_centro_ref NUMBER;
+BEGIN
+
+   BEGIN
+
+      SAVEPOINT SAVE_CONFORMIDAD_ANEXO_CABECERA;
+
+      UPDATE SSI_ANEXOS_CABECERA ac
+         SET ac.ESTADO = p_estado
+      WHERE
+         ac.ID_ANEXO_CABECERA = p_id_anexo_cabecera;
+
+      COMMIT;
+
+   EXCEPTION
+      WHEN OTHERS THEN
+         ROLLBACK TO SAVEPOINT SAVE_CONFORMIDAD_ANEXO_CABECERA;
+         DBMS_OUTPUT.PUT_LINE('Error al dar la conformidad al anexo: ' || SQLERRM);
+         RAISE;
+   END;
+
+END USP_SAVE_CONFORMIDAD_ANEXO_CABECERA;
+/
+
+-- Llamar al procedimiento almacenado:
+BEGIN
+   USP_SAVE_CONFORMIDAD_ANEXO_CABECERA(103, 2);
+END;
+/
+-- ! COMMIT;
+
+
+-- * 2.4 Carga de 5 audios. (🕜)
+
+-- * 2.4.1 
+CREATE SEQUENCE SEQ_ACA_ID_AUDIO START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE
+/
+
+CREATE TABLE SSI_ANEXO_CABECERA_AUDIO
+(
+   ACA_ID_AUDIO NUMBER PRIMARY KEY,
+   ID_ANEXO_CABECERA NUMBER NOT NULL,
+   ACA_AUDIO BLOB NOT NULL,
+   ACA_NOMBRE_ARCHIVO VARCHAR2(500) NOT NULL,
+   ACA_FECHA_REGISTRO DATE DEFAULT SYSDATE,
+   ACA_ESTADO NUMBER(1) DEFAULT 1,
+   ACA_ELIMINADO NUMBER(1) DEFAULT 0 CHECK (ACA_ELIMINADO IN (0, 1))
+)
+/
+
+-- ! COMMIT;
+
+-- * 2.4.2 
+CREATE OR REPLACE PROCEDURE USP_CRUD_ANEXO_CABECERA_AUDIO
+(
+   p_operacion           IN NUMBER,    -- ? (1) INSERTAR | (2) ACTUALIZAR | (3) ELIMINAR | (4) CONSULTAR
+   p_id_audio            IN NUMBER,    -- Requerido para UPDATE, DELETE, SELECT
+   p_id_anexo_cabecera   IN NUMBER,    -- Requerido para INSERT
+   p_audio               IN BLOB,      -- Requerido para INSERT, UPDATE
+   p_nombre_archivo      IN VARCHAR2,  -- Requerido para INSERT, UPDATE
+   p_estado              IN NUMBER,    -- Requerido para UPDATE
+   p_cursor              OUT SYS_REFCURSOR
+)
+IS
+BEGIN
+
+   -- ========================
+   -- (1) INSERTAR
+   -- ========================
+   IF p_operacion = 1 THEN
+      BEGIN
+         SAVEPOINT SAVE_INSERT_ANEXO_CABECERA_AUDIO;
+
+         INSERT INTO SSI_ANEXO_CABECERA_AUDIO
+         (
+            ACA_ID_AUDIO,
+            ID_ANEXO_CABECERA,
+            ACA_AUDIO,
+            ACA_NOMBRE_ARCHIVO
+         )
+         VALUES
+         (
+            SEQ_ACA_ID_AUDIO.NEXTVAL,
+            p_id_anexo_cabecera,
+            p_audio,
+            p_nombre_archivo
+         );
+
+         COMMIT;
+      EXCEPTION
+         WHEN OTHERS THEN
+            ROLLBACK TO SAVEPOINT SAVE_INSERT_ANEXO_CABECERA_AUDIO;
+            DBMS_OUTPUT.PUT_LINE('Error al insertar el audio del anexo: ' || SQLERRM);
+            RAISE;
+      END;
+
+   -- ========================
+   -- (2) ACTUALIZAR
+   -- ========================
+   ELSIF p_operacion = 2 THEN
+      BEGIN
+         SAVEPOINT SAVE_UPDATE_ANEXO_CABECERA_AUDIO;
+
+         UPDATE SSI_ANEXO_CABECERA_AUDIO
+            SET ACA_AUDIO          = p_audio,
+                ACA_NOMBRE_ARCHIVO = p_nombre_archivo,
+                ACA_ESTADO         = p_estado
+         WHERE
+            ACA_ID_AUDIO    = p_id_audio
+            AND ACA_ELIMINADO = 0;
+
+         COMMIT;
+      EXCEPTION
+         WHEN OTHERS THEN
+            ROLLBACK TO SAVEPOINT SAVE_UPDATE_ANEXO_CABECERA_AUDIO;
+            DBMS_OUTPUT.PUT_LINE('Error al actualizar el audio del anexo: ' || SQLERRM);
+            RAISE;
+      END;
+
+   -- ========================
+   -- (3) ELIMINAR (lógico)
+   -- ========================
+   ELSIF p_operacion = 3 THEN
+      BEGIN
+         SAVEPOINT SAVE_DELETE_ANEXO_CABECERA_AUDIO;
+
+         UPDATE SSI_ANEXO_CABECERA_AUDIO
+            SET ACA_ELIMINADO = 1
+         WHERE
+            ACA_ID_AUDIO = p_id_audio;
+
+         COMMIT;
+      EXCEPTION
+         WHEN OTHERS THEN
+            ROLLBACK TO SAVEPOINT SAVE_DELETE_ANEXO_CABECERA_AUDIO;
+            DBMS_OUTPUT.PUT_LINE('Error al eliminar el audio del anexo: ' || SQLERRM);
+            RAISE;
+      END;
+
+   -- ========================
+   -- (4) CONSULTAR
+   -- ========================
+   ELSIF p_operacion = 4 THEN
+      OPEN p_cursor FOR
+         SELECT
+            ACA_ID_AUDIO,
+            ID_ANEXO_CABECERA,
+            ACA_AUDIO,
+            ACA_NOMBRE_ARCHIVO,
+            ACA_FECHA_REGISTRO,
+            ACA_ESTADO
+         FROM SSI_ANEXO_CABECERA_AUDIO
+         WHERE
+            ID_ANEXO_CABECERA = p_id_anexo_cabecera
+            AND ACA_ELIMINADO      = 0;
+
+   ELSE
+      DBMS_OUTPUT.PUT_LINE('Operación no válida: ' || p_operacion);
+
+   END IF;
+
+END USP_CRUD_ANEXO_CABECERA_AUDIO;
+/
+
+-- ! COMMIT;
+
+-- * 2.5 Considerar registro de campos `PERIRIO` y `TIPO` al registrar la FICHA. (🕜)
+
+
+-- * 2.5.1 Crear campos `PERIRIO` | `TIPO`. (🕜)
+
+ALTER TABLE SSI_ANEXOS_CABECERA
+   ADD PERIODO VARCHAR2(55) NULL
+/
+
+ALTER TABLE SSI_ANEXOS_CABECERA
+   ADD TIPO VARCHAR2(55) NULL
+/
+
+-- ! COMMIT;
+
+-- * 2.5.2 Agrear columna que indica si anexo requiere validación 
+ALTER TABLE SSI_ANEXO
+   ADD ANX_REQ_VALIDACION NUMBER DEFAULT 1
+/
+-- ! COMMIT;
+
+-- * 2.5.3 Agrear columna que indica si anexo requiere supervisados 
+ALTER TABLE SSI_ANEXO
+   ADD ANX_REQ_SUPERVISADOS NUMBER DEFAULT 1
+/
+-- ! COMMIT;
+
+SELECT 
+   a.*
+FROM SSI_ANEXO a
+/
+
+
+-- ! Test
+UPDATE SSI_ANEXO
+   -- SET ANX_REQ_VALIDACION = 1
+   SET ANX_REQ_SUPERVISADOS = 1
+/
+
+SELECT 
+   COUNT(1)
+FROM TGUNIDADORGANICA U
+INNER JOIN TRPERSONAL TR ON U.IDUNIDADORGANICA = TR.PRHUNIDADORGANICA
+INNER JOIN TGPERSONA PER ON PER.IDPERSONA = TR.PRHPERSONA
+WHERE 
+   U.UORNOMBRE = 'UNIDAD DE ADMINISTRACIÓN' -- 647
+   -- u.UOR_UNIDAD_PADRE = 90 -- ? 'SEDE CENTRAL'
+/
+
+
+SELECT * FROM SSI_ANEXO_CABECERA_AUDIO ac
+/
+
+SELECT * FROM SSI_ANEXOS_CABECERA ac
+ORDER BY
+   ac.ID_ANEXO_CABECERA DESC
+/
+
+SELECT * FROM SSI_ANEXOS_CABECERA ac
+WHERE
+   ac.ID_ANEXO_CABECERA = 1
+/
+
+SELECT * FROM ALL_TAB_COLS c
+WHERE 
+   c.TABLE_NAME = 'SSI_ANEXOS_CABECERA'
+   -- AND c.COLUMN_NAME LIKE'%PRO%'
+/
+
+
+
+SELECT * FROM SSI_ESP_INTERVENCION
+/
+
+SELECT * FROM SSI_ESP_INTERVENCION i
+ORDER BY
+   i.ID_ESP_INTERV DESC
+/
+
+
+SELECT 
+   pe.*
+   -- p.*
+   -- u.*
+FROM TGPERSONA p 
+JOIN TSUSUARIO u ON p.IDPERSONA = u.USUPERSONA
+JOIN TRPERSONAL pe ON p.IDPERSONA = pe.PRHPERSONA
+WHERE
+   p.PERNRODOCUMENTO = '46392613'
+/
+
+SELECT * FROM TRPERSONAL
+/
+
+SELECT * FROM TSUSUARIO
+/
+
+SELECT * FROM TSUSUARIO
+/
+
+SELECT * FROM SSI_ESP_INTERVENCION i
+ORDER BY 
+   i.ID_ESP_INTERV DESC
+/
+
+SELECT * FROM SSI_UBIGEO_NOMBRES un
+WHERE
+   un.U_DISTRITO LIKE '%PUEBLO%'
+/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 -- ! Test
 
 -- ! 1. Eliminar pregunta
@@ -447,16 +864,32 @@ WHERE
    ) */
 /
 
+
+/* UPDATE SSI_ANEXOS_PREGUNTAS p
+   SET 
+      -- p.AP_CONDICION = NULL
+      -- p.AP_OBLIGATORIA1 = 0,
+      -- p.AP_TIPO_CONTROL2 = NULL,
+      p.AP_TIPO_CONTROL = 'selectM'
+      -- p.AP_PREGUNTA2 = NULL
+      -- p.AP_PREGUNTA = 'Tiempo' -- Tiempo
+WHERE 
+   -- p.AP_ID_PREGUNTA = 4242
+   p.AP_ID_PREGUNTA = 3183
+/ */
+
 -- ! 2. Identificar anexos en preguntas
 SELECT 
    p.* 
    -- p.Si_ID_SERVICIO
-   -- p.AP_NUM_ANEXO
+   -- (p.AP_ID_PREGUNTA || '-' || p.AP_NUM_PREGUNTA) AS KEY
 FROM SSI_ANEXOS_PREGUNTAS p
 WHERE
    p.SI_ID_SERVICIO = 4 -- SIGES
-   AND p.AP_NUM_ANEXO = 38
+   AND p.AP_NUM_ANEXO = 1
    -- AND p.AP_ID_PREGUNTA = 4254
+   -- AND p.AP_NUM_GRUPO = 2
+   -- AND p.AP_NUM_PREGUNTA BETWEEN 1 AND 10
 ORDER BY
    -- p.AP_ID_PREGUNTA
    p.AP_NUM_GRUPO,
@@ -470,7 +903,7 @@ SELECT
    -- COUNT(1)
 FROM SSI_ANEXOS_CABECERA ac
 WHERE 
-   ac.ID_ANEXO = 22
+   ac.ID_ANEXO = 1
 /
 
 
@@ -483,7 +916,7 @@ WHERE
    -- a.ANX_NOMBRE  LIKE '%ASISTENC%'
    -- LOWER(a.ANX_SERVICIO)  LIKE '%sistenc%'
    -- a.ANX_ID_SERVICIO = 5
-   a.ID_ANEXO = 34
+   a.ID_ANEXO = 1
 /
 
 -- ! 2 Preguntas por servicio SIGES
@@ -509,20 +942,31 @@ ORDER BY 2 DESC
 
 -- ! 3. Servicios SIGES
 SELECT 
-   a.ANX_ID_SERVICIO
+   -- a.ANX_ID_SERVICIO
+   a.*
 FROM SSI_ANEXO a
-GROUP BY
-   a.ANX_ID_SERVICIO
+/* WHERE
+   a.ANX_CODIGO2 = 'GE_INA01' */
+/* GROUP BY
+   a.ANX_ID_SERVICIO */
 /
 
+UPDATE SSI_ANEXO a
+   SET 
+      a.ANX_NOMBRE = 'Guía de Entrevista al Equipo Técnico de Inabif en Acción'
+WHERE
+   a.ID_ANEXO = 41
+/
+
+-- ! COMMIT;
 
 -- ! 4. Anexos cabecera SIGES
 SELECT 
    ac.* 
    -- COUNT(1)
 FROM SSI_ANEXOS_CABECERA ac
-WHERE 
-   ac.ID_ANEXO = 13
+/* WHERE 
+   ac.ID_ANEXO = 13 */
 /
 
 SELECT * FROM TGUBIGEO
@@ -597,3 +1041,149 @@ ORDER BY ar.AR_ID_RESPUESTA DESC
 /
 
 
+
+SELECT 
+   u.UOR_DIRECTOR,
+   u.*
+   /* TR.IDPERSONAL,
+   U.UORNOMBRE,
+   U.UORABREVIATURA,
+   PER.PERNOMBRE || ' ' ||
+   PER.PERAPEPATERNO || ' ' ||
+   PER.PERAPEMATERNO AS NOMBRES */
+FROM TGUNIDADORGANICA U
+-- INNER JOIN TRPERSONAL TR ON U.IDUNIDADORGANICA = TR.PRHUNIDADORGANICA
+-- INNER JOIN TGPERSONA PER ON PER.IDPERSONA = TR.PRHPERSONA
+WHERE 
+   -- U.UORNOMBRE = 'CEDIF AÑO NUEVO' 
+   -- U.UORNOMBRE = 'CAR ARCO IRIS' 
+   U.IDUNIDADORGANICA = 90
+   -- AND TR.PRHESTADO = 1
+-- ORDER BY NOMBRES
+/
+
+
+SELECT 
+      TR.IDPERSONAL AS IDPERSONAL,
+      U.UORNOMBRE AS UORNOMBRE,
+      U.UORABREVIATURA AS UORABREVIATURA,
+      (
+            PER.PERNOMBRE || ' ' ||
+            PER.PERAPEPATERNO || ' ' ||
+            PER.PERAPEMATERNO
+      ) AS NOMBRES,
+      u.*
+   FROM TGUNIDADORGANICA U
+   INNER JOIN TRPERSONAL TR ON U.IDUNIDADORGANICA = TR.PRHUNIDADORGANICA
+   INNER JOIN TGPERSONA PER ON PER.IDPERSONA = TR.PRHPERSONA
+   WHERE 
+      TR.PRHESTADO = 1
+      -- AND u.IDUNIDADORGANICA = 140
+      -- AND u.IDUNIDADORGANICA = 1146 -- SEDE CENTRO 1
+      AND u.IDUNIDADORGANICA = 1166 -- SEDE CENTRO 1
+   ORDER BY NOMBRES
+/
+
+SELECT * FROM TGUNIDADORGANICA u
+WHERE
+   -- UORNOMBRE LIKE '%ASISTENCIA%' -- 1. SEDE CENTRO 1
+   UORNOMBRE LIKE '%EMERGENCIA%'
+/
+
+-- INNER JOIN TRPERSONAL TR ON U.IDUNIDADORGANICA = TR.PRHUNIDADORGANICA
+
+
+/* AND (
+   PER.PERNOMBRE || ' ' ||
+   PER.PERAPEPATERNO || ' ' ||
+   PER.PERAPEMATERNO
+) LIKE '%' || UPPER(p_nombre_persona)  || '%' */
+
+
+/* [
+   {
+      "idPersonal": 1205,
+      "nombre": "ABDIAS LISANDRO PARRA FIGUEROA"
+   }
+] */
+
+
+-- COMMIT;
+
+
+SELECT * FROM SSI_ANEXOS_CABECERA a
+ORDER BY
+   a.ID_ANEXO_CABECERA DESC
+/
+
+
+ROLLBACK;
+
+
+SELECT
+    column_name,
+    data_type,
+    data_length
+FROM
+    all_tab_columns
+WHERE
+    table_name = 'SSI_ANEXOS_CABECERA'
+    AND column_name = 'IDS_SUPERVISADOS';
+
+
+SELECT trigger_name, trigger_type, triggering_event
+FROM all_triggers
+WHERE table_name = 'SSI_ANEXOS_CABECERA';
+
+SELECT constraint_name, search_condition
+FROM all_constraints
+WHERE table_name = 'SSI_ANEXOS_CABECERA' AND constraint_type = 'C';
+
+
+
+SELECT object_name, object_type, status, last_ddl_time
+FROM user_objects
+WHERE object_name = 'USP_CREAR_ANEXO_COMPLETO';
+
+
+-- * Datos para el registro de `FICHAS`
+
+-- * 1. Consultan `Unidad` y `Servicio`
+SELECT * FROM SSI_ANEXO a
+/
+
+-- * 2. ...
+SELECT * FROM SSI_ESP_INTERVENCION i
+ORDER BY
+   i.ID_ESP_INTERV DESC
+/
+
+SELECT * FROM TGUNIDADORGANICA u
+WHERE
+   u.UOR_UNIDAD_PADRE = 90
+/
+
+-- 1166 | 24 | 948
+-- 1146 | 23 | 17980
+-- 90 | * | 835
+UPDATE SSI_ESP_INTERVENCION i
+   SET 
+      i.ID_PERSONAL = 835
+WHERE
+   i.ID_ESP_INTERV NOT IN (23, 24)
+/
+
+-- ! COMMIT;
+
+
+
+/* WHERE
+   -- a.ANX_NOMBRE = UPPER('Servicio de atención de emergencias y urgencias "INABIF EN ACCIÓN')
+   a.ANX_SERVICIO LIKE 'Servicio de atención de emergencias y urgencias%'
+/ */
+
+
+
+[
+  { "descripcion": "FAMILIAS IGUALITARIAS" }
+]
