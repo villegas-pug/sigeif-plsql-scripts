@@ -12,7 +12,8 @@ WHERE e.ZO_ID_ZONA = 347
 SELECT * FROM SSI_EQUIPO_TRABAJO e
 WHERE e.EQ_ID_EQUIPO = 277;
 
-/* Cleanup:                */
+
+-- ! COMMIT;
 
 -- 1
 -- SELECT * FROM SSI_ZONA_INTERVENCION;

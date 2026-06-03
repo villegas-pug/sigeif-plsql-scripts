@@ -10,6 +10,41 @@ función, trigger o vista, SIEMPRE debes leer el archivo
 `sigeif_data_base_schema.sql` para conocer las tablas, columnas, tipos de
 datos y relaciones exactas.
 
+## Flujo de Trabajo Obligatorio
+
+### 1. Clasificar la Solicitud
+Identificar el tipo de trabajo:
+- `SELECT` / Consulta → `query-builder`
+- `INSERT` / `UPDATE` / `DELETE` → `generate-plsql` + `data-validator`
+- Procedure / Function / Trigger / Package → `procedure-builder`
+- Optimización de rendimiento → `sql-optimizer`
+- Validación de integridad → `data-validator`
+
+### 2. Delegar al Subagente Especializado
+No generar SQL/PLSQL directamente salvo solicitud directa del usuario.
+Usar los subagentes disponibles:
+- **query-builder**: SELECT, joins, subconsultas, vistas, CTEs, jerárquicas
+- **procedure-builder**: procedures, functions, triggers, packages PL/SQL
+- **data-validator**: validaciones FK, NOT NULL, CHECK, duplicados, conteos
+- **sql-optimizer**: performance, índices, hints, análisis de consultas costosas
+
+### 3. Aplicar Skills Transversales
+- **generate-plsql**: DML/DDL, convenciones SIGEIF, filtros reales del schema
+- **oracle-syntax**: sintaxis Oracle nativa, aliases, nomenclatura de objetos
+- **exception-handler**: manejo de excepciones PL/SQL estándar
+
+### 4. Consolidar Resultado
+Entregar el código final con contexto, advertencias y validaciones previas
+cuando apliquen.
+
+### Excepciones al Flujo
+Consultas simples y directas pueden responderse directamente si:
+- El contexto del schema ya está cargado
+- No requiere múltiples joins o subconsultas complejas
+- No necesita análisis de performance
+
+En caso de duda, siempre delegar al subagente apropiado.
+
 ## Estándares Oracle Obligatorios
 - Usa sintaxis Oracle nativa: NVL, NVL2, DECODE, ROWNUM, ROWID,
   CONNECT BY, LEVEL, DUAL, SYSDATE, etc.
