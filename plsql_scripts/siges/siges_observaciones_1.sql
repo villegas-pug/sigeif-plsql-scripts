@@ -1389,11 +1389,11 @@ SELECT
    -- uo.*,
    pe.PRHCORREOINSTITUCIONAL,
    uo.UOR_UBIGEO,
-   pe.IDPERSONAL
+   pe.IDPERSONAL, 
    -- COUNT(1)
    -- pe.*
    -- p.*
-   -- u.*
+   u.*
 FROM TGPERSONA p 
 JOIN TSUSUARIO u ON p.IDPERSONA = u.USUPERSONA
 JOIN TRPERSONAL pe ON p.IDPERSONA = pe.PRHPERSONA
@@ -1401,102 +1401,13 @@ JOIN TGUNIDADORGANICA uo ON pe.PRHUNIDADORGANICA = uo.IDUNIDADORGANICA
 WHERE
    p.PERESTADO = 1
    AND pe.PRHESTADO = 1
-   AND u.USUESTADO = 1
-   AND p.PERNRODOCUMENTO = '73239538'
+   -- AND u.USUESTADO = 1
+   -- AND p.PERNRODOCUMENTO = '73239538'
    -- AND p.PERNOMBRE LIKE '%ALEXANDRA%'
    -- AND p.PERAPEPATERNO = 'RIVERA'
    -- AND p.PERAPEMATERNO LIKE '%ALFARO%'
-   AND pe.PRHCORREOINSTITUCIONAL IN ( -- v2
-      'william.albujar@inabif.gob.pe',
-      'johannie.avalos@inabif.gob.pe',
-      'marilyn.chavez@inabif.gob.pe',
-      'yeni.coaguila@inabif.gob.pe',
-      'lidia.luna@inabif.gob.pe',
-      'uae.smendoza_01@inabif.gob.pe',
-      'sorayda.pari@inabif.gob.pe',
-      'victor.poncedeleon@inabif.gob.pe',
-      'ysusanibar@inabif.gob.pe',
-      'suae.avicuna_01@inabif.gob.pe'
-   )
-   /* AND pe.PRHCORREOINSTITUCIONAL NOT IN ( -- v1
-      'karina.aguilar@inabif.gob.pe',
-      'uae.walbujar_01@inabif.gob.pe',
-      'johannie.avalo@inabif.gob.pe',
-      'romulo.betancur@inabif.gob.pe',
-      'uae.lbocanegra_01@inabif.gob.pe',
-      'suae.mbuendia_01@inabif.gob.pe',
-      'juan.calderon@inabif.gob.pe',
-      'erika.chavez@inabif.gob.pe',
-      'marylin.chavez@inabif.gob.pe',
-      'Yeni.coaguila@inabif.gob.pe',
-      'maria.covenas@inabif.gob.pe',
-      'suae.kespinoza_01@inabif.gob.pe',
-      'daney.fernandez@inabif.gob.pe',
-      'shyovan.figueroa@inabif.gob.pe',
-      'brezia.garay@inabif.gob.pe',
-      'suae.rgarcia_01@inabif.gob.pe',
-      'thanya.gonzales@inabif.gob.pe',
-      'ggranados@inabif.gob.pe',
-      'jim.huaman@inabif.gob.pe',
-      'juan.huamany@inabif.gob.pe',
-      'suae.vhuerta_01@inabif.gob.pe',
-      'uae.gjusto_01@inabif.gob.pe',
-      'uae.lluna_01@inabif.gob.pe',
-      'hellen.marin@inabif.gob.pe',
-      'suae.smendoza_01@inabif.gob.pe',
-      'suae.jmendoza_01@inabif.gob.pe',
-      'mmera@inabif.gob.pe',
-      'carolina.minchan@inabif.gob.pe',
-      'marck.morales@inabif.gob.pe',
-      'roxana.najarro@inabif.gob.pe',
-      'luis.nevado@inabif.gob.pe',
-      'Sorayda.pari@inabif.gob.pe',
-      'mireya.pazos@inabif.gob.pe',
-      'javier.pereda@inabif.gob.pe',
-      'victor.ponce@inabif.gob.pe',
-      'emelyn.ramos@inabif.gob.pe',
-      'roger.rivadeneyra@inabif.gob.pe',
-      'deisy.rojas@inabif.gob.pe',
-      'boris.ruiz@inabif.gob.pe',
-      'jennifer.saenz@inabif.gob.pe',
-      'pedro.sanchez@inabif.gob.pe',
-      'suae.esilva_01@inabif.gob.pe',
-      'Yajaira.susanibar@inabif.gob.pe',
-      'suae.jgutierrez_01@inabif.gob.pe',
-      'uae.ovaldez_01@inabif.gob.pe',
-      'marco.zambrano@inabif.gob.pe',
-      'angela.zevallos@inabif.gob.pe',
-      'uae.gflores_01@inabif.gob.pe',
-      'uae.etrujillo_01@inabif.gob.pe',
-      'mariana.epiquien@inabif.gob.pe',
-      'melisa.fernandez@inabif.gob.pe',
-      'jose.huaman@inabif.gob.pe',
-      'uae.ltaquima_01@inabif.gob.pe',
-      'suae.sespinoza_01@inabif.gob.pe',
-      'lita.mendoza@inabif.gob.pe',
-      'suae.cjauregui_01@inabif.gob.pe',
-      'brenda.guerrero@inabif.gob.pe',
-      'isabel.navarro@inabif.gob.pe',
-      'suae.arivera_01@inabif.gob.pe',
-      'ayrton.romero@inabif.gob.pe',
-      'jennifer.valentin@inabif.gob.pe',
-      'suae.hmedina_01@inabif.gob.pe',
-      'luis.mogollon@inabif.gob.pe',
-      'zandra.villacorta@inabif.gob.pe',
-      'flor.chavez@inabif.gob.pe',
-      'ruby.robles@inabif.gob.pe',
-      'suae.lmamani_01@inabif.gob.pe',
-      'uae.scalderon_01@inabif.gob.pe',
-      'jessica.agurto@inabif.gob.pe',
-      'suae.jgutierrez_01@inabif.gob.pe',
-      'milady.chuy@inabif.gob.pe',
-      'deissy.orellana@inabif.gob.pe',
-      'maria.vasquez@inabif.gob.pe',
-      'anai.gonzales@inabif.gob.pe',
-      'uae.avicuna_01@inabif.gob.pe',
-      'suae.cbravo_01@inabif.gob.pe',
-      'jfernandez@inabif.gob.pe'
-   ) */
+   -- AND pe.PRHCORREOINSTITUCIONAL IN ( -- v2
+   AND pe.IDPERSONAL = 17221
 /
 
 
@@ -1944,4 +1855,27 @@ WHERE
 
 SELECT * FROM SSI_UBIGEO_NOMBRES u
 WHERE u.U_ID_UBIGEO = '050101'
+/
+
+
+SELECT * FROM SSI_ANEXOS_CABECERA ac
+ORDER BY
+   ac.ID_ANEXO_CABECERA DESC
+/
+
+SELECT 
+   c.CF_CODIGO AS COD_FAMILIA,
+   c.PF_ID_FAMILIA
+FROM SSI_CODIGOS_FAMILIAS c
+WHERE
+   c.SI_ID_SERVICIO = 2
+/
+
+-- ! COMMIT;
+
+
+UPDATE SSI_ANEXOS_CABECERA ac
+   SET ac.IDS_PERSONAL_VALIDA = NULL
+WHERE
+   ac.ID_ANEXO_CABECERA = 209
 /
