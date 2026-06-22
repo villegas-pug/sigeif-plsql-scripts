@@ -6,7 +6,7 @@ color: "#2AA198"
 permission:
   read: allow
   edit: ask
-  bash: deny
+  bash: allow
 ---
 
 Eres el builder de plantillas Excel SIGEIF.

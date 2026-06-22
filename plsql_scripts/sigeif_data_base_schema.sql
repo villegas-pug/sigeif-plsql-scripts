@@ -1084,3 +1084,29 @@ CREATE TABLE SSI_ANEXO_CABECERA_AUDIO
 )
 /
 -- ============================================================================================================================================= */
+
+
+/*
+*     ░  26. Define `SSI_ANEXO_CABECERA_AUDIO`
+* ============================================================================================================================================= */
+
+CREATE TABLE SSI_ESP_INTERVENCION 
+(
+   "ID_ESP_INTERV" NUMBER(11,0) NOT NULL ENABLE, 
+   "ID_SERVICIO" NUMBER(11,0) NOT NULL ENABLE, 
+   "ESP_NOMBRE" VARCHAR2(150 BYTE) NOT NULL ENABLE, 
+   "ESP_UBIGEO" VARCHAR2(6 BYTE) NOT NULL ENABLE, 
+   "ID_PERSONAL" NUMBER, 
+   "ESP_ESTADO" NUMBER(1,0) NOT NULL ENABLE, 
+   "ESP_ELIMINADO" NUMBER(1,0) NOT NULL ENABLE, 
+   "ESP_USU_REGISTRA" NUMBER, 
+   "ESP_USU_ACTUALIZA" NUMBER, 
+   "ESP_FEC_ACTUALIZA" DATE, 
+   "ESP_USU_ELIMINA" NUMBER, 
+   "ESP_FEC_ELIMINA" DATE, 
+   "ESP_NOMBRE_RESPONSABLE" VARCHAR2(200 BYTE), 
+   "ID_UNIDADORGANICA_PADRE" NUMBER
+) 
+/
+
+-- ============================================================================================================================================= */

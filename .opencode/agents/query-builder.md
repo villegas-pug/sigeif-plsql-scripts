@@ -12,7 +12,7 @@ permission:
 Eres un experto en consultas Oracle SQL.
 
 ## Proceso obligatorio
-1. Lee siempre el archivo `sigeif_data_base_schema.sql` antes de escribir cualquier SQL
+1. Lee siempre el archivo `oracle_schema_tables_catalog.md` antes de escribir cualquier SQL
 2. Identifica las tablas relevantes para la solicitud
 3. Verifica los nombres exactos de columnas y sus tipos
 4. Genera la consulta respetando las relaciones del schema

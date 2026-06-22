@@ -1,0 +1,2889 @@
+-- * 1. Analisis Exploratorio `EDUCALLE`
+
+
+-- * 1.1 Unidades
+
+-- `USP_LISTAR_UNIDADES`
+SELECT DISTINCT
+   IDUNIDADORGANICA AS idUnidad,
+   ANX_UNIDAD_ORGANICA AS nombreUnidad
+FROM SSI_ANEXO
+WHERE 
+   NVL(ANX_ELIMINADO, 0) = 0
+ORDER BY 
+   ANX_UNIDAD_ORGANICA
+/
+
+-- * 1.1.1 Actualizar `SP`
+CREATE OR REPLACE PROCEDURE USP_LISTAR_UNIDADES_V2 (
+    p_id_servicio_padre IN NUMBER,
+    c_resultado OUT SYS_REFCURSOR
+)
+AS
+BEGIN
+    OPEN C_RESULTADO FOR
+        SELECT DISTINCT
+            a.IDUNIDADORGANICA AS idUnidad,
+            a.ANX_UNIDAD_ORGANICA AS nombreUnidad
+        FROM SSI_ANEXO a
+        WHERE 
+            NVL(a.ANX_ELIMINADO, 0) = 0
+            AND a.ID_SERVICIO_PADRE = p_id_servicio_padre
+        ORDER BY a.ANX_UNIDAD_ORGANICA;
+END;
+/
+
+-- ! COMMIT;
+
+-- * 1.2 Servicios
+
+-- `USP_LISTAR_UNIDADES_SERVICIOS`
+
+SELECT 
+   DISTINCT
+   ANX_ID_SERVICIO AS idServicio,
+   ANX_SERVICIO AS nombreServicio
+FROM SSI_ANEXO
+WHERE 
+   IDUNIDADORGANICA = P_ID_UNIDAD_ORGANICA
+   AND NVL(ANX_ELIMINADO, 0) = 0
+ORDER BY 
+   ANX_SERVICIO
+/
+
+-- * 1.2.1 Actualizar `SP`
+CREATE OR REPLACE PROCEDURE USP_LISTAR_UNIDADES_SERVICIOS_V2 (
+    P_ID_UNIDAD_ORGANICA IN NUMBER,
+    P_ID_SERVICIO_PADRE IN NUMBER,
+    C_RESULTADO OUT SYS_REFCURSOR
+)
+AS
+BEGIN
+   OPEN C_RESULTADO FOR
+      SELECT 
+         DISTINCT
+         a.ANX_ID_SERVICIO AS idServicio,
+         a.ANX_SERVICIO AS nombreServicio
+      FROM SSI_ANEXO a
+      WHERE a.IDUNIDADORGANICA = P_ID_UNIDAD_ORGANICA
+      AND NVL(a.ANX_ELIMINADO, 0) = 0
+      AND a.ID_SERVICIO_PADRE = P_ID_SERVICIO_PADRE
+      ORDER BY ANX_SERVICIO;
+END;
+/
+
+-- ! COMMIT;
+
+
+-- * 1.3 Espaciones Intervencion
+
+-- * 1.3.1
+-- `SP_LISTAR_CENTROS`
+SELECT
+
+   -- E.ID_ESP_INTERV AS IDUNIDADORGANICA, -- ! Antes
+   E.ID_UNIDADORGANICA_PADRE AS IDUNIDADORGANICA, -- ! Despues
+   TO_CHAR(E.ESP_NOMBRE) AS UORNOMBRE,
+   NULL AS TIPO_CENTRO,
+   DEP.UBILOCALIDAD AS DEPARTAMENTO,
+   PROV.UBILOCALIDAD AS PROVINCIA,
+   DIST.UBILOCALIDAD AS DISTRITO,
+   (
+      CASE
+         WHEN (E.ID_PERSONAL IS NULL) THEN TO_CHAR(E.ESP_NOMBRE_RESPONSABLE) -- ? Columna Aux
+         ELSE (
+               PER.PERNOMBRE || ' ' || PER.PERAPEPATERNO || ' ' || PER.PERAPEMATERNO
+         )
+      END
+   ) AS DIRECTOR,
+   E.ID_PERSONAL AS IDPERSONAL
+
+FROM SSI_ESP_INTERVENCION E
+LEFT JOIN TGUBIGEO DEP ON DEP.UBIDEPARTAMENTO = SUBSTR(E.ESP_UBIGEO, 1, 2)
+                        AND DEP.UBIPROVINCIA = '00'
+                        AND DEP.UBIDISTRITO = '00'
+LEFT JOIN TGUBIGEO PROV ON PROV.UBIDEPARTAMENTO = SUBSTR(E.ESP_UBIGEO, 1, 2)
+                        AND PROV.UBIPROVINCIA = SUBSTR(E.ESP_UBIGEO, 3, 2)
+                        AND PROV.UBIDISTRITO = '00'
+LEFT JOIN TGUBIGEO DIST ON DIST.UBIDEPARTAMENTO = SUBSTR(E.ESP_UBIGEO,1 , 2)
+                        AND DIST.UBIPROVINCIA = SUBSTR(E.ESP_UBIGEO,3 , 2)
+                        AND DIST.UBIDISTRITO = SUBSTR(E.ESP_UBIGEO,5 , 2)
+LEFT JOIN TRPERSONAL TP ON E.ID_PERSONAL = TP.IDPERSONAL
+LEFT JOIN TGPERSONA PER ON TP.PRHPERSONA = PER.IDPERSONA
+WHERE
+      E.ESP_ELIMINADO = 0
+      AND E.ESP_ESTADO = 1
+      AND E.ID_SERVICIO = 5
+ORDER BY E.ESP_NOMBRE;
+/
+
+-- * 1.3.2 Actualizar `SP`
+CREATE OR REPLACE PROCEDURE SP_LISTAR_CENTROS_V2 (
+   P_ID_SERVICIO        IN NUMBER,
+   P_TIPO_CENTRO        IN VARCHAR2,
+   P_ID_SERVICIO_PADRE  IN NUMBER,
+   P_CURSOR             OUT SYS_REFCURSOR
+)
+AS
+    V_ID_UNIDAD_PADRE NUMBER;
+BEGIN
+    V_ID_UNIDAD_PADRE :=
+        CASE
+            WHEN P_ID_SERVICIO_PADRE = 4 THEN -- * 1. SIGES
+                CASE
+                    WHEN P_ID_SERVICIO = 4 THEN 73
+                    WHEN P_ID_SERVICIO IN (5, 7, 8) THEN 90
+                    WHEN P_ID_SERVICIO = 6 THEN 1118
+                    WHEN P_ID_SERVICIO = 9 THEN 1146
+                    WHEN P_ID_SERVICIO = 10 THEN 1166
+                    ELSE NULL
+                END
+
+            WHEN P_ID_SERVICIO_PADRE = 5 THEN -- * 2. EDUCALLE
+               1146
+
+            ELSE NULL
+        END;
+
+    -- CASO 1: SERVICIOS DE INTERVENCIÓN
+    IF (
+           (
+                P_ID_SERVICIO_PADRE = 4
+                AND P_ID_SERVICIO IN (7, 8, 9, 10)
+           )
+           OR P_ID_SERVICIO_PADRE = 5
+       )
+    THEN
+        OPEN P_CURSOR FOR
+            SELECT
+                E.ID_UNIDADORGANICA_PADRE AS IDUNIDADORGANICA,
+                TO_CHAR(E.ESP_NOMBRE) AS UORNOMBRE,
+                NULL AS TIPO_CENTRO,
+                DEP.UBILOCALIDAD AS DEPARTAMENTO,
+                PROV.UBILOCALIDAD AS PROVINCIA,
+                DIST.UBILOCALIDAD AS DISTRITO,
+                CASE
+                    WHEN E.ID_PERSONAL IS NULL THEN
+                        TO_CHAR(E.ESP_NOMBRE_RESPONSABLE)
+                    ELSE
+                        PER.PERNOMBRE || ' ' ||
+                        PER.PERAPEPATERNO || ' ' ||
+                        PER.PERAPEMATERNO
+                END AS DIRECTOR,
+                E.ID_PERSONAL AS IDPERSONAL
+            FROM SSI_ESP_INTERVENCION E
+            LEFT JOIN TGUBIGEO DEP
+                   ON DEP.UBIDEPARTAMENTO = SUBSTR(E.ESP_UBIGEO, 1, 2)
+                  AND DEP.UBIPROVINCIA = '00'
+                  AND DEP.UBIDISTRITO = '00'
+            LEFT JOIN TGUBIGEO PROV
+                   ON PROV.UBIDEPARTAMENTO = SUBSTR(E.ESP_UBIGEO, 1, 2)
+                  AND PROV.UBIPROVINCIA = SUBSTR(E.ESP_UBIGEO, 3, 2)
+                  AND PROV.UBIDISTRITO = '00'
+            LEFT JOIN TGUBIGEO DIST
+                   ON DIST.UBIDEPARTAMENTO = SUBSTR(E.ESP_UBIGEO, 1, 2)
+                  AND DIST.UBIPROVINCIA = SUBSTR(E.ESP_UBIGEO, 3, 2)
+                  AND DIST.UBIDISTRITO = SUBSTR(E.ESP_UBIGEO, 5, 2)
+            LEFT JOIN TRPERSONAL TP
+                   ON E.ID_PERSONAL = TP.IDPERSONAL
+            LEFT JOIN TGPERSONA PER
+                   ON TP.PRHPERSONA = PER.IDPERSONA
+            WHERE E.ESP_ELIMINADO = 0
+              AND E.ESP_ESTADO = 1
+              AND E.ID_SERVICIO = P_ID_SERVICIO
+              AND E.ID_UNIDADORGANICA_PADRE = V_ID_UNIDAD_PADRE
+            ORDER BY E.ESP_NOMBRE;
+
+    -- CASO 2: SERVICIOS NORMALES
+    ELSIF P_ID_SERVICIO_PADRE = 4 THEN -- * SIGES
+        OPEN P_CURSOR FOR
+            SELECT
+                A.IDUNIDADORGANICA,
+                A.UORNOMBRE,
+                CASE
+                    WHEN A.UORNOMBRE LIKE 'CAR%'
+                         AND A.UORNOMBRE NOT LIKE '%ESPECIALIZADO%'
+                         AND A.UORNOMBRE NOT LIKE '%URGENCIA%'
+                         AND A.IDUNIDADORGANICA NOT IN (
+                             124, 123, 1047, 538, 534, 571,
+                             539, 154, 126, 128, 155, 156
+                         )
+                    THEN 'BÁSICO'
+
+                    WHEN A.UORNOMBRE LIKE '%ESPECIALIZADO%'
+                         OR A.IDUNIDADORGANICA IN (
+                             124, 123, 1047, 538, 534, 571,
+                             539, 154, 126, 128, 155, 156
+                         )
+                    THEN 'ESPECIALIZADO'
+
+                    WHEN A.UORNOMBRE LIKE '%URGENCIA%'
+                    THEN 'URGENCIA'
+
+                    ELSE NULL
+                END AS TIPO_CENTRO,
+                DEP.UBILOCALIDAD AS DEPARTAMENTO,
+                PROV.UBILOCALIDAD AS PROVINCIA,
+                DIST.UBILOCALIDAD AS DISTRITO,
+                PER.PERNOMBRE || ' ' ||
+                PER.PERAPEPATERNO || ' ' ||
+                PER.PERAPEMATERNO AS DIRECTOR,
+                TP.IDPERSONAL
+            FROM TGUNIDADORGANICA A
+            LEFT JOIN TGUBIGEO DEP
+                   ON DEP.UBIDEPARTAMENTO = SUBSTR(A.UOR_UBIGEO, 1, 2)
+                  AND DEP.UBIPROVINCIA = '00'
+                  AND DEP.UBIDISTRITO = '00'
+            LEFT JOIN TGUBIGEO PROV
+                   ON PROV.UBIDEPARTAMENTO = SUBSTR(A.UOR_UBIGEO, 1, 2)
+                  AND PROV.UBIPROVINCIA = SUBSTR(A.UOR_UBIGEO, 3, 2)
+                  AND PROV.UBIDISTRITO = '00'
+            LEFT JOIN TGUBIGEO DIST
+                   ON DIST.UBIDEPARTAMENTO = SUBSTR(A.UOR_UBIGEO, 1, 2)
+                  AND DIST.UBIPROVINCIA = SUBSTR(A.UOR_UBIGEO, 3, 2)
+                  AND DIST.UBIDISTRITO = SUBSTR(A.UOR_UBIGEO, 5, 2)
+            LEFT JOIN TRPERSONAL TP
+                   ON TP.IDPERSONAL = A.UOR_DIRECTOR
+            LEFT JOIN TGPERSONA PER
+                   ON PER.IDPERSONA = TP.PRHPERSONA
+            WHERE A.UORELIMINADO = 0
+              AND A.UORESTADO = 1
+              AND A.UOR_TIPO_CENTRO NOT IN (3857)
+              AND A.IDUNIDADORGANICA NOT IN (332, 343, 344, 511)
+              AND (
+                    A.UOR_UNIDAD_PADRE = V_ID_UNIDAD_PADRE
+                    OR (
+                        A.IDUNIDADORGANICA = V_ID_UNIDAD_PADRE
+                        AND A.UOR_UNIDAD_PADRE IS NULL
+                    )
+                  )
+              AND (
+                    P_TIPO_CENTRO = '-1'
+                    OR P_TIPO_CENTRO IS NULL
+                    OR (
+                        P_TIPO_CENTRO = '1'
+                        AND A.UORNOMBRE LIKE 'CAR%'
+                        AND A.UORNOMBRE NOT LIKE '%ESPECIALIZADO%'
+                        AND A.UORNOMBRE NOT LIKE '%URGENCIA%'
+                        AND A.IDUNIDADORGANICA NOT IN (
+                            124, 123, 1047, 538, 534, 571,
+                            539, 154, 126, 128, 155, 156
+                        )
+                    )
+                    OR (
+                        P_TIPO_CENTRO = '2'
+                        AND (
+                            A.UORNOMBRE LIKE '%ESPECIALIZADO%'
+                            OR A.IDUNIDADORGANICA IN (
+                                124, 123, 1047, 538, 534, 571,
+                                539, 154, 126, 128, 155, 156
+                            )
+                        )
+                    )
+                    OR (
+                        P_TIPO_CENTRO = '3'
+                        AND A.UORNOMBRE LIKE '%URGENCIA%'
+                    )
+                  )
+            ORDER BY A.UORNOMBRE;
+
+    ELSE
+        -- Cursor vacío para evitar devolver un cursor sin abrir
+        OPEN P_CURSOR FOR
+            SELECT
+                CAST(NULL AS NUMBER) AS IDUNIDADORGANICA,
+                CAST(NULL AS VARCHAR2(500)) AS UORNOMBRE,
+                CAST(NULL AS VARCHAR2(100)) AS TIPO_CENTRO,
+                CAST(NULL AS VARCHAR2(200)) AS DEPARTAMENTO,
+                CAST(NULL AS VARCHAR2(200)) AS PROVINCIA,
+                CAST(NULL AS VARCHAR2(200)) AS DISTRITO,
+                CAST(NULL AS VARCHAR2(500)) AS DIRECTOR,
+                CAST(NULL AS NUMBER) AS IDPERSONAL
+            FROM DUAL
+            WHERE 1 = 0;
+    END IF;
+END SP_LISTAR_CENTROS_V2;
+/
+
+-- ! COMMIT;
+
+-- * 1.4 Anexos
+
+CREATE OR REPLACE PROCEDURE SP_LISTAR_ANEXOS_POR_SERVICIO_V2 (
+    P_ID_UNIDAD_ORGANICA IN NUMBER,
+    P_ID_SERVICIO        IN NUMBER,
+    P_ID_SERVICIO_PADRE IN NUMBER, -- ! Servicios: `SIGES` | `EDUCALLE`
+    P_CURSOR             OUT SYS_REFCURSOR
+) AS
+BEGIN
+    -- Abrimos el cursor para devolver los anexos según unidad y servicio
+    OPEN P_CURSOR FOR
+      SELECT
+         a.*
+      FROM SSI_ANEXO a
+      WHERE 
+         a.IDUNIDADORGANICA = P_ID_UNIDAD_ORGANICA
+         AND a.ANX_ID_SERVICIO = P_ID_SERVICIO
+         AND a.ID_SERVICIO_PADRE = P_ID_SERVICIO_PADRE;
+END;
+/
+
+-- ! COMMIT;
+
+-- * 1.4 Instrumentos
+
+-- * 1.4.1 Instrumentos
+-- * 1.4.2 Actualizar `SP`
+CREATE OR REPLACE PROCEDURE USP_BUSCAR_PREGUNTAS_POR_PARAMETROS2_V2
+(
+   p_servicio IN NUMBER,
+   p_anexo IN NUMBER,
+   p_grupo IN NUMBER DEFAULT NULL,
+   p_servicio_padre IN NUMBER DEFAULT NULL, -- ! Servicios: `SIGES` | `EDUCALLE`
+   c_resultado OUT SYS_REFCURSOR
+)
+IS
+BEGIN
+
+   OPEN c_resultado FOR
+      SELECT
+
+         p.AP_ID_PREGUNTA AS IDPREGUNTA,
+         p.SI_ID_SERVICIO2 AS IDSERVICIO,
+         p.AP_NUM_ANEXO AS NUMANEXO,
+         p.AP_NUM_GRUPO AS NUMGRUPO,
+         p.AP_NUM_PREGUNTA AS NUMPREGUNTA,
+
+         -- * Nuevo
+         p.AP_MODO_CONTROL AS MODOCONTROL,
+         p.AP_ICONO_CONTROL AS ICONOCONTROL,
+         p.AP_VISTA_CONTROL AS VISTACONTROL,
+         p.AP_EDITABLE AS EDITABLE,
+         p.AP_URL_SERVICIO AS URLSERVICIO,
+         p.AP_REQ_DISPARADOR AS REQDISPARADOR,
+         p.AP_HTTP_METODO AS HTTPMETODO,
+         p.AP_HTTP_PARAMS AS HTTPPARAMS,
+         p.AP_EDITABLE_BIFURCACIONES AS EDITABLEBIFURCACIONES,
+
+         REPLACE(
+            REPLACE(
+               REPLACE(
+                  REPLACE(
+                     REPLACE(p.AP_PREGUNTA, CHR(9), ''),
+                  CHR(10), ''),
+               ' ', '<>'),
+            '><', ''),
+         '<>', ' ') AS PREGUNTA,
+
+         (
+            CASE
+               WHEN a.ANX_REQ_OBLIGATORIEDAD = 1 THEN p.AP_OBLIGATORIA1 -- ? Si obligatorieda de anexo es `1`, persiste de pregunta
+               ELSE 0
+            END
+         )
+         AS OBLIGATORIA,
+         (
+            CASE
+               WHEN a.ANX_REQ_OBLIGATORIEDAD = 1 THEN P.AP_OBLIGATORIA2 -- ? Si obligatorieda de anexo es `1`, persiste de pregunta
+               ELSE 0
+            END
+         ) AS OBLIGATORIA2,
+
+
+         UPPER(p.AP_OPCIONES) AS OPCIONES,
+         p.AP_TIPO_CONTROL AS TIPOCONTROL,
+         P.AP_PREGUNTA2 AS PREGUNTA2,
+         P.AP_TIPO_CONTROL2 AS TIPO_CONTROL2,
+         P.AP_OPCIONES2 AS OPCIONES2,
+         P.AP_TIPO_DATO1 AS TIPODATO1,
+         P.AP_TIPO_DATO2 AS TIPODATO2,
+         P.AP_CONDICION AS CONDICION
+
+      FROM SSI_ANEXOS_PREGUNTAS p
+      JOIN SSI_ANEXO a ON p.AP_NUM_ANEXO = a.ID_ANEXO
+                       AND p.SI_ID_SERVICIO = p_servicio_padre
+      WHERE
+         p.SI_ID_SERVICIO2 = p_servicio
+         AND p.AP_NUM_ANEXO = p_anexo
+         AND (p.AP_NUM_GRUPO = p_grupo OR p_grupo IS NULL)
+
+      ORDER BY
+         p.SI_ID_SERVICIO2,
+         p.AP_NUM_ANEXO,
+         p.AP_NUM_GRUPO,
+         p.AP_NUM_PREGUNTA;
+
+END;
+/
+
+-- ! COMMIT;
+
+
+SELECT
+   a.*
+FROM SSI_ANEXO a
+WHERE 
+   a.IDUNIDADORGANICA = P_ID_UNIDAD_ORGANICA
+   AND a.ANX_ID_SERVICIO  = P_ID_SERVICIO
+/
+
+-- * 1.5
+
+-- * 1.5.1
+-- * 1.5.2 Actualizar `SP`
+CREATE OR REPLACE PROCEDURE USP_LISTAR_ANEXOS_CABECERA_V2
+(
+   p_id_servicio_padre IN NUMBER,
+   p_cursor OUT SYS_REFCURSOR
+)
+AS
+   /*
+   * Propósito : Lista las cabeceras de anexos (SSI_ANEXOS_CABECERA) con datos
+   *             del anexo (SSI_ANEXO) y centro (TGUNIDADORGANICA), agregando
+   *             respuestas de 5 preguntas específicas desde
+   *             SSI_ANEXOS_RESPUESTAS_V2 (NOMBRES parseado, EDAD calculada,
+   *             GENERO, FECHA_ABORDAJE y FECHA_INGRESO).
+   *
+   * Parámetros:
+   *   p_id_servicio_padre (IN  NUMBER)        -> ID_SERVICIO_PADRE del anexo.
+   *   p_cursor            (OUT SYS_REFCURSOR) -> Cursor con el resultset.
+   *
+   * Autor     : rguevarav
+   * Fecha     : 2026-06-20
+   *
+   * Relación  : SSI_ANEXOS_CABECERA se une a SSI_ANEXOS_RESPUESTAS_V2 por la
+   *             tripa ID_ANEXO + ID_CENTRO + CORRELATIVO. Cada pregunta es una
+   *             fila distinta (diferenciada por AP_ID_PREGUNTA), por lo que se
+   *             requieren 5 LEFT JOINs independientes.
+   */
+BEGIN
+   OPEN p_cursor FOR
+      SELECT
+         
+         /* CABECERA */
+        AC.ID_ANEXO_CABECERA,
+        AC.ID_ANEXO,
+        AC.ID_CENTRO,
+        AC.CORRELATIVO,
+        AC.USU_REGISTRA,
+        AC.ESTADO,
+        AC.ELIMINADO,
+
+        /* ANEXO */
+        A.ANX_CODIGO2,
+        A.ANX_NOMBRE,
+        A.ANX_UNIDAD_ORGANICA,
+        A.ANX_SERVICIO,          -- ¿ ESTE ES EL SERVICIO
+
+        /* CENTRO */
+        NVL(AC.CENTRO, U.UORNOMBRE) AS NOMBRE_CENTRO, -- * Nuevo
+
+        /* ...  */
+        AC.PERIODO,
+        AC.TIPO,
+        A.ANX_REQ_VALIDACION,
+        A.ANX_REQ_SUPERVISADOS,
+        A.ANX_REQ_DIRECTOR,
+         
+         /* ===== PREGUNTA 4271 - NOMBRES ===== */
+         /* Formato: DNI|APELLIDO_PATERNO|APELLIDO_MATERNO|NOMBRES */
+         /*NVL(REGEXP_SUBSTR(R_NOM.AR_RESPUESTA, '[^|]+', 1, 1), NULL) AS NRO_DOCUMENTO,
+         NVL(REGEXP_SUBSTR(R_NOM.AR_RESPUESTA, '[^|]+', 1, 2), NULL) AS APELLIDO_PATERNO,
+         NVL(REGEXP_SUBSTR(R_NOM.AR_RESPUESTA, '[^|]+', 1, 3), NULL) AS APELLIDO_MATERNO,
+         NVL(REGEXP_SUBSTR(R_NOM.AR_RESPUESTA, '[^|]+', 1, 4), NULL) AS NOMBRES,*/
+         NVL2(
+            REGEXP_SUBSTR(R_NOM.AR_RESPUESTA, '[^|]+', 1, 2),
+            TRIM(
+               REGEXP_SUBSTR(R_NOM.AR_RESPUESTA, '[^|]+', 1, 2) || ' ' ||
+               REGEXP_SUBSTR(R_NOM.AR_RESPUESTA, '[^|]+', 1, 3) || ' ' ||
+               REGEXP_SUBSTR(R_NOM.AR_RESPUESTA, '[^|]+', 1, 4)
+            ),
+            NULL
+         ) AS NOMBRECOMPLETO,
+         /* ===== PREGUNTA 4273 - EDAD (fecha de nacimiento) ===== */
+         /* Formato: YYYY-MM-DD (ISO 8601), ej. 2026-06-19 */
+         /* CASE
+            WHEN R_EDAD.AR_RESPUESTA IS NOT NULL
+            THEN TO_DATE(R_EDAD.AR_RESPUESTA, 'YYYY-MM-DD')
+            ELSE NULL
+         END AS FECHA_NACIMIENTO, */
+         CASE
+            WHEN R_EDAD.AR_RESPUESTA IS NOT NULL
+            THEN TRUNC(
+                    MONTHS_BETWEEN(SYSDATE, TO_DATE(R_EDAD.AR_RESPUESTA, 'YYYY-MM-DD')) / 12
+                 )
+            ELSE NULL
+         END AS EDAD,
+         /* ===== PREGUNTA 4272 - GENERO ===== */
+         R_GEN.AR_RESPUESTA AS GENERO,
+         /* ===== PREGUNTA 4263 - FECHA DE ABORDAJE ===== */
+         /* Formato: YYYY-MM-DD (ISO 8601) */
+         CASE
+            WHEN R_FAB.AR_RESPUESTA IS NOT NULL
+            THEN TO_DATE(R_FAB.AR_RESPUESTA, 'YYYY-MM-DD')
+            ELSE NULL
+         END AS FECHAABORDAJE,
+         /* ===== PREGUNTA 4264 - FECHA DE INGRESO ===== */
+         /* Formato: YYYY-MM-DD (ISO 8601) */
+         CASE
+            WHEN R_FING.AR_RESPUESTA IS NOT NULL
+            THEN TO_DATE(R_FING.AR_RESPUESTA, 'YYYY-MM-DD')
+            ELSE NULL
+         END AS FECHAINGRESO
+      FROM SSI_ANEXOS_CABECERA AC
+      LEFT JOIN SSI_ANEXO A
+         ON A.ID_ANEXO = AC.ID_ANEXO
+      LEFT JOIN TGUNIDADORGANICA U
+         ON U.IDUNIDADORGANICA = AC.ID_CENTRO
+      /* ----- Pregunta 4271: NOMBRES ----- */
+      LEFT JOIN SSI_ANEXOS_RESPUESTAS_V2 R_NOM
+         ON R_NOM.ID_ANEXO    = AC.ID_ANEXO
+        AND R_NOM.ID_CENTRO   = AC.ID_CENTRO
+        AND R_NOM.CORRELATIVO = AC.CORRELATIVO
+        AND R_NOM.AP_ID_PREGUNTA = 4271
+        AND R_NOM.AR_ELIMINADO   = 0
+      /* ----- Pregunta 4273: EDAD (fecha de nacimiento) ----- */
+      LEFT JOIN SSI_ANEXOS_RESPUESTAS_V2 R_EDAD
+         ON R_EDAD.ID_ANEXO    = AC.ID_ANEXO
+        AND R_EDAD.ID_CENTRO   = AC.ID_CENTRO
+        AND R_EDAD.CORRELATIVO = AC.CORRELATIVO
+        AND R_EDAD.AP_ID_PREGUNTA = 4273
+        AND R_EDAD.AR_ELIMINADO   = 0
+      /* ----- Pregunta 4272: GENERO ----- */
+      LEFT JOIN SSI_ANEXOS_RESPUESTAS_V2 R_GEN
+         ON R_GEN.ID_ANEXO    = AC.ID_ANEXO
+        AND R_GEN.ID_CENTRO   = AC.ID_CENTRO
+        AND R_GEN.CORRELATIVO = AC.CORRELATIVO
+        AND R_GEN.AP_ID_PREGUNTA = 4272
+        AND R_GEN.AR_ELIMINADO   = 0
+      /* ----- Pregunta 4263: FECHA DE ABORDAJE ----- */
+      LEFT JOIN SSI_ANEXOS_RESPUESTAS_V2 R_FAB
+         ON R_FAB.ID_ANEXO    = AC.ID_ANEXO
+        AND R_FAB.ID_CENTRO   = AC.ID_CENTRO
+        AND R_FAB.CORRELATIVO = AC.CORRELATIVO
+        AND R_FAB.AP_ID_PREGUNTA = 4263
+        AND R_FAB.AR_ELIMINADO   = 0
+      /* ----- Pregunta 4264: FECHA DE INGRESO ----- */
+      LEFT JOIN SSI_ANEXOS_RESPUESTAS_V2 R_FING
+         ON R_FING.ID_ANEXO    = AC.ID_ANEXO
+        AND R_FING.ID_CENTRO   = AC.ID_CENTRO
+        AND R_FING.CORRELATIVO = AC.CORRELATIVO
+        AND R_FING.AP_ID_PREGUNTA = 4264
+        AND R_FING.AR_ELIMINADO   = 0
+      WHERE
+         AC.ELIMINADO = 0
+         AND A.ID_SERVICIO_PADRE = p_id_servicio_padre
+      ORDER BY
+         AC.ID_ANEXO_CABECERA DESC;
+
+EXCEPTION
+   WHEN OTHERS THEN
+      IF p_cursor%ISOPEN THEN
+         CLOSE p_cursor;
+      END IF;
+      DBMS_OUTPUT.PUT_LINE('Error en USP_LISTAR_ANEXOS_CABECERA_V2');
+      DBMS_OUTPUT.PUT_LINE('SQLCODE: ' || SQLCODE);
+      DBMS_OUTPUT.PUT_LINE('SQLERRM: ' || SQLERRM);
+      RAISE;
+END;
+/
+
+-- ! COMMIT;
+
+-- * 1.6 Indicadores EDUCALLE
+
+-- * 1.6.1 SP Indicadores
+CREATE OR REPLACE PROCEDURE USP_INDICADORES_ANEXOS_CABECERA
+(
+   p_id_servicio_padre IN NUMBER,
+   p_meta_mensual      IN NUMBER DEFAULT 400,
+   p_cursor            OUT SYS_REFCURSOR
+)
+AS
+   /*
+   * Propósito : Calcula indicadores operativos desde SSI_ANEXOS_CABECERA.
+   *
+   * Indicadores:
+   *   - EDUCADORES_ACTIVOS   : cantidad distinta de ID_RESP_SUPERVISION.
+   *   - INTERVENCIONES_HOY   : fichas registradas hoy (FECHA_REGISTRA).
+   *   - REGISTROS_ESTE_MES   : fichas registradas en el mes en curso.
+   *   - META_MENSUAL_PORCENTAJE : avance (registros_este_mes / meta) * 100.
+   *
+   * Parámetros:
+   *   p_id_servicio_padre (IN  NUMBER) -> ID_SERVICIO_PADRE del anexo.
+   *   p_meta_mensual      (IN  NUMBER) -> Meta mensual de registros.
+   *   p_cursor            (OUT SYS_REFCURSOR) -> Cursor con una única fila.
+   *
+   * Autor     : rguevarav
+   * Fecha     : 2026-06-20
+   */
+BEGIN
+   OPEN p_cursor FOR
+      SELECT
+         COUNT(DISTINCT AC.ID_RESP_SUPERVISION) AS "educadoresActivos",
+         COUNT(DISTINCT CASE
+                           WHEN TRUNC(AC.FECHA_REGISTRA) = TRUNC(SYSDATE)
+                           THEN AC.ID_ANEXO_CABECERA
+                        END) AS "intervencionesHoy",
+         COUNT(DISTINCT CASE
+                           WHEN TRUNC(AC.FECHA_REGISTRA, 'MM') = TRUNC(SYSDATE, 'MM')
+                           THEN AC.ID_ANEXO_CABECERA
+                        END) AS "registrosEsteMes",
+         p_meta_mensual AS "metaMensualValor",
+         ROUND(
+            (COUNT(DISTINCT CASE
+                               WHEN TRUNC(AC.FECHA_REGISTRA, 'MM') = TRUNC(SYSDATE, 'MM')
+                               THEN AC.ID_ANEXO_CABECERA
+                            END) / NULLIF(p_meta_mensual, 0)) * 100,
+            2
+         ) AS "metaMensualPorcentaje",
+         SYSDATE AS "fechaConsulta"
+      FROM SSI_ANEXOS_CABECERA AC
+      JOIN SSI_ANEXO A ON A.ID_ANEXO = AC.ID_ANEXO
+      WHERE
+         AC.ELIMINADO = 0
+         AND NVL(A.ANX_ELIMINADO, 0) = 0
+         AND A.ID_SERVICIO_PADRE = p_id_servicio_padre;
+
+EXCEPTION
+   WHEN OTHERS THEN
+      IF p_cursor%ISOPEN THEN
+         CLOSE p_cursor;
+      END IF;
+      DBMS_OUTPUT.PUT_LINE('Error en USP_INDICADORES_ANEXOS_CABECERA');
+      DBMS_OUTPUT.PUT_LINE('SQLCODE: ' || SQLCODE);
+      DBMS_OUTPUT.PUT_LINE('SQLERRM: ' || SQLERRM);
+      RAISE;
+END USP_INDICADORES_ANEXOS_CABECERA;
+/
+
+-- * 1.6.2 Test SP Indicadores
+DECLARE
+   c_resultado SYS_REFCURSOR;
+BEGIN
+   USP_INDICADORES_ANEXOS_CABECERA(5, 400, c_resultado);
+   DBMS_SQL.RETURN_RESULT(c_resultado);
+END;
+/
+
+
+-- ! COMMIT;
+
+
+
+-- * 1.6 **Work Flow**
+
+-- ? 1. Centros
+SELECT * FROM SSI_ESP_INTERVENCION i
+ORDER BY
+   i.ID_ESP_INTERV DESC
+/
+
+-- ? 2. Cabecera de Anexos
+SELECT
+   a.*
+FROM SSI_ANEXO a
+ORDER BY
+   a.ID_ANEXO DESC
+/
+
+UPDATE SSI_ANEXO a
+   SET a.ID_SERVICIO_PADRE = 4
+WHERE
+   a.ID_SERVICIO_PADRE IS NULL
+/
+
+SELECT * FROM SSI_ANEXOS_CABECERA ac
+ORDER  BY
+   ac.ID_ANEXO_CABECERA DESC
+/
+
+-- ? 3. Preguntas
+
+SELECT 
+   pe.*
+FROM TRPERSONAL p
+JOIN TGPERSONA pe ON p.PRHPERSONA =  pe.IDPERSONA
+WHERE
+   p.IDPERSONAL = 21132
+/
+
+SELECT * FROM TGPERSONA pe
+/
+--
+
+-- * 2. **Work Flow DDL** 
+
+-- * 2.1 Registro de `Zonas Intervencion`
+
+-- * 2.1.1 Servicio padre `EDUCALLE`
+ALTER TABLE SSI_ESP_INTERVENCION
+   ADD ID_SERVICIO_PADRE NUMBER NULL
+/
+
+-- ! COMMIT;
+
+-- * 2.1.2 Inserta `Zona Intervencion`
+INSERT INTO SSI_ESP_INTERVENCION (ID_ESP_INTERV, ID_SERVICIO, ESP_NOMBRE, ESP_UBIGEO, ESP_NOMBRE_RESPONSABLE, ID_UNIDADORGANICA_PADRE, ID_SERVICIO_PADRE, ESP_ESTADO, ESP_ELIMINADO) 
+VALUES (51, 1, 'SEDE CENTRAL', 150121, 'SEDE CENTRAL', 1146, 5, 1, 0);
+
+-- ! COMMIT;
+
+-- * 2.1.3 Servicio padre `EDUCALLE`
+ALTER TABLE SSI_ANEXO
+   ADD ID_SERVICIO_PADRE NUMBER NULL
+/
+
+-- ! COMMIT;
+
+-- * 2.1.4 Inserta `Anexo`
+
+INSERT INTO SSI_ANEXO(
+   ID_ANEXO, 
+   ANX_CODIGO, 
+   ANX_NOMBRE, 
+   ANX_DESCRIPCION, 
+   IDUNIDADORGANICA, 
+   ANX_UNIDAD_ORGANICA, 
+   ANX_ID_SERVICIO, 
+   ANX_SERVICIO, 
+   ANX_ESTADO, 
+   ANX_ELIMINADO, 
+   ANX_FEC_REGISTRA, 
+   ANX_USU_REGISTRA, 
+   ANX_CODIGO2, 
+   ANX_REQ_VALIDACION, 
+   ANX_REQ_SUPERVISADOS, 
+   ANX_REQ_OBLIGATORIEDAD, 
+   ANX_REQ_DIRECTOR,
+   ID_SERVICIO_PADRE) 
+VALUES(
+   43, -- ID_ANEXO
+   'ANEXO 01', -- ANX_CODIGO
+   'FICHA INSCRIPCIÓN DEL NNA',-- ANX_NOMBRE
+   'Ficha de Inscripción del NNA', -- ANX_DESCRIPCION
+   90, -- IDUNIDADORGANICA
+   'EDUCALLE',-- ANX_UNIDAD_ORGANICA
+   1, -- ANX_ID_SERVICIO
+   'Servicio de Educadores de Calle', -- ANX_SERVICIO
+   1, -- ANX_ESTADO
+   0, -- ANX_ELIMINADO
+   SYSDATE, -- ANX_FEC_REGISTRA
+   1, -- ANX_USU_REGISTRA
+   'EDUCALLE', -- ANX_CODIGO2
+   1, -- ANX_REQ_VALIDACION
+   0, -- ANX_REQ_SUPERVISADOS
+   1, -- ANX_REQ_OBLIGATORIEDAD
+   0, -- ANX_REQ_DIRECTOR
+   5 -- EDUCALLE
+);
+/
+
+UPDATE SSI_ANEXO a
+   SET a.IDUNIDADORGANICA = 1
+WHERE
+   a.ID_ANEXO = 43
+/
+
+-- ! COMMIT;
+
+
+-- * 2.2 Insertar Catalogo preguntas de ANEXO
+
+-- * 2.2.1 Nueva campo `AP_MODO_CONTROL`
+ALTER TABLE SSI_ANEXOS_PREGUNTAS
+   ADD AP_MODO_CONTROL VARCHAR2(55) NULL
+/
+
+UPDATE SSI_ANEXOS_PREGUNTAS p
+   SET p.AP_MODO_CONTROL = 'editable'
+WHERE
+   p.SI_ID_SERVICIO = 4
+/
+
+-- * 2.2.2 Nueva campo `AP_ICONO_CONTROL`
+ALTER TABLE SSI_ANEXOS_PREGUNTAS
+   ADD AP_ICONO_CONTROL VARCHAR2(55) NULL
+/
+
+-- * 2.2.3 Nueva campo `AP_MODO_CONTROL`
+ALTER TABLE SSI_ANEXOS_PREGUNTAS
+   ADD AP_VISTA_CONTROL VARCHAR2(55) NULL
+/
+
+UPDATE SSI_ANEXOS_PREGUNTAS p
+   SET p.AP_VISTA_CONTROL = 'default'
+WHERE
+   p.SI_ID_SERVICIO = 4
+/
+
+-- * 2.2.4 Nueva campo `AP_EDITABLE`
+ALTER TABLE SSI_ANEXOS_PREGUNTAS
+   ADD AP_EDITABLE VARCHAR2(100) NULL
+/
+
+-- * 2.2.5 Nueva campo `AP_URL_`
+ALTER TABLE SSI_ANEXOS_PREGUNTAS
+   ADD AP_URL_SERVICIO VARCHAR2(255) NULL
+/
+
+
+-- * 2.2.7 Nueva campo `AP_REQ_DISPARADOR`
+ALTER TABLE SSI_ANEXOS_PREGUNTAS
+   ADD AP_REQ_DISPARADOR NUMBER(1) NULL
+/
+
+-- * 2.2.8 Nueva campo `AP_HTTP_METODO`
+ALTER TABLE SSI_ANEXOS_PREGUNTAS
+   ADD AP_HTTP_METODO VARCHAR2(15) NULL
+/
+
+-- * 2.2.9 Nueva campo `AP_HTTP_PARAMS`
+ALTER TABLE SSI_ANEXOS_PREGUNTAS
+   ADD AP_HTTP_PARAMS VARCHAR2(1000) NULL
+/
+
+-- * 2.2.10 Nueva campo `AP_EDITABLE_BIFURCACIONES`
+ALTER TABLE SSI_ANEXOS_PREGUNTAS
+   ADD AP_EDITABLE_BIFURCACIONES VARCHAR2(100) NULL
+/
+
+-- ! Eliminar preguntas
+DELETE FROM SSI_ANEXOS_PREGUNTAS p
+WHERE
+   p.SI_ID_SERVICIO = 5
+/
+
+
+-- ! COMMIT;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- ! Test
+SELECT * FROM SSI_ANEXOS_PREGUNTAS p
+WHERE
+   p.SI_ID_SERVICIO = 5
+ORDER BY
+   p.AP_ID_PREGUNTA DESC
+/
+
+SELECT * FROM SSI_ANEXOS_RESPUESTAS_V2 r
+ORDER BY
+   r.AR_ID_RESPUESTA DESC
+/
+
+SELECT 
+   p.AP_TIPO_CONTROL
+FROM SSI_ANEXOS_PREGUNTAS p
+WHERE
+   p.SI_ID_SERVICIO = 5
+GROUP BY
+   p.AP_TIPO_CONTROL
+/
+
+SELECT 
+   p.*
+FROM SSI_ANEXOS_PREGUNTAS p
+WHERE
+   p.SI_ID_SERVICIO = 4
+/
+
+SELECT 
+   p.*
+FROM SSI_UBIGEO_NOMBRES p
+/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- * I. Levantamiento de observaciones de Excel.
+
+-- * Anexo 13: Falta agregar el campo en  la ficha, sólo se activa si la respuesta es la opción "Si" en la pgta. 2.4
+
+-- * 13.1 Actualizar `AP_NUM_PREGUNTA` → `2705`
+UPDATE SSI_ANEXOS_PREGUNTAS p
+   SET p.AP_NUM_PREGUNTA = 6
+WHERE 
+   p.AP_ID_PREGUNTA = 2705
+/
+
+-- ! COMMIT;
+-- ! ROLLBACK;
+
+-- * 13.2 ...
+UPDATE SSI_ANEXOS_PREGUNTAS p
+   SET 
+      p.AP_CONDICION = NULL,
+      p.AP_OBLIGATORIA1 = 0,
+      p.AP_TIPO_CONTROL2 = NULL,
+      p.AP_PREGUNTA2 = NULL
+WHERE 
+   p.AP_ID_PREGUNTA = 2705
+/
+
+UPDATE SSI_ANEXOS_PREGUNTAS p
+   SET 
+      p.AP_OBLIGATORIA1 = 1,
+      p.SI_ID_SERVICIO2 = 5
+WHERE 
+   p.AP_ID_PREGUNTA IN (4242, 4243)
+/
+
+-- ! COMMIT;
+-- ! ROLLBACK;
+
+-- * 13.3 ...
+
+INSERT INTO SSI_ANEXOS_PREGUNTAS(AP_ID_PREGUNTA, SI_ID_SERVICIO, AP_NUM_ANEXO, AP_NUM_GRUPO, AP_NUM_PREGUNTA, AP_PREGUNTA, AP_FECHA_REGISTRO, AP_FECHA_ELIMINACION,  AP_ELIMINADO, AP_TIPOCAMPO, AP_OPCIONES, AP_TIPO_CONTROL, AP_CONDICION_SI, AP_CONDICION_NO, AP_CONDICION, SI_ID_SERVICIO2) 
+VALUES (4242,4,13,1,7,'Nombre de servicio', SYSDATE, NULL, 0, NULL,'','text',-1,-1,'{"id":2705,"valor":"Sí"}',5);
+INSERT INTO SSI_ANEXOS_PREGUNTAS(AP_ID_PREGUNTA, SI_ID_SERVICIO, AP_NUM_ANEXO, AP_NUM_GRUPO, AP_NUM_PREGUNTA, AP_PREGUNTA, AP_FECHA_REGISTRO, AP_FECHA_ELIMINACION,  AP_ELIMINADO, AP_TIPOCAMPO, AP_OPCIONES, AP_TIPO_CONTROL, AP_CONDICION_SI, AP_CONDICION_NO, AP_CONDICION, SI_ID_SERVICIO2) 
+VALUES (4243,4,13,1,8,'Tiempo al elegir', SYSDATE, NULL, 0, NULL,'','text',-1,-1,'{"id":2705,"valor":"Sí"}',5);
+-- ! COMMIT;
+-- ! ROLLBACK;
+
+-- * Anexo 15: ...
+DELETE FROM SSI_ANEXOS_PREGUNTAS p
+WHERE
+   p.SI_ID_SERVICIO = 4 -- SIGES
+   AND p.AP_ID_PREGUNTA IN
+   (
+      2891, 2892, 2893, 2894, 2895, 2896
+   )
+/
+-- ! COMMIT;
+-- ! ROLLBACK;
+
+-- * Anexo 16: ...
+DELETE FROM SSI_ANEXOS_PREGUNTAS p
+WHERE
+   p.SI_ID_SERVICIO = 4 -- SIGES
+   AND p.AP_ID_PREGUNTA IN
+   (
+      3010, 3011, 3012, 3013, 3014, 3015
+   )
+/
+-- ! COMMIT;
+-- ! ROLLBACK;
+
+INSERT INTO SSI_ANEXOS_PREGUNTAS(AP_ID_PREGUNTA, SI_ID_SERVICIO, AP_NUM_ANEXO, AP_NUM_GRUPO, AP_NUM_PREGUNTA, AP_PREGUNTA, AP_FECHA_REGISTRO, AP_FECHA_ELIMINACION,  AP_ELIMINADO, AP_TIPOCAMPO, AP_OPCIONES, AP_TIPO_CONTROL, AP_CONDICION_SI, AP_CONDICION_NO, AP_CONDICION, AP_OBLIGATORIA1, SI_ID_SERVICIO2) 
+VALUES (4244,4,15,1,63,'Comentarios:', SYSDATE, NULL, 0, NULL,'','text',-1,-1,'',0,5);
+INSERT INTO SSI_ANEXOS_PREGUNTAS(AP_ID_PREGUNTA, SI_ID_SERVICIO, AP_NUM_ANEXO, AP_NUM_GRUPO, AP_NUM_PREGUNTA, AP_PREGUNTA, AP_FECHA_REGISTRO, AP_FECHA_ELIMINACION,  AP_ELIMINADO, AP_TIPOCAMPO, AP_OPCIONES, AP_TIPO_CONTROL, AP_CONDICION_SI, AP_CONDICION_NO, AP_CONDICION, AP_OBLIGATORIA1, SI_ID_SERVICIO2) 
+VALUES (4245,4,16,2,113,'Comentarios:', SYSDATE, NULL, 0, NULL,'','text',-1,-1,'',0,5);
+-- ! COMMIT;
+-- ! ROLLBACK;
+
+-- * Anexo 21: ...
+
+-- * 21.1
+DELETE FROM SSI_ANEXOS_PREGUNTAS p
+WHERE
+   p.SI_ID_SERVICIO = 4 -- SIGES
+   AND p.AP_ID_PREGUNTA IN
+   (
+      3154
+   )
+/
+-- ! COMMIT;
+-- ! ROLLBACK;
+
+-- * Anexo 22: ...
+
+-- * 22.1
+INSERT INTO SSI_ANEXOS_PREGUNTAS(AP_ID_PREGUNTA, SI_ID_SERVICIO, AP_NUM_ANEXO, AP_NUM_GRUPO, AP_NUM_PREGUNTA, AP_PREGUNTA, AP_FECHA_REGISTRO, AP_FECHA_ELIMINACION,  AP_ELIMINADO, AP_TIPOCAMPO, AP_OPCIONES, AP_TIPO_CONTROL, AP_CONDICION_SI, AP_CONDICION_NO, AP_CONDICION, AP_OBLIGATORIA1, SI_ID_SERVICIO2) 
+VALUES (4246,4,22,1,28,'Detalle:', SYSDATE, NULL, 0, NULL,'','text',-1,-1,'{"id":3183,"valor":"Otro"}',0,6);
+-- ! COMMIT;
+-- ! ROLLBACK;
+
+-- * 22.1
+
+-- * 22.1 Actualizado en frontend
+
+-- * 22.2
+UPDATE SSI_ANEXOS_PREGUNTAS p
+   SET 
+   p.AP_TIPO_CONTROL = 'label'
+WHERE
+   p.AP_ID_PREGUNTA = 3192
+/
+-- ! COMMIT;
+-- ! ROLLBACK;
+
+-- * 22.3 Eliminar pregunta `Total`
+DELETE FROM SSI_ANEXOS_PREGUNTAS p
+WHERE
+   p.SI_ID_SERVICIO = 4 -- SIGES
+   AND p.AP_ID_PREGUNTA IN
+   (
+      3214
+   )
+/
+-- ! COMMIT;
+-- ! ROLLBACK;
+
+
+-- * Anexo 26: ...
+
+-- * 26.1  Modificar pregunta por `II. INFORMACIÓN PERSONAL`
+UPDATE SSI_ANEXOS_PREGUNTAS p
+   SET 
+   p.AP_PREGUNTA = 'II. INFORMACIÓN PERSONAL'
+WHERE
+   p.AP_ID_PREGUNTA = 3292
+/
+-- ! COMMIT;
+-- ! ROLLBACK;
+
+-- * 26.2 
+INSERT INTO SSI_ANEXOS_PREGUNTAS(AP_ID_PREGUNTA, SI_ID_SERVICIO, AP_NUM_ANEXO, AP_NUM_GRUPO, AP_NUM_PREGUNTA, AP_PREGUNTA, AP_FECHA_REGISTRO, AP_FECHA_ELIMINACION,  AP_ELIMINADO, AP_TIPOCAMPO, AP_OPCIONES, AP_TIPO_CONTROL, AP_CONDICION_SI, AP_CONDICION_NO, AP_CONDICION, AP_OBLIGATORIA1, SI_ID_SERVICIO2) 
+VALUES (4247,4,26,1,16,'Detalle:', SYSDATE, NULL, 0, NULL,'','text',-1,-1,'{"id":3298,"valor":"OTROS"}',0,7);
+-- ! COMMIT;
+-- ! ROLLBACK;
+
+
+-- * 26.2 Cambiar la pregunta por `label`
+UPDATE SSI_ANEXOS_PREGUNTAS p
+   SET 
+      p.AP_TIPO_CONTROL = 'label',
+      p.AP_OPCIONES = NULL,
+      p.AP_OBLIGATORIA1 = 0
+WHERE
+   p.AP_ID_PREGUNTA = 3319
+/
+
+UPDATE SSI_ANEXOS_PREGUNTAS p
+   SET 
+      p.AP_OPCIONES = 'Sí | No | No sé'
+WHERE
+   p.AP_ID_PREGUNTA = 2089
+/
+-- ! COMMIT;
+-- ! ROLLBACK;
+
+-- * 26.3 Eliminar pregunta `Total`
+DELETE FROM SSI_ANEXOS_PREGUNTAS p
+WHERE
+   p.SI_ID_SERVICIO = 4 -- SIGES
+   AND p.AP_ID_PREGUNTA IN
+   (
+      3340
+   )
+/
+-- ! COMMIT;
+-- ! ROLLBACK;
+
+-- * Anexo 27: ...
+
+-- * 27.1 Adicionar pregunta opcional
+INSERT INTO SSI_ANEXOS_PREGUNTAS(AP_ID_PREGUNTA, SI_ID_SERVICIO, AP_NUM_ANEXO, AP_NUM_GRUPO, AP_NUM_PREGUNTA, AP_PREGUNTA, AP_FECHA_REGISTRO, AP_FECHA_ELIMINACION,  AP_ELIMINADO, AP_TIPOCAMPO, AP_OPCIONES, AP_TIPO_CONTROL, AP_CONDICION_SI, AP_CONDICION_NO, AP_CONDICION, AP_OBLIGATORIA1, SI_ID_SERVICIO2) 
+VALUES (4248,4,27,1,15,'Detalle:', SYSDATE, NULL, 0, NULL,'','text',-1,-1,'{"id":3352,"valor":"OTROS"}',0,7)
+/
+-- ! COMMIT;
+-- ! ROLLBACK;
+
+-- * 27.2 Eliminar pregunta
+DELETE FROM SSI_ANEXOS_PREGUNTAS p
+WHERE
+   p.SI_ID_SERVICIO = 4 -- SIGES
+   AND p.AP_ID_PREGUNTA IN
+   (
+      3379
+   )
+/
+-- ! COMMIT;
+-- ! ROLLBACK;
+
+
+-- * Anexo 30: ...
+
+-- * 30.1 Eliminar espacios
+UPDATE SSI_ANEXOS_PREGUNTAS p
+   SET 
+      p.AP_TIPO_CONTROL = TRIM(p.AP_TIPO_CONTROL)
+WHERE
+   p.AP_ID_PREGUNTA = 3430
+/
+-- ! COMMIT;
+-- ! ROLLBACK;
+
+
+-- * Anexo 31: ...
+
+-- * 31.1 Actualizar obligatoriedad a `0`
+UPDATE SSI_ANEXOS_PREGUNTAS p
+   SET 
+      p.AP_OBLIGATORIA2 = 0
+WHERE
+   p.AP_ID_PREGUNTA IN (
+      3466, 3467, 3468, 3469, 3470, 3472, 3473, 3474, 3475, 3476, 3477, 3478, 3479, 3480, 3482, 3483, 3484, 3485, 3486, 3487, 3488, 3489
+   )
+/
+-- ! COMMIT;
+-- ! ROLLBACK;
+
+-- * 31.2 Eliminar pregunta `Total`
+DELETE FROM SSI_ANEXOS_PREGUNTAS p
+WHERE
+   p.SI_ID_SERVICIO = 4 -- SIGES
+   AND p.AP_ID_PREGUNTA IN
+   (
+      3491
+   )
+/
+-- ! COMMIT;
+-- ! ROLLBACK;
+
+
+-- * Anexo 32: ...
+
+-- * 32.1 Eliminar pregunta `Total`
+DELETE FROM SSI_ANEXOS_PREGUNTAS p
+WHERE
+   p.SI_ID_SERVICIO = 4 -- SIGES
+   AND p.AP_ID_PREGUNTA IN
+   (
+      3517
+   )
+/
+-- ! COMMIT;
+-- ! ROLLBACK;
+
+
+-- * Anexo 33: ...
+
+-- * 33.1 Inserta la pregunta que mustra las secciones
+INSERT INTO SSI_ANEXOS_PREGUNTAS(AP_ID_PREGUNTA, SI_ID_SERVICIO, AP_NUM_ANEXO, AP_NUM_GRUPO, AP_NUM_PREGUNTA, AP_PREGUNTA, AP_FECHA_REGISTRO, AP_FECHA_ELIMINACION,  AP_ELIMINADO, AP_TIPOCAMPO, AP_OPCIONES, AP_TIPO_CONTROL, AP_CONDICION_SI, AP_CONDICION_NO, AP_CONDICION, AP_OBLIGATORIA1, SI_ID_SERVICIO2) 
+VALUES (4249,4,33,2,0,'ELIGE LA SECCIÓN A MOSTRAR:', SYSDATE, NULL, 0, NULL,'A|B','select',-1,-1,'',1,9);
+/
+-- ! COMMIT;
+-- ! ROLLBACK;
+
+-- * 33.2 Sección a mostrar
+
+-- * 33.2.1 `A`
+UPDATE SSI_ANEXOS_PREGUNTAS p
+   SET 
+      p.AP_CONDICION = '{"id":4249,"valor":"A"}'
+WHERE 
+   p.AP_ID_PREGUNTA IN (
+      3527, 3528, 3529, 3530, 3531, 3532, 3533
+   )
+/
+
+-- * 33.2.1 `B`
+UPDATE SSI_ANEXOS_PREGUNTAS p
+   SET 
+      p.AP_CONDICION = '{"id":4249,"valor":"B"}'
+WHERE 
+   p.AP_ID_PREGUNTA IN (
+      3534, 3535, 3536, 3537, 3538, 3539, 3540, 3541, 3542, 3543
+   )
+/
+
+-- ! COMMIT;
+-- ! ROLLBACK;
+
+
+-- * Anexo 34: ...
+
+-- * 34.1 Inserta la pregunta que mustra las secciones
+INSERT INTO SSI_ANEXOS_PREGUNTAS(AP_ID_PREGUNTA, SI_ID_SERVICIO, AP_NUM_ANEXO, AP_NUM_GRUPO, AP_NUM_PREGUNTA, AP_PREGUNTA, AP_FECHA_REGISTRO, AP_FECHA_ELIMINACION,  AP_ELIMINADO, AP_TIPOCAMPO, AP_OPCIONES, AP_TIPO_CONTROL, AP_CONDICION_SI, AP_CONDICION_NO, AP_CONDICION, AP_OBLIGATORIA1, SI_ID_SERVICIO2) 
+VALUES (4250,4,34,2,0,'ELIGE LA SECCIÓN A MOSTRAR:', SYSDATE, NULL, 0, NULL,'A | B','select',-1,-1,'',1,9);
+/
+-- ! COMMIT;
+-- ! ROLLBACK;
+
+-- * 34.2 Sección a mostrar
+
+-- * 34.2.1 `A`
+UPDATE SSI_ANEXOS_PREGUNTAS p
+   SET 
+      p.AP_CONDICION = '{"id":4250,"valor":"A"}'
+WHERE 
+   p.AP_ID_PREGUNTA IN (
+      3553, 3554, 3555, 3556, 3557
+   )
+/
+
+-- * 34.2.1 `B`
+UPDATE SSI_ANEXOS_PREGUNTAS p
+   SET 
+      p.AP_CONDICION = '{"id":4250,"valor":"B"}'
+WHERE 
+   p.AP_ID_PREGUNTA IN (
+      3558, 3559, 3560, 3561, 3562, 3564, 3566, 3567, 3569
+   )
+/
+
+
+-- * Anexo 37: ...
+
+-- * 37.1 Inserta la pregunta que mustra las secciones
+INSERT INTO SSI_ANEXOS_PREGUNTAS(AP_ID_PREGUNTA, SI_ID_SERVICIO, AP_NUM_ANEXO, AP_NUM_GRUPO, AP_NUM_PREGUNTA, AP_PREGUNTA, AP_FECHA_REGISTRO, AP_FECHA_ELIMINACION,  AP_ELIMINADO, AP_TIPOCAMPO, AP_OPCIONES, AP_TIPO_CONTROL, AP_CONDICION_SI, AP_CONDICION_NO, AP_CONDICION, AP_OBLIGATORIA1, SI_ID_SERVICIO2) 
+VALUES (4251,4,37,3,1,'ELIGE LA SECCIÓN A MOSTRAR:', SYSDATE, NULL, 0, NULL,'SUPERVISOR|ACOMPAÑANTE PROFESIONAL','select',-1,-1,'',1,9);
+/
+-- ! COMMIT;
+-- ! ROLLBACK;
+
+-- * 37.2 Sección a mostrar
+
+-- * 37.2.1 `A`
+UPDATE SSI_ANEXOS_PREGUNTAS p
+   SET 
+      p.AP_CONDICION = '{"id":4251,"valor":"SUPERVISOR"}'
+WHERE 
+   p.AP_ID_PREGUNTA IN (
+      3638, 3639, 3640, 3641, 3642, 3643, 3644, 3645
+   )
+/
+
+-- * 37.2.1 `B`
+UPDATE SSI_ANEXOS_PREGUNTAS p
+   SET 
+      p.AP_CONDICION = '{"id":4251,"valor":"ACOMPAÑANTE PROFESIONAL"}'
+WHERE 
+   p.AP_ID_PREGUNTA IN (
+      3647, 3648, 3649, 3650, 3651, 3652, 3653, 3654, 3655, 3656, 3657, 3658, 3659, 3660, 3661, 3662, 3663, 3664, 3665, 3666, 3668, 3669, 3670, 3671, 3672, 3673, 3675, 3676, 3677, 3678, 3679, 3680, 3681
+   )
+/
+-- ! COMMIT;
+-- ! ROLLBACK;
+
+-- * 37.3 ...
+INSERT INTO SSI_ANEXOS_PREGUNTAS(AP_ID_PREGUNTA, SI_ID_SERVICIO, AP_NUM_ANEXO, AP_NUM_GRUPO, AP_NUM_PREGUNTA, AP_PREGUNTA, AP_FECHA_REGISTRO, AP_FECHA_ELIMINACION,  AP_ELIMINADO, AP_TIPOCAMPO, AP_OPCIONES, AP_TIPO_CONTROL, AP_CONDICION_SI, AP_CONDICION_NO, AP_CONDICION, AP_OBLIGATORIA1, SI_ID_SERVICIO2) 
+VALUES (4252,4,37,1,15,'Detalle Otro:', SYSDATE, NULL, 0, NULL,'','text',-1,-1,'{"id":3634,"valor":"OTRO"}',0,9);
+/
+-- ! COMMIT;
+-- ! ROLLBACK;
+
+
+-- * 37.4 Eliminar pregunta `total`
+DELETE FROM SSI_ANEXOS_PREGUNTAS p
+WHERE
+   p.SI_ID_SERVICIO = 4 -- SIGES
+   AND p.AP_ID_PREGUNTA IN
+   (
+      3683
+   )
+/
+-- ! COMMIT;
+-- ! ROLLBACK;
+
+
+-- * Anexo 38: ...
+
+-- * 38.1 Inserta la pregunta que mustra las secciones
+INSERT INTO SSI_ANEXOS_PREGUNTAS(AP_ID_PREGUNTA, SI_ID_SERVICIO, AP_NUM_ANEXO, AP_NUM_GRUPO, AP_NUM_PREGUNTA, AP_PREGUNTA, AP_FECHA_REGISTRO, AP_FECHA_ELIMINACION,  AP_ELIMINADO, AP_TIPOCAMPO, AP_OPCIONES, AP_TIPO_CONTROL, AP_CONDICION_SI, AP_CONDICION_NO, AP_CONDICION, AP_OBLIGATORIA1, SI_ID_SERVICIO2) 
+VALUES (4254,4,38,3,1,'ELIGE LA SECCIÓN A MOSTRAR:', SYSDATE, NULL, 0, NULL,'ESPECIALISTA DE SEGUIMIENTO|ESPECIALISTA DE ACOMPAÑAMIENTO|ESPECIALISTA EN GESTION DE PADRON','select',-1,-1,'',0,9);
+/
+-- ! COMMIT;
+-- ! ROLLBACK;
+
+-- * 38.2 Sección a mostrar
+
+-- * 38.2.1 `A`
+UPDATE SSI_ANEXOS_PREGUNTAS p
+   SET 
+      p.AP_CONDICION = '{"id":4254,"valor":"ESPECIALISTA DE SEGUIMIENTO"}'
+WHERE 
+   p.AP_ID_PREGUNTA IN (
+      3695, 3696, 3697, 3698, 3699, 3700, 3701, 3702
+   )
+/
+
+-- * 38.2.2 `B`
+UPDATE SSI_ANEXOS_PREGUNTAS p
+   SET 
+      p.AP_CONDICION = '{"id":4254,"valor":"ESPECIALISTA DE ACOMPAÑAMIENTO"}'
+WHERE 
+   p.AP_ID_PREGUNTA IN (
+      3704, 3705, 3706, 3707, 3708, 3709, 3710, 3711, 3712, 3713
+   )
+/
+
+-- * 38.2.3 `C`
+UPDATE SSI_ANEXOS_PREGUNTAS p
+   SET 
+      p.AP_CONDICION = '{"id":4254,"valor":"ESPECIALISTA EN GESTION DE PADRON"}'
+WHERE 
+   p.AP_ID_PREGUNTA IN (
+      3715, 3716, 3717, 3718, 3719, 3720, 3721, 3722, 3723, 3724, 3725, 3726, 3727, 3728, 3729, 3731, 3732, 3733
+   )
+/
+-- ! COMMIT;
+-- ! ROLLBACK;
+
+
+-- * ANEXO 40: ...
+
+-- * 40.1 
+INSERT INTO SSI_ANEXOS_PREGUNTAS(AP_ID_PREGUNTA, SI_ID_SERVICIO, AP_NUM_ANEXO, AP_NUM_GRUPO, AP_NUM_PREGUNTA, AP_PREGUNTA, AP_FECHA_REGISTRO, AP_FECHA_ELIMINACION,  AP_ELIMINADO, AP_TIPOCAMPO, AP_OPCIONES, AP_TIPO_CONTROL, AP_CONDICION_SI, AP_CONDICION_NO, AP_CONDICION, AP_OBLIGATORIA1, SI_ID_SERVICIO2) 
+VALUES (4253,4,40,1,8,'Detalle:', SYSDATE, NULL, 0, NULL,'','text',-1,-1,'{"id":3809,"valor":"OTRO"}',0,10);
+/
+-- ! COMMIT;
+-- ! ROLLBACK;
+
+-- * ANEXO 42: ...
+
+-- * 42.1 Eliminar campo `total`
+DELETE FROM SSI_ANEXOS_PREGUNTAS p
+WHERE
+   p.SI_ID_SERVICIO = 4 -- SIGES
+   AND p.AP_ID_PREGUNTA IN
+   (
+      3890
+   )
+/
+-- ! COMMIT;
+-- ! ROLLBACK;
+
+
+
+-- * II. Levantamiento de observaciones de reunión.
+
+
+-- * 2.1 Actualizar ubigeo y nombre
+
+-- * 2.1.1 Actualizar ubigeo y nombre
+UPDATE SSI_ESP_INTERVENCION i
+   SET 
+      i.ESP_NOMBRE = 'SEDE CENTRAL',
+      i.ESP_UBIGEO = '150121', -- Sede Central Pueblo libre
+      i.ESP_NOMBRE_RESPONSABLE = 'SEDE CENTRAL'
+WHERE
+   i.ID_ESP_INTERV = 23
+/
+
+-- * 2.1.2 Actualizar ubigeo y nombre
+INSERT INTO SSI_ESP_INTERVENCION (ID_ESP_INTERV, ID_SERVICIO, ESP_NOMBRE, ESP_UBIGEO, ESP_NOMBRE_RESPONSABLE, ID_UNIDADORGANICA_PADRE) 
+VALUES (23, 9, 'SEDE CENTRAL 1', 150121, 'SEDE CENTRAL 2', 1146);
+/
+
+INSERT INTO SSI_ESP_INTERVENCION (ID_ESP_INTERV, ID_SERVICIO, ESP_NOMBRE, ESP_UBIGEO, ESP_NOMBRE_RESPONSABLE, ID_UNIDADORGANICA_PADRE) 
+VALUES (24, 10, 'SEDE CENTRAL 2', 150121, 'SEDE CENTRAL 2', 1166);
+/
+
+SELECT * FROM SSI_ESP_INTERVENCION i
+ORDER BY
+   i.ID_ESP_INTERV DESC
+/
+
+/* DELETE SSI_ESP_INTERVENCION i
+WHERE
+   i.ID_ESP_INTERV IN (23, 24, 25) 
+/ */
+
+-- ! COMMIT;
+-- ! ROLLBACK;
+
+-- * 2.2 Cambiar de tipo NUMBER a VARCHAR2
+ALTER TABLE SSI_ANEXOS_CABECERA
+   DROP COLUMN ID_SUPERVISADO
+/
+
+ALTER TABLE SSI_ANEXOS_CABECERA
+   ADD ID_SUPERVISADO VARCHAR2(500) NULL
+/
+
+-- ! COMMIT;
+-- ! ROLLBACK;
+
+
+-- * 2.3 Validación de la fichas (🕜)
+
+-- * 2.3.1 Adicionar columna que de los usuarios que validan la ficha
+ALTER TABLE SSI_ANEXOS_CABECERA
+   ADD IDS_PERSONAL_VALIDA VARCHAR2(255) NULL
+/
+-- ! COMMIT;
+
+
+-- * 2.3.2 Actualiza personal que valida la ficha
+
+CREATE OR REPLACE PROCEDURE USP_SAVE_PERSONAL_VALIDA_ANEXO
+(
+   p_id_anexo_cabecera IN NUMBER,
+   p_ids_personal IN VARCHAR2
+)
+IS
+   id_centro_ref NUMBER;
+BEGIN
+
+   BEGIN
+
+      SAVEPOINT SAVE_PERSONAL_VALIDA_ANEXO;
+
+      UPDATE SSI_ANEXOS_CABECERA ac
+         SET ac.IDS_PERSONAL_VALIDA = (
+            CASE
+               WHEN (p_ids_personal = '' OR p_ids_personal IS NULL) THEN ''
+               ELSE (
+                  CASE
+                     WHEN (ac.IDS_PERSONAL_VALIDA = '' OR ac.IDS_PERSONAL_VALIDA IS NULL) THEN p_ids_personal
+                     ELSE (ac.IDS_PERSONAL_VALIDA || '|' || p_ids_personal)
+                  END
+               )
+            END
+         )
+      WHERE
+         ac.ID_ANEXO_CABECERA = p_id_anexo_cabecera;
+
+      COMMIT;
+
+   EXCEPTION
+      WHEN OTHERS THEN
+         ROLLBACK TO SAVEPOINT SAVE_PERSONAL_VALIDA_ANEXO;
+         DBMS_OUTPUT.PUT_LINE('Error al actualizar el personal que valida el anexo: ' || SQLERRM);
+         RAISE;
+   END;
+
+END USP_SAVE_PERSONAL_VALIDA_ANEXO;
+/
+
+-- Llamar al procedimiento almacenado:
+BEGIN
+   USP_SAVE_PERSONAL_VALIDA_ANEXO(103, '1642');
+END;
+/
+
+-- ! COMMIT;
+
+
+-- * 2.3.3 Conformidad a la ficha
+
+CREATE OR REPLACE PROCEDURE USP_SAVE_CONFORMIDAD_ANEXO_CABECERA
+(
+   p_id_anexo_cabecera IN NUMBER,
+   p_estado IN NUMBER -- ? (1) → REGISTRADO | (2) → CERRADO 
+)
+IS
+   id_centro_ref NUMBER;
+BEGIN
+
+   BEGIN
+
+      SAVEPOINT SAVE_CONFORMIDAD_ANEXO_CABECERA;
+
+      UPDATE SSI_ANEXOS_CABECERA ac
+         SET ac.ESTADO = p_estado
+      WHERE
+         ac.ID_ANEXO_CABECERA = p_id_anexo_cabecera;
+
+      COMMIT;
+
+   EXCEPTION
+      WHEN OTHERS THEN
+         ROLLBACK TO SAVEPOINT SAVE_CONFORMIDAD_ANEXO_CABECERA;
+         DBMS_OUTPUT.PUT_LINE('Error al dar la conformidad al anexo: ' || SQLERRM);
+         RAISE;
+   END;
+
+END USP_SAVE_CONFORMIDAD_ANEXO_CABECERA;
+/
+
+-- Llamar al procedimiento almacenado:
+BEGIN
+   USP_SAVE_CONFORMIDAD_ANEXO_CABECERA(103, 2);
+END;
+/
+-- ! COMMIT;
+
+
+-- * 2.4 Carga de 5 audios. (🕜)
+
+-- * 2.4.1 
+CREATE SEQUENCE SEQ_ACA_ID_AUDIO START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE
+/
+
+DROP TABLE SSI_ANEXO_CABECERA_AUDIO
+/
+
+CREATE TABLE SSI_ANEXO_CABECERA_AUDIO
+(
+   ACA_ID_AUDIO NUMBER PRIMARY KEY,
+   ID_ANEXO_CABECERA NUMBER NOT NULL,
+   ACA_AUDIO BLOB NOT NULL,
+   ACA_NOMBRE_ARCHIVO VARCHAR2(500) NOT NULL,
+   ACA_FECHA_REGISTRO DATE DEFAULT SYSDATE,
+   ACA_ESTADO NUMBER(1) DEFAULT 1,
+   ACA_ELIMINADO NUMBER(1) DEFAULT 0 CHECK (ACA_ELIMINADO IN (0, 1))
+)
+/
+
+-- ! COMMIT;
+UPDATE SSI_ANEXO_CABECERA_AUDIO a
+   SET
+      a.ACA_ESTADO = 1,
+      a.ACA_ELIMINADO = 0
+/
+
+
+SELECT * FROM SSI_ANEXOS_CABECERA ac
+ORDER BY
+   ac.ID_ANEXO_CABECERA DESC
+/
+
+DECLARE
+   c_resultado SYS_REFCURSOR;
+BEGIN
+   USP_CRUD_ANEXO_CABECERA_AUDIO(4, NULL, 175, NULL, NULL, NULL, NULL);
+   DBMS_SQL.RETURN_RESULT(c_resultado);
+END;
+/
+
+-- * 2.4.2 
+CREATE OR REPLACE PROCEDURE USP_CRUD_ANEXO_CABECERA_AUDIO
+(
+   p_operacion           IN NUMBER,    -- ? (1) INSERTAR | (2) ACTUALIZAR | (3) ELIMINAR | (4) CONSULTAR
+   p_id_audio            IN NUMBER,    -- Requerido para UPDATE, DELETE, SELECT
+   p_id_anexo_cabecera   IN NUMBER,    -- Requerido para INSERT
+   p_audio               IN BLOB,      -- Requerido para INSERT, UPDATE
+   p_nombre_archivo      IN VARCHAR2,  -- Requerido para INSERT, UPDATE
+   p_estado              IN NUMBER,    -- Requerido para UPDATE
+   p_cursor              OUT SYS_REFCURSOR
+)
+IS
+BEGIN
+
+   -- ========================
+   -- (1) INSERTAR
+   -- ========================
+   IF p_operacion = 1 THEN
+      BEGIN
+         SAVEPOINT SAVE_INSERT_ANEXO_CABECERA_AUDIO;
+
+         INSERT INTO SSI_ANEXO_CABECERA_AUDIO
+         (
+            ACA_ID_AUDIO,
+            ID_ANEXO_CABECERA,
+            ACA_AUDIO,
+            ACA_NOMBRE_ARCHIVO
+         )
+         VALUES
+         (
+            SEQ_ACA_ID_AUDIO.NEXTVAL,
+            p_id_anexo_cabecera,
+            p_audio,
+            p_nombre_archivo
+         );
+
+         COMMIT;
+      EXCEPTION
+         WHEN OTHERS THEN
+            ROLLBACK TO SAVEPOINT SAVE_INSERT_ANEXO_CABECERA_AUDIO;
+            DBMS_OUTPUT.PUT_LINE('Error al insertar el audio del anexo: ' || SQLERRM);
+            RAISE;
+      END;
+
+   -- ========================
+   -- (2) ACTUALIZAR
+   -- ========================
+   ELSIF p_operacion = 2 THEN
+      BEGIN
+         SAVEPOINT SAVE_UPDATE_ANEXO_CABECERA_AUDIO;
+
+         UPDATE SSI_ANEXO_CABECERA_AUDIO
+            SET ACA_AUDIO          = p_audio,
+                ACA_NOMBRE_ARCHIVO = p_nombre_archivo,
+                ACA_ESTADO         = p_estado
+         WHERE
+            ACA_ID_AUDIO    = p_id_audio
+            AND ACA_ELIMINADO = 0;
+
+         COMMIT;
+      EXCEPTION
+         WHEN OTHERS THEN
+            ROLLBACK TO SAVEPOINT SAVE_UPDATE_ANEXO_CABECERA_AUDIO;
+            DBMS_OUTPUT.PUT_LINE('Error al actualizar el audio del anexo: ' || SQLERRM);
+            RAISE;
+      END;
+
+   -- ========================
+   -- (3) ELIMINAR (lógico)
+   -- ========================
+   ELSIF p_operacion = 3 THEN
+      BEGIN
+         SAVEPOINT SAVE_DELETE_ANEXO_CABECERA_AUDIO;
+
+         UPDATE SSI_ANEXO_CABECERA_AUDIO
+            SET ACA_ELIMINADO = 1
+         WHERE
+            ACA_ID_AUDIO = p_id_audio;
+
+         COMMIT;
+      EXCEPTION
+         WHEN OTHERS THEN
+            ROLLBACK TO SAVEPOINT SAVE_DELETE_ANEXO_CABECERA_AUDIO;
+            DBMS_OUTPUT.PUT_LINE('Error al eliminar el audio del anexo: ' || SQLERRM);
+            RAISE;
+      END;
+
+   -- ========================
+   -- (4) CONSULTAR
+   -- ========================
+   ELSIF p_operacion = 4 THEN
+      OPEN p_cursor FOR
+         SELECT
+            ACA_ID_AUDIO,
+            ID_ANEXO_CABECERA,
+            ACA_AUDIO,
+            ACA_NOMBRE_ARCHIVO,
+            ACA_FECHA_REGISTRO,
+            ACA_ESTADO
+         FROM SSI_ANEXO_CABECERA_AUDIO
+         WHERE
+            ID_ANEXO_CABECERA = p_id_anexo_cabecera
+            AND ACA_ELIMINADO      = 0;
+
+   ELSE
+      DBMS_OUTPUT.PUT_LINE('Operación no válida: ' || p_operacion);
+
+   END IF;
+
+END USP_CRUD_ANEXO_CABECERA_AUDIO;
+/
+
+-- ! COMMIT;
+
+-- * 2.5 Considerar registro de campos `PERIRIO` y `TIPO` al registrar la FICHA. (🕜)
+
+
+-- * 2.5.1 Crear campos `PERIRIO` | `TIPO`. (🕜)
+
+ALTER TABLE SSI_ANEXOS_CABECERA
+   ADD PERIODO VARCHAR2(55) NULL
+/
+
+ALTER TABLE SSI_ANEXOS_CABECERA
+   ADD TIPO VARCHAR2(55) NULL
+/
+
+-- * 2.5.1 Crear campos `CENTRO`. (🕜)
+ALTER TABLE SSI_ANEXOS_CABECERA
+   ADD CENTRO VARCHAR2(255) NULL
+/
+
+SELECT * FROM SSI_ANEXOS_CABECERA ac
+ORDER BY
+   ac.ID_ANEXO_CABECERA DESC
+/
+
+
+SELECT * FROM TGUNIDADORGANICA u
+WHERE
+   u.UORNOMBRE LIKE '%EMER%'
+/
+
+-- ! COMMIT;
+
+-- * 2.5.3 Cambiar obligatoriedad `ANEXOS`. (🕜)
+UPDATE SSI_ANEXO a
+   SET a.ANX_REQ_OBLIGATORIEDAD = 0
+WHERE
+   a.ANX_CODIGO2 IN (
+      'FO_CAR01',
+      'FS_CAR01',
+      'FS_CAR02',
+      'FO_CED01',
+      'FS_CED01',
+      'FS_CED02',
+      'FS_SEC01',
+      'FS_SEC02',
+      'FS_ACE01',
+      'FS_ACE02',
+      'FS_FAM01',
+      'FS_FAM02',
+      'FS_AEA01',
+      'FS_AEA02',
+      'FS_AEA03',
+      'FS_INA01'
+   )
+/
+
+
+-- ! COMMIT;
+
+-- * 2.5.2 Agrear columna que indica si anexo requiere validación 
+ALTER TABLE SSI_ANEXO
+   ADD ANX_REQ_VALIDACION NUMBER DEFAULT 1
+/
+-- ! COMMIT;
+
+-- * 2.5.3 Agrear columna que indica si anexo requiere supervisados 
+ALTER TABLE SSI_ANEXO
+   ADD ANX_REQ_SUPERVISADOS NUMBER DEFAULT 1
+/
+-- ! COMMIT;
+
+-- * 2.6 Actualizar flag de anexos si requiere supervisados y validación. (🕜)
+
+-- * 2.6.1 Requiere supervisados
+UPDATE SSI_ANEXO a
+   SET
+      a.ANX_REQ_SUPERVISADOS = 0
+WHERE
+   a.ID_ANEXO IN (
+      1, 2, 3, 4, 5, 9, 10, 11, 12, 13, 17, 18, 19, 20, 23, 24, 25, 28, 29, 30, 33, 34, 35, 36, 40, 41
+   )
+/
+-- ! COMMIT;
+
+-- * 2.6.2 Requiere validación
+UPDATE SSI_ANEXO a
+   SET
+      a.ANX_REQ_VALIDACION = 0
+WHERE
+   LOWER(a.ANX_CODIGO) NOT IN (
+      'anexo 06',
+      'anexo 07',
+      'anexo 08',
+      'anexo 14',
+      'anexo 15',
+      'anexo 16',
+      'anexo 21',
+      'anexo 22',
+      'anexo 26',
+      'anexo 27',
+      'anexo 31',
+      'anexo 32',
+      'anexo 37',
+      'anexo 38',
+      'anexo 39',
+      'anexo 42'
+   )
+/
+-- ! COMMIT;
+
+-- * 2.6.3 Add column:
+
+-- * 2.6.3.1 `ANX_REQ_DIRECTOR`
+ALTER TABLE SSI_ANEXO
+   ADD ANX_REQ_DIRECTOR NUMBER(1) DEFAULT 1
+/
+-- ! COMMIT;
+-- ? ROLLBACK;
+
+-- * 2.6.3.2  Anexos que no registran director
+UPDATE SSI_ANEXO a
+   SET a.ANX_REQ_DIRECTOR = 0
+WHERE
+   a.ANX_ID_SERVICIO = 9
+/
+-- ! COMMIT;
+
+-- ! Test
+/*
+DELETE FROM SSI_ESP_INTERVENCION i
+WHERE
+   i.ID_ESP_INTERV BETWEEN 26 AND 100
+/
+*/
+
+SELECT * FROM SSI_ANEXO a
+ORDER BY
+   a.ID_ANEXO DESC
+/
+
+SELECT * FROM SSI_ESP_INTERVENCION i
+/
+
+SELECT * FROM SSI_ESP_INTERVENCION i
+ORDER BY
+   -- i.ID_ESP_INTERV DESC
+   i.ID_SERVICIO DESC
+/
+
+
+SELECT 
+   * 
+FROM SSI_ANEXOS_CABECERA i
+ORDER BY
+   i.ID_ANEXO_CABECERA DESC
+   -- i.ID_ANEXO
+/
+
+SELECT 
+   * 
+FROM SSI_ANEXOS_RESPUESTAS_V2 r
+ORDER BY
+   -- i.ID_ANEXO_CABECERA DESC
+   r.AR_ID_RESPUESTA DESC
+/
+
+-- ! COMMIT;
+-- ! ROLLBACK;
+
+-- * 2.7 Adicionar campos a `SSI_ANEXOS_CABECERA`
+ALTER TABLE SSI_ANEXOS_CABECERA
+   ADD ACREDITACION_VIGENTE NUMBER(1) NULL
+/
+
+ALTER TABLE SSI_ANEXOS_CABECERA
+   ADD FECHA_ACREDITACION DATE NULL
+/
+
+ALTER TABLE SSI_ANEXOS_CABECERA
+   ADD MODALIDAD VARCHAR2(55) NULL
+/
+
+ALTER TABLE SSI_ANEXOS_CABECERA
+   DROP COLUMN MODALIDAD
+/
+-- ! COMMIT;
+
+-- * 2.8 Nuevas observaciones. (🕜)
+
+-- * 2.8.1 FS_CAR01
+
+-- * 2.8.1.1 El numeral 4.6.6 no es título, se tiene que ingresar datos , y agregar el campo detalle
+UPDATE SSI_ANEXOS_PREGUNTAS p
+   SET 
+      -- p.AP_CONDICION = '{"id":4254,"valor":"ESPECIALISTA DE ACOMPAÑAMIENTO"}'
+      p.AP_TIPO_CONTROL = 'text',
+      p.AP_PREGUNTA2 = 'Detalle',
+      p.AP_TIPO_CONTROL2 = 'text',
+      p.AP_OBLIGATORIA1 = 1
+WHERE 
+   p.AP_ID_PREGUNTA = 2453
+/
+
+-- * 2.8.2.2 El numeral 4.6.23 no es título, se tiene que ingresar datos , y agregar el campo detalle
+UPDATE SSI_ANEXOS_PREGUNTAS p
+   SET 
+      -- p.AP_CONDICION = '{"id":4254,"valor":"ESPECIALISTA DE ACOMPAÑAMIENTO"}'
+      p.AP_TIPO_CONTROL = 'text',
+      p.AP_PREGUNTA2 = 'Detalle',
+      p.AP_TIPO_CONTROL2 = 'text',
+      p.AP_OBLIGATORIA1 = 1
+WHERE 
+   p.AP_ID_PREGUNTA = 2472
+/
+
+-- * 2.8.2 FO_CAR01
+
+-- * 2.8.2.1 El numeral 2.2 no es un campo obligatorio
+UPDATE SSI_ANEXOS_PREGUNTAS p
+   SET 
+      p.AP_OBLIGATORIA1 = 0
+WHERE 
+   p.AP_ID_PREGUNTA = 2109
+/
+
+-- * 2.8.3 FS_ACE01 
+
+-- * 2.8.3.1 Falta  ingresar el campo “Comentarios” antes de de Resumen de Evaluación
+INSERT INTO SSI_ANEXOS_PREGUNTAS(AP_ID_PREGUNTA, SI_ID_SERVICIO, AP_NUM_ANEXO, AP_NUM_GRUPO, AP_NUM_PREGUNTA, AP_PREGUNTA, AP_FECHA_REGISTRO, AP_FECHA_ELIMINACION,  AP_ELIMINADO, AP_TIPOCAMPO, AP_OPCIONES, AP_TIPO_CONTROL, AP_CONDICION_SI, AP_CONDICION_NO, AP_CONDICION, SI_ID_SERVICIO2) 
+VALUES (4255, 4, 26, 3, 38,'Comentarios', SYSDATE, NULL, 0, NULL, NULL,'text', -1, -1, NULL, 7);
+
+-- * 2.8.4 FS_FAM02 
+
+-- * 2.8.4.1 En el numeral 3.7 la seleccion debe ser  multiples, si selecciona “otros”, debe habilitar un cuadro texto 
+UPDATE SSI_ANEXOS_PREGUNTAS p
+   SET 
+      p.AP_TIPO_CONTROL = 'selectM'
+WHERE 
+   p.AP_ID_PREGUNTA = 3504
+/
+
+INSERT INTO SSI_ANEXOS_PREGUNTAS(AP_ID_PREGUNTA, SI_ID_SERVICIO, AP_NUM_ANEXO, AP_NUM_GRUPO, AP_NUM_PREGUNTA, AP_PREGUNTA, AP_FECHA_REGISTRO, AP_FECHA_ELIMINACION,  AP_ELIMINADO, AP_TIPOCAMPO, AP_OPCIONES, AP_TIPO_CONTROL, AP_CONDICION_SI, AP_CONDICION_NO, AP_CONDICION, SI_ID_SERVICIO2) 
+VALUES (4256, 4, 32, 2, 11, 'Detalle', SYSDATE, NULL, 0, NULL,'','text',-1,-1,'{"id":3504,"valor":"OTROS"}', 8);
+/
+
+UPDATE SSI_ANEXOS_PREGUNTAS p
+   SET 
+      -- p.AP_NUM_PREGUNTA = 12
+      p.AP_NUM_PREGUNTA = 13
+WHERE 
+   -- p.AP_ID_PREGUNTA = 3505
+   p.AP_ID_PREGUNTA = 3506
+/
+
+
+-- * 2.8.5 FS_AEA03 
+
+-- * 2.8.5.1 Eliminar “Total”
+DELETE FROM SSI_ANEXOS_PREGUNTAS p
+WHERE 
+   p.AP_ID_PREGUNTA = 3802
+/
+
+-- * 2.8.5.2 Falta agregar al final de las preguntas un un cuadro  de texto con nombre comentarios finales: que es independiente de las preguntas, (sin obligatoriedad de ingreso)
+INSERT INTO SSI_ANEXOS_PREGUNTAS(AP_ID_PREGUNTA, SI_ID_SERVICIO, AP_NUM_ANEXO, AP_NUM_GRUPO, AP_NUM_PREGUNTA, AP_PREGUNTA, AP_FECHA_REGISTRO, AP_FECHA_ELIMINACION,  AP_ELIMINADO, AP_TIPOCAMPO, AP_OPCIONES, AP_TIPO_CONTROL, AP_CONDICION_SI, AP_CONDICION_NO, AP_CONDICION, SI_ID_SERVICIO2) 
+VALUES (4257, 4, 6, 4, 116, 'Comentarios finales', SYSDATE, NULL, 0, NULL, '', 'text', -1, -1, NULL, 4);
+/
+
+-- * 2.8.6 GE_CAR03
+
+-- * 2.8.6.1 solo deberia estar enunciado del numera l3.6  con su campo de texto. eliminar el campo ¿porque? y su respuesta
+UPDATE SSI_ANEXOS_PREGUNTAS p
+   SET 
+      p.AP_PREGUNTA2 = NULL,
+      p.AP_TIPO_CONTROL2 = NULL,
+      p.AP_OBLIGATORIA2 = 0
+WHERE 
+   p.AP_ID_PREGUNTA = 2378
+/
+
+-- ! COMMIT;
+-- ? ROLLBACK;
+
+
+-- * 2.8.7 Actualizar `DIRECTORES`
+
+-- * 2.8.7.1 Existentes
+UPDATE SSI_ESP_INTERVENCION  SET ID_PERSONAL = 330 WHERE ID_ESP_INTERV = 11;
+UPDATE SSI_ESP_INTERVENCION  SET ID_PERSONAL = 537 WHERE ID_ESP_INTERV = 9;
+UPDATE SSI_ESP_INTERVENCION  SET ID_PERSONAL = 612 WHERE ID_ESP_INTERV = 5;
+UPDATE SSI_ESP_INTERVENCION  SET ID_PERSONAL = 752 WHERE ID_ESP_INTERV = 14;
+UPDATE SSI_ESP_INTERVENCION  SET ID_PERSONAL = 1047 WHERE ID_ESP_INTERV = 12;
+UPDATE SSI_ESP_INTERVENCION  SET ID_PERSONAL = 1520 WHERE ID_ESP_INTERV = 13;
+UPDATE SSI_ESP_INTERVENCION  SET ID_PERSONAL = 1642 WHERE ID_ESP_INTERV = 4;
+UPDATE SSI_ESP_INTERVENCION  SET ID_PERSONAL = 21332 WHERE ID_ESP_INTERV = 3;
+UPDATE SSI_ESP_INTERVENCION  SET ID_PERSONAL = 21726 WHERE ID_ESP_INTERV = 19;
+UPDATE SSI_ESP_INTERVENCION  SET ID_PERSONAL = 21727 WHERE ID_ESP_INTERV = 20;
+UPDATE SSI_ESP_INTERVENCION  SET ID_PERSONAL = 21728 WHERE ID_ESP_INTERV = 18;
+UPDATE SSI_ESP_INTERVENCION  SET ID_PERSONAL = 21780 WHERE ID_ESP_INTERV = 8;
+
+
+-- * 2.8.7.2 Nuevos: 9 → `Servicio de Asistencia Económica para NNA en situación de orfandad`
+INSERT INTO SSI_ESP_INTERVENCION(ID_ESP_INTERV, ID_SERVICIO, ESP_NOMBRE, ID_PERSONAL, ESP_UBIGEO, ESP_ESTADO, ESP_ELIMINADO, ESP_NOMBRE_RESPONSABLE, ID_UNIDADORGANICA_PADRE) VALUES(26, 9,'AE AMAZONAS',20510, '010101', 1, 0,'AE AMAZONAS', 1146);
+INSERT INTO SSI_ESP_INTERVENCION(ID_ESP_INTERV, ID_SERVICIO, ESP_NOMBRE, ID_PERSONAL, ESP_UBIGEO, ESP_ESTADO, ESP_ELIMINADO, ESP_NOMBRE_RESPONSABLE, ID_UNIDADORGANICA_PADRE) VALUES(27, 9,'AE ANCASH',20713, '020101', 1, 0,'AE ANCASH', 1146);
+INSERT INTO SSI_ESP_INTERVENCION(ID_ESP_INTERV, ID_SERVICIO, ESP_NOMBRE, ID_PERSONAL, ESP_UBIGEO, ESP_ESTADO, ESP_ELIMINADO, ESP_NOMBRE_RESPONSABLE, ID_UNIDADORGANICA_PADRE) VALUES(28, 9,'AE APURIMAC',20508, '030101', 1, 0,'AE APURIMAC', 1146);
+INSERT INTO SSI_ESP_INTERVENCION(ID_ESP_INTERV, ID_SERVICIO, ESP_NOMBRE, ID_PERSONAL, ESP_UBIGEO, ESP_ESTADO, ESP_ELIMINADO, ESP_NOMBRE_RESPONSABLE, ID_UNIDADORGANICA_PADRE) VALUES(29, 9,'AE AREQUIPA',12322, '040101', 1, 0,'AE AREQUIPA', 1146);
+INSERT INTO SSI_ESP_INTERVENCION(ID_ESP_INTERV, ID_SERVICIO, ESP_NOMBRE, ID_PERSONAL, ESP_UBIGEO, ESP_ESTADO, ESP_ELIMINADO, ESP_NOMBRE_RESPONSABLE, ID_UNIDADORGANICA_PADRE) VALUES(30, 9,'AE AYACUCHO',20754, '050101', 1, 0,'AE AYACUCHO', 1146);
+INSERT INTO SSI_ESP_INTERVENCION(ID_ESP_INTERV, ID_SERVICIO, ESP_NOMBRE, ID_PERSONAL, ESP_UBIGEO, ESP_ESTADO, ESP_ELIMINADO, ESP_NOMBRE_RESPONSABLE, ID_UNIDADORGANICA_PADRE) VALUES(31, 9,'AE CAJAMARCA',19574, '060101', 1, 0,'AE CAJAMARCA', 1146);
+INSERT INTO SSI_ESP_INTERVENCION(ID_ESP_INTERV, ID_SERVICIO, ESP_NOMBRE, ID_PERSONAL, ESP_UBIGEO, ESP_ESTADO, ESP_ELIMINADO, ESP_NOMBRE_RESPONSABLE, ID_UNIDADORGANICA_PADRE) VALUES(32, 9,'AE CALLAO',19547, '070101', 1, 0,'AE CALLAO', 1146);
+INSERT INTO SSI_ESP_INTERVENCION(ID_ESP_INTERV, ID_SERVICIO, ESP_NOMBRE, ID_PERSONAL, ESP_UBIGEO, ESP_ESTADO, ESP_ELIMINADO, ESP_NOMBRE_RESPONSABLE, ID_UNIDADORGANICA_PADRE) VALUES(33, 9,'AE CUSCO',19523, '080101', 1, 0,'AE CUSCO', 1146);
+INSERT INTO SSI_ESP_INTERVENCION(ID_ESP_INTERV, ID_SERVICIO, ESP_NOMBRE, ID_PERSONAL, ESP_UBIGEO, ESP_ESTADO, ESP_ELIMINADO, ESP_NOMBRE_RESPONSABLE, ID_UNIDADORGANICA_PADRE) VALUES(34, 9,'AE HUANCAVELICA',19550, '090101', 1, 0,'AE HUANCAVELICA', 1146);
+INSERT INTO SSI_ESP_INTERVENCION(ID_ESP_INTERV, ID_SERVICIO, ESP_NOMBRE, ID_PERSONAL, ESP_UBIGEO, ESP_ESTADO, ESP_ELIMINADO, ESP_NOMBRE_RESPONSABLE, ID_UNIDADORGANICA_PADRE) VALUES(35, 9,'AE HUANUCO',20777, '100101', 1, 0,'AE HUANUCO', 1146);
+INSERT INTO SSI_ESP_INTERVENCION(ID_ESP_INTERV, ID_SERVICIO, ESP_NOMBRE, ID_PERSONAL, ESP_UBIGEO, ESP_ESTADO, ESP_ELIMINADO, ESP_NOMBRE_RESPONSABLE, ID_UNIDADORGANICA_PADRE) VALUES(36, 9,'AE ICA',22159, '110101', 1, 0,'AE ICA', 1146);
+INSERT INTO SSI_ESP_INTERVENCION(ID_ESP_INTERV, ID_SERVICIO, ESP_NOMBRE, ID_PERSONAL, ESP_UBIGEO, ESP_ESTADO, ESP_ELIMINADO, ESP_NOMBRE_RESPONSABLE, ID_UNIDADORGANICA_PADRE) VALUES(37, 9,'AE JUNIN',20717, '120101', 1, 0,'AE JUNIN', 1146);
+INSERT INTO SSI_ESP_INTERVENCION(ID_ESP_INTERV, ID_SERVICIO, ESP_NOMBRE, ID_PERSONAL, ESP_UBIGEO, ESP_ESTADO, ESP_ELIMINADO, ESP_NOMBRE_RESPONSABLE, ID_UNIDADORGANICA_PADRE) VALUES(38, 9,'AE LA LIBERTAD',19578, '130101', 1, 0,'AE LA LIBERTAD', 1146);
+INSERT INTO SSI_ESP_INTERVENCION(ID_ESP_INTERV, ID_SERVICIO, ESP_NOMBRE, ID_PERSONAL, ESP_UBIGEO, ESP_ESTADO, ESP_ELIMINADO, ESP_NOMBRE_RESPONSABLE, ID_UNIDADORGANICA_PADRE) VALUES(39, 9,'AE LAMBAYEQUE',19511, '140101', 1, 0,'AE LAMBAYEQUE', 1146);
+INSERT INTO SSI_ESP_INTERVENCION(ID_ESP_INTERV, ID_SERVICIO, ESP_NOMBRE, ID_PERSONAL, ESP_UBIGEO, ESP_ESTADO, ESP_ELIMINADO, ESP_NOMBRE_RESPONSABLE, ID_UNIDADORGANICA_PADRE) VALUES(40, 9,'AE LIMA',20705, '150101', 1, 0,'AE LIMA', 1146);
+INSERT INTO SSI_ESP_INTERVENCION(ID_ESP_INTERV, ID_SERVICIO, ESP_NOMBRE, ID_PERSONAL, ESP_UBIGEO, ESP_ESTADO, ESP_ELIMINADO, ESP_NOMBRE_RESPONSABLE, ID_UNIDADORGANICA_PADRE) VALUES(41, 9,'AE LORETO',20187, '160101', 1, 0,'AE LORETO', 1146);
+INSERT INTO SSI_ESP_INTERVENCION(ID_ESP_INTERV, ID_SERVICIO, ESP_NOMBRE, ID_PERSONAL, ESP_UBIGEO, ESP_ESTADO, ESP_ELIMINADO, ESP_NOMBRE_RESPONSABLE, ID_UNIDADORGANICA_PADRE) VALUES(42, 9,'AE MADRE DE DIOS',21379, '170101', 1, 0,'AE MADRE DE DIOS', 1146);
+INSERT INTO SSI_ESP_INTERVENCION(ID_ESP_INTERV, ID_SERVICIO, ESP_NOMBRE, ID_PERSONAL, ESP_UBIGEO, ESP_ESTADO, ESP_ELIMINADO, ESP_NOMBRE_RESPONSABLE, ID_UNIDADORGANICA_PADRE) VALUES(43, 9,'AE MOQUEGUA',19551, '180101', 1, 0,'AE MOQUEGUA', 1146);
+INSERT INTO SSI_ESP_INTERVENCION(ID_ESP_INTERV, ID_SERVICIO, ESP_NOMBRE, ID_PERSONAL, ESP_UBIGEO, ESP_ESTADO, ESP_ELIMINADO, ESP_NOMBRE_RESPONSABLE, ID_UNIDADORGANICA_PADRE) VALUES(44, 9,'AE PASCO',19588, '190101', 1, 0,'AE PASCO', 1146);
+INSERT INTO SSI_ESP_INTERVENCION(ID_ESP_INTERV, ID_SERVICIO, ESP_NOMBRE, ID_PERSONAL, ESP_UBIGEO, ESP_ESTADO, ESP_ELIMINADO, ESP_NOMBRE_RESPONSABLE, ID_UNIDADORGANICA_PADRE) VALUES(45, 9,'AE PIURA',11948, '200101', 1, 0,'AE PIURA', 1146);
+INSERT INTO SSI_ESP_INTERVENCION(ID_ESP_INTERV, ID_SERVICIO, ESP_NOMBRE, ID_PERSONAL, ESP_UBIGEO, ESP_ESTADO, ESP_ELIMINADO, ESP_NOMBRE_RESPONSABLE, ID_UNIDADORGANICA_PADRE) VALUES(46, 9,'AE PUNO',20728, '210101', 1, 0,'AE PUNO', 1146);
+INSERT INTO SSI_ESP_INTERVENCION(ID_ESP_INTERV, ID_SERVICIO, ESP_NOMBRE, ID_PERSONAL, ESP_UBIGEO, ESP_ESTADO, ESP_ELIMINADO, ESP_NOMBRE_RESPONSABLE, ID_UNIDADORGANICA_PADRE) VALUES(47, 9,'AE SAN MARTIN',20946, '220101', 1, 0,'AE SAN MARTIN', 1146);
+INSERT INTO SSI_ESP_INTERVENCION(ID_ESP_INTERV, ID_SERVICIO, ESP_NOMBRE, ID_PERSONAL, ESP_UBIGEO, ESP_ESTADO, ESP_ELIMINADO, ESP_NOMBRE_RESPONSABLE, ID_UNIDADORGANICA_PADRE) VALUES(48, 9,'AE TACNA',19573, '230101', 1, 0,'AE TACNA', 1146);
+INSERT INTO SSI_ESP_INTERVENCION(ID_ESP_INTERV, ID_SERVICIO, ESP_NOMBRE, ID_PERSONAL, ESP_UBIGEO, ESP_ESTADO, ESP_ELIMINADO, ESP_NOMBRE_RESPONSABLE, ID_UNIDADORGANICA_PADRE) VALUES(49, 9,'AE TUMBES',11838, '240101', 1, 0,'AE TUMBES', 1146);
+INSERT INTO SSI_ESP_INTERVENCION(ID_ESP_INTERV, ID_SERVICIO, ESP_NOMBRE, ID_PERSONAL, ESP_UBIGEO, ESP_ESTADO, ESP_ELIMINADO, ESP_NOMBRE_RESPONSABLE, ID_UNIDADORGANICA_PADRE) VALUES(50, 9,'AE UCAYALI',20712, '250101', 1, 0,'AE UCAYALI', 1146);
+
+
+-- * 2.8.7 Adiciona flag obligatoriedad para FICHA
+
+-- * 2.8.7.1 Add column:
+ALTER TABLE SSI_ANEXO
+   ADD ANX_REQ_OBLIGATORIEDAD NUMBER(1) DEFAULT 1
+/
+-- ! COMMIT;
+-- ? ROLLBACK;
+UPDATE SSI_ANEXO
+   SET ANX_REQ_OBLIGATORIEDAD = 1
+/
+
+
+-- ! Cleanup
+/*
+DELETE FROM SSI_ANEXOS_CABECERA;
+/
+
+DELETE FROM SSI_ANEXOS_RESPUESTAS_V2;
+/
+*/
+
+-- ! COMMIT;
+
+SELECT * FROM SSI_ANEXOS_CABECERA ac
+ORDER BY
+   ac.ID_ANEXO_CABECERA DESC
+/
+
+SELECT * FROM SSI_ANEXOS_RESPUESTAS_V2 r
+ORDER BY
+   r.AR_ID_RESPUESTA DESC
+/
+
+
+SELECT * FROM SSI_ESP_INTERVENCION i
+ORDER BY
+   i.ID_ESP_INTERV DESC
+/
+
+SELECT * FROM SSI_ANEXO i
+/
+
+-- 8 | Servicio de promoción de familias igualitarias y libres de violencia
+-- ID_SERVICIO → 28
+-- ID_ANEXO → 28
+-- ESP_UBIGEO → 150605
+-- FAMILIAS IGUALITARIAS - ZONA CHANCAY | ALEXANDRA ROCIO RIVERA ALFARO	COORDINADOR/A 	OS
+
+INSERT INTO SSI_ESP_INTERVENCION (ID_ESP_INTERV, ID_SERVICIO, ESP_NOMBRE, ESP_UBIGEO, ESP_NOMBRE_RESPONSABLE, ID_UNIDADORGANICA_PADRE, ESP_ESTADO, ESP_ELIMINADO) 
+VALUES (25, 8, 'FAMILIAS IGUALITARIAS - ZONA CHANCAY', 150605, 'FAMILIAS IGUALITARIAS - ZONA CHANCAY', 90, 1, 0);
+/
+
+SELECT * FROM SSI_ANEXO i
+/
+
+SELECT * FROM SSI_ANEXOS_PREGUNTAS i
+/
+
+SELECT * FROM SSI_UBIGEO_NOMBRES un
+WHERE
+   -- un.U_DEPARTAMENTO = 'LIMA'
+   -- un.U_PROVINCIA = 'CHANCAY'
+   un.U_DISTRITO = 'CHANCAY'
+/
+
+
+
+
+
+
+SELECT * FROM SSI_ANEXOS_PREGUNTAS p
+ORDER BY
+   p.AP_ID_PREGUNTA DESC
+/
+
+SELECT * FROM SSI_ANEXOS_RESPUESTAS_V2 r
+WHERE
+   r.AR_ID_RESPUESTA = 6188
+/
+
+-- ! Test
+-- ! 2. Identificar anexos en preguntas
+SELECT 
+   p.* 
+   -- p.Si_ID_SERVICIO
+   -- (p.AP_ID_PREGUNTA || '-' || p.AP_NUM_PREGUNTA) AS KEY
+FROM SSI_ANEXOS_PREGUNTAS p
+WHERE
+   p.SI_ID_SERVICIO = 4 -- SIGES
+   AND p.AP_NUM_ANEXO = 19
+   -- AND p.AP_ID_PREGUNTA = 4254
+   -- AND p.AP_NUM_GRUPO = 2
+   -- AND p.AP_NUM_PREGUNTA BETWEEN 1 AND 10
+/
+
+SELECT 
+   p.* 
+   -- p.Si_ID_SERVICIO
+   -- (p.AP_ID_PREGUNTA || '-' || p.AP_NUM_PREGUNTA) AS KEY
+FROM SSI_ANEXOS_PREGUNTAS p
+WHERE
+      p.AP_ID_PREGUNTA IN (
+         2389, 2390, 3378, 3318, 3375, 3424, 2870, 2872, 4169, 4168, 4249, 3526, 3551, 4250, 4251, 3638
+      )
+/
+
+SELECT * FROM SSI_ANEXO_CABECERA_AUDIO a
+ORDER BY
+   a.ACA_ID_AUDIO DESC
+/
+
+
+SELECT f.* FROM (
+
+   SELECT 
+
+      p.AP_ID_PREGUNTA,
+      p.SI_ID_SERVICIO,
+      p.AP_NUM_ANEXO,
+      p.AP_NUM_GRUPO,
+      p.AP_NUM_PREGUNTA,
+      
+      COUNT(p.AP_NUM_PREGUNTA) OVER (
+                                 PARTITION BY 
+                                    p.SI_ID_SERVICIO,
+                                    p.AP_NUM_ANEXO,
+                                    p.AP_NUM_GRUPO,
+                                    p.AP_NUM_PREGUNTA 
+                                 ORDER BY p.AP_NUM_PREGUNTA DESC) AS COUNT_
+      -- COUNT(1) AS 
+      -- p.* 
+      -- p.Si_ID_SERVICIO
+      -- (p.AP_ID_PREGUNTA || '-' || p.AP_NUM_PREGUNTA) AS KEY
+   FROM SSI_ANEXOS_PREGUNTAS p
+   WHERE
+      p.SI_ID_SERVICIO = 4 -- SIGES
+
+) f
+WHERE
+   f.COUNT_ >= 2
+ORDER BY
+   f.SI_ID_SERVICIO,
+   f.AP_NUM_ANEXO,
+   f.AP_NUM_GRUPO
+/
+
+-- ! 3526
+-- AND p.AP_NUM_ANEXO = 33
+-- AND p.AP_ID_PREGUNTA = 4254
+-- AND p.AP_NUM_GRUPO = 2
+-- AND p.AP_NUM_PREGUNTA BETWEEN 1 AND 10
+GROUP BY
+   p.SI_ID_SERVICIO,
+   p.AP_NUM_ANEXO,
+   p.AP_NUM_GRUPO
+HAVING
+
+/
+
+
+
+ORDER BY
+   p.SI_ID_SERVICIO = 4 -- SIGES
+   -- p.AP_ID_PREGUNTA
+   p.AP_NUM_GRUPO,
+   p.AP_NUM_PREGUNTA
+   -- p.AP_NUM_ANEXO;
+/
+
+-- ! 3. ...
+SELECT 
+   ac.* 
+   -- COUNT(1)
+FROM SSI_ANEXOS_CABECERA ac
+WHERE 
+   ac.ID_ANEXO = 19
+/
+
+
+-- ! 4. Obtener ANX_CODIGO2 por anexo
+SELECT
+   a.ANX_CODIGO2,
+   a.* 
+FROM SSI_ANEXO a
+
+WHERE
+   -- a.ANX_NOMBRE  LIKE '%ASISTENC%'
+   -- LOWER(a.ANX_SERVICIO)  LIKE '%sistenc%'
+   -- a.ANX_ID_SERVICIO = 5
+   a.ID_ANEXO = 1
+/
+
+-- ! 2 Preguntas por servicio SIGES
+SELECT 
+   -- p.SI_ID_SERVICIO2
+   -- p.* 
+   -- p.SI_ID_SERVICIO
+   p.AP_PREGUNTA2,
+   COUNT(1)
+FROM SSI_ANEXOS_PREGUNTAS p
+WHERE
+   -- p.SI_ID_SERVICIO = 4 -- SIGES
+   -- AND p.AP_NUM_ANEXO = 13
+   -- p.SI_ID_SERVICIO2 = 9
+   -- p.SI_ID_SERVICIO2 IS NOT NULL
+   p.AP_PREGUNTA2 IS NOT NULL
+GROUP BY
+   p.AP_PREGUNTA2
+   -- p.SI_ID_SERVICIO2
+   -- p.SI_ID_SERVICIO
+ORDER BY 2 DESC
+/
+
+-- ! 3. Servicios SIGES
+SELECT 
+   -- a.ANX_ID_SERVICIO
+   a.*
+FROM SSI_ANEXO a
+WHERE
+   -- a.ANX_CODIGO2 = 'ES_AEA01'
+   a.ANX_CODIGO2 = 'GE_SEC02'
+/* GROUP BY
+   a.ANX_ID_SERVICIO */
+/
+
+
+-- ! 21728
+SELECT 
+   ac.*
+FROM SSI_ANEXOS_CABECERA ac
+ORDER BY
+   ac.ID_ANEXO_CABECERA DESC
+/
+
+/*
+UPDATE SSI_ANEXO
+   -- SET ANX_REQ_VALIDACION = 1
+   SET ANX_REQ_SUPERVISADOS = 1
+/
+*/
+
+SELECT * FROM TRPERSONAL
+/
+
+
+
+
+SELECT 
+   -- COUNT(1)
+   u.IDUNIDADORGANICA,
+   tr.IDPERSONAL,
+   per.*
+FROM TGUNIDADORGANICA u
+INNER JOIN TRPERSONAL tr ON u.IDUNIDADORGANICA = tr.PRHUNIDADORGANICA
+INNER JOIN TGPERSONA per ON per.IDPERSONA = tr.PRHPERSONA
+WHERE 
+   -- u.UORNOMBRE = 'UNIDAD DE ADMINISTRACIÓN' -- 647 | IDUNIDADORGANICA → 24
+   -- u.UOR_UNIDAD_PADRE = 90 -- ? 'SEDE CENTRAL'
+   -- per.PERNRODOCUMENTO = '46392613' -- IDUNIDADORGANICA → 1106
+   -- per.PERNRODOCUMENTO = '46218180' -- STEPHANIE GIULIANA CARRION APESTEGUI
+   per.PERNRODOCUMENTO = '46473366'
+   -- per.PERNRODOCUMENTO = '77418933'
+/
+
+-- IDPERSONAL(21528) | STEPHANIE GIULIANA CARRION APESTEGUI
+-- IDPERSONAL(21132) | 46392613
+
+UPDATE TRPERSONAL tr
+   SET tr.PRHUNIDADORGANICA = 1146
+WHERE 
+   tr.IDPERSONAL IN (
+      21528,
+      21132,
+      20759,
+      21166
+   )
+/
+
+SELECT * FROM TRPERSONAL tr
+WHERE 
+   tr.IDPERSONAL IN (
+      21528,
+      21132
+   )
+/
+
+-- ! COMMIT;
+
+SELECT * FROM TGPERSONA per
+WHERE
+   per.PERAPEPATERNO = 'CARRION'-- STEPHANIE GIULIANA 
+   AND per.PERAPEMATERNO = 'APESTEGUI'
+/
+
+
+SELECT * FROM SSI_ANEXO_CABECERA_AUDIO ac
+/
+
+SELECT * FROM SSI_ANEXOS_CABECERA ac
+ORDER BY
+   ac.ID_ANEXO_CABECERA DESC
+/
+
+SELECT * FROM SSI_ANEXOS_CABECERA ac
+WHERE
+   ac.ID_ANEXO_CABECERA = 1
+/
+
+SELECT * FROM ALL_TAB_COLS c
+WHERE 
+   c.TABLE_NAME = 'SSI_ANEXOS_CABECERA'
+   -- AND c.COLUMN_NAME LIKE'%PRO%'
+/
+
+SELECT * FROM SSI_ESP_INTERVENCION
+/
+
+SELECT * FROM SSI_ANEXOS_CABECERA
+/
+
+SELECT * FROM SSI_ANEXO
+/
+
+SELECT * FROM SSI_ESP_INTERVENCION i
+ORDER BY
+   i.ID_ESP_INTERV DESC
+/
+
+
+-- * Buscar personal
+
+SELECT * FROM TGUNIDADORGANICA
+/
+
+SELECT * FROM TGPERSONA
+/
+
+SELECT
+   -- uo.*,
+   pe.IDPERSONAL,
+   -- p.IDPERSONA,
+   pe.PRHCORREOINSTITUCIONAL,
+   -- uo.UOR_UBIGEO,
+   -- COUNT(1)
+   -- pe.*
+   -- p.*
+   u.USULDAP,
+   u.USUESTADO
+FROM TGPERSONA p 
+JOIN TSUSUARIO u ON p.IDPERSONA = u.USUPERSONA
+JOIN TRPERSONAL pe ON p.IDPERSONA = pe.PRHPERSONA
+JOIN TGUNIDADORGANICA uo ON pe.PRHUNIDADORGANICA = uo.IDUNIDADORGANICA
+WHERE
+   p.PERESTADO = 1
+   AND pe.PRHESTADO = 1
+   -- AND u.USUESTADO = 1
+   -- AND p.PERNRODOCUMENTO = '73239538'
+   AND p.PERNOMBRE LIKE '%JEDY SALOME%'
+   AND p.PERAPEPATERNO = 'TEJADA'
+   AND p.PERAPEMATERNO LIKE '%BERNAL%'
+   -- AND pe.PRHCORREOINSTITUCIONAL IN ( -- v2
+   -- AND pe.IDPERSONAL = 17221
+/
+
+
+
+
+SELECT * FROM TRPERSONAL -- PERESTADO
+/
+
+SELECT * FROM SSI_UBIGEO_NOMBRES -- PERESTADO
+/
+
+SELECT * FROM TGPERSONA -- PRHESTADO
+/
+
+SELECT * FROM TSUSUARIO -- USUESTADO
+/
+
+-- * ...
+
+SELECT * FROM SSI_ESP_INTERVENCION i
+ORDER BY 
+   i.ID_ESP_INTERV DESC
+/
+
+/* DELETE FROM SSI_ESP_INTERVENCION i
+WHERE
+   i.ID_ESP_INTERV BETWEEN 26 AND 102
+/ */
+
+-- ! COMMIT;
+
+SELECT * FROM SSI_UBIGEO_NOMBRES un
+WHERE
+   un.U_DISTRITO LIKE '%PUEBLO%'
+/
+
+-- ! Test: ...
+
+-- ! 1. Eliminar pregunta
+/* DELETE FROM SSI_ANEXOS_PREGUNTAS p
+WHERE
+   p.AP_ID_PREGUNTA = 4254 */
+/
+
+-- ! 1. Actualizar correlativo de pregunta
+/* UPDATE SSI_ANEXOS_PREGUNTAS p
+   SET p.AP_NUM_PREGUNTA = p.AP_NUM_PREGUNTA + 1
+WHERE
+   p.AP_ID_PREGUNTA IN (
+      3695, 3696, 3697, 3698, 3699, 3700, 3701, 3702, 3704, 3705, 3706, 3707, 3708, 3709, 3710, 3711, 3712, 3713, 3715, 3716, 3717, 3718, 3719, 3720, 3721, 3722, 3723, 3724, 3725, 3726, 3727, 3728, 3729, 3731, 3732, 3733, 3736
+   ) */
+/
+
+
+/* UPDATE SSI_ANEXOS_PREGUNTAS p
+   SET 
+      -- p.AP_CONDICION = NULL
+      -- p.AP_OBLIGATORIA1 = 0,
+      -- p.AP_TIPO_CONTROL2 = NULL,
+      p.AP_TIPO_CONTROL = 'selectM'
+      -- p.AP_PREGUNTA2 = NULL
+      -- p.AP_PREGUNTA = 'Tiempo' -- Tiempo
+WHERE 
+   -- p.AP_ID_PREGUNTA = 4242
+   p.AP_ID_PREGUNTA = 3183
+/ */
+
+
+UPDATE SSI_ANEXO a
+   SET 
+      a.ANX_NOMBRE = 'Guía de Entrevista al Equipo Técnico de Inabif en Acción'
+WHERE
+   a.ID_ANEXO = 41
+/
+
+-- ! COMMIT;
+
+-- ! 4. Anexos cabecera SIGES
+SELECT 
+   ac.* 
+   -- COUNT(1)
+FROM SSI_ANEXOS_CABECERA ac
+/* WHERE 
+   ac.ID_ANEXO = 13 */
+/
+
+SELECT * FROM TGUBIGEO
+/
+
+-- ! 5. Analiza preguntas condicionales
+
+SELECT 
+   p.AP_CONDICION
+   -- p.* 
+FROM SSI_ANEXOS_PREGUNTAS p
+WHERE
+   -- p.SI_ID_SERVICIO = 4 -- SIGES
+   -- AND p.AP_NUM_ANEXO = 13
+   p.AP_CONDICION IS NOT NULL
+   -- AND TRIM(p.AP_TIPO_CONTROL) = 'text'
+ORDER BY
+   p.AP_CONDICION
+/
+
+-- SP_LISTAR_RESP_SUPERVISION
+
+-- ! 6. Obtener el ultimo `idPregunta`
+SELECT 
+   -- MAX(p.AP_ID_PREGUNTA) -- DEV: 4241 | TEST: 1751 | PROD: 1791
+   -- p.AP_ID_PREGUNTA
+   p.*
+FROM SSI_ANEXOS_PREGUNTAS p
+WHERE
+   p.AP_ID_PREGUNTA IN (4242, 4243)
+/
+
+-- ! 7. Obtener el `AP_TIPO_CONTROL`
+SELECT 
+   -- TRIM(p.AP_TIPO_CONTROL) AS AP_TIPO_CONTROL
+   p.AP_TIPO_CONTROL,
+   -- p.AP_TIPO_CONTROL2,
+   p.AP_OPCIONES,
+   COUNT(1)
+FROM SSI_ANEXOS_PREGUNTAS p
+WHERE 
+   p.SI_ID_SERVICIO = 4 -- SIGES
+   -- AND p.AP_TIPO_CONTROL IS NOT NULL
+   -- AND p.AP_TIPO_CONTROL2 IS NOT NULL 
+   AND p.AP_OPCIONES IS NOT NULL
+GROUP BY
+   -- p.AP_TIPO_CONTROL2
+   -- p.AP_TIPO_CONTROL,
+   p.AP_OPCIONES
+ORDER BY 3 DESC
+/
+
+-- ! 8. Obtener options de select
+SELECT 
+   -- p.* 
+   AP_OPCIONES
+FROM SSI_ANEXOS_PREGUNTAS p
+WHERE
+   p.SI_ID_SERVICIO = 4 -- SIGES
+   AND p.AP_NUM_ANEXO = 38
+   AND p.AP_TIPO_CONTROL = 'select'
+   -- AND p.AP_ID_PREGUNTA = 4254
+/
+
+
+-- ! 9. Listar anexos respuestas SIGES
+SELECT * FROM SSI_ANEXOS_CABECERA ac
+ORDER BY ac.ID_ANEXO_CABECERA DESC
+/
+
+SELECT * FROM SSI_ANEXOS_RESPUESTAS_V2 ar
+ORDER BY ar.AR_ID_RESPUESTA DESC
+/
+
+
+-- ! 10. Buscar personal `DIRECTORES`
+
+SELECT 
+   TR.IDPERSONAL AS IDPERSONAL,
+   U.UORNOMBRE AS UORNOMBRE,
+   U.UORABREVIATURA AS UORABREVIATURA,
+   (
+         PER.PERNOMBRE || ' ' ||
+         PER.PERAPEPATERNO || ' ' ||
+         PER.PERAPEMATERNO
+   ) AS NOMBRES
+   -- u.*
+FROM TGUNIDADORGANICA U
+JOIN TRPERSONAL TR ON U.IDUNIDADORGANICA = TR.PRHUNIDADORGANICA
+JOIN TGPERSONA PER ON PER.IDPERSONA = TR.PRHPERSONA
+WHERE 
+   TR.PRHESTADO = 1
+   AND PER.PERNOMBRE LIKE 'VICTOR%'
+   AND PER.PERAPEPATERNO LIKE '%CRUZ%'
+   AND PER.PERAPEMATERNO LIKE 'VILCA'
+ORDER BY NOMBRES
+/
+
+
+SELECT * FROM TGPERSONA
+/
+
+SELECT * FROM TGUNIDADORGANICA
+/
+
+SELECT * FROM TRPERSONAL
+/
+
+
+SELECT COLUMN_NAME, DATA_TYPE, DATA_LENGTH, DATA_PRECISION, DATA_SCALE
+FROM ALL_TAB_COLUMNS
+WHERE OWNER = 'USRSEGURIDAD' AND TABLE_NAME = 'TGPERSONA'
+ORDER BY COLUMN_ID
+/
+
+
+
+
+
+
+SELECT 
+   i.* 
+FROM SSI_FAMILIA_INTEGRANTES i
+WHERE
+   i.FI_ID_INTEGRANTE = 160
+   -- AND i.FI_CUIDADOR = 1
+/
+
+
+
+
+
+
+SELECT 
+   u.UOR_DIRECTOR,
+   u.*
+   /* TR.IDPERSONAL,
+   U.UORNOMBRE,
+   U.UORABREVIATURA,
+   PER.PERNOMBRE || ' ' ||
+   PER.PERAPEPATERNO || ' ' ||
+   PER.PERAPEMATERNO AS NOMBRES */
+FROM TGUNIDADORGANICA U
+-- INNER JOIN TRPERSONAL TR ON U.IDUNIDADORGANICA = TR.PRHUNIDADORGANICA
+-- INNER JOIN TGPERSONA PER ON PER.IDPERSONA = TR.PRHPERSONA
+WHERE 
+   -- U.UORNOMBRE = 'CEDIF AÑO NUEVO' 
+   -- U.UORNOMBRE = 'CAR ARCO IRIS' 
+   U.IDUNIDADORGANICA = 90
+   -- AND TR.PRHESTADO = 1
+-- ORDER BY NOMBRES
+/
+
+
+SELECT 
+      TR.IDPERSONAL AS IDPERSONAL,
+      U.UORNOMBRE AS UORNOMBRE,
+      U.UORABREVIATURA AS UORABREVIATURA,
+      (
+            PER.PERNOMBRE || ' ' ||
+            PER.PERAPEPATERNO || ' ' ||
+            PER.PERAPEMATERNO
+      ) AS NOMBRES,
+      u.*
+   FROM TGUNIDADORGANICA U
+   INNER JOIN TRPERSONAL TR ON U.IDUNIDADORGANICA = TR.PRHUNIDADORGANICA
+   INNER JOIN TGPERSONA PER ON PER.IDPERSONA = TR.PRHPERSONA
+   WHERE 
+      TR.PRHESTADO = 1
+      -- AND u.IDUNIDADORGANICA = 140
+      -- AND u.IDUNIDADORGANICA = 1146 -- SEDE CENTRO 1
+      AND u.IDUNIDADORGANICA = 1166 -- SEDE CENTRO 1
+   ORDER BY NOMBRES
+/
+
+SELECT * FROM TGUNIDADORGANICA u
+WHERE
+   -- UORNOMBRE LIKE '%ASISTENCIA%' -- 1. SEDE CENTRO 1
+   UORNOMBRE LIKE '%EMERGENCIA%'
+/
+
+-- INNER JOIN TRPERSONAL TR ON U.IDUNIDADORGANICA = TR.PRHUNIDADORGANICA
+
+
+/* AND (
+   PER.PERNOMBRE || ' ' ||
+   PER.PERAPEPATERNO || ' ' ||
+   PER.PERAPEMATERNO
+) LIKE '%' || UPPER(p_nombre_persona)  || '%' */
+
+
+/* [
+   {
+      "idPersonal": 1205,
+      "nombre": "ABDIAS LISANDRO PARRA FIGUEROA"
+   }
+] */
+
+
+-- COMMIT;
+
+
+SELECT * FROM SSI_ANEXOS_CABECERA a
+ORDER BY
+   a.ID_ANEXO_CABECERA DESC
+/
+
+
+ROLLBACK;
+
+
+SELECT
+    column_name,
+    data_type,
+    data_length
+FROM
+    all_tab_columns
+WHERE
+    table_name = 'SSI_ANEXOS_CABECERA'
+    AND column_name = 'IDS_SUPERVISADOS';
+
+
+SELECT trigger_name, trigger_type, triggering_event
+FROM all_triggers
+WHERE table_name = 'SSI_ANEXOS_CABECERA';
+
+SELECT constraint_name, search_condition
+FROM all_constraints
+WHERE table_name = 'SSI_ANEXOS_CABECERA' AND constraint_type = 'C';
+
+
+
+SELECT object_name, object_type, status, last_ddl_time
+FROM user_objects
+WHERE object_name = 'USP_CREAR_ANEXO_COMPLETO';
+
+
+-- * Datos para el registro de `FICHAS`
+
+-- * 1. Consultan `Unidad` y `Servicio`
+SELECT * FROM SSI_ANEXO a
+/
+
+-- * 2. ...
+SELECT 
+   * 
+FROM SSI_ESP_INTERVENCION i
+-- JOIN 
+ORDER BY
+   i.ID_ESP_INTERV DESC
+/
+
+UPDATE SSI_ESP_INTERVENCION i
+   SET i.ID_UNIDADORGANICA = ''
+WHERE i.ID_ESP_INTERV = 24
+/
+
+SELECT * FROM TGUNIDADORGANICA u
+WHERE
+   -- u.UOR_UNIDAD_PADRE = 1146
+   u.IDUNIDADORGANICA = 1146
+/
+
+WITH cte_servicios AS (
+
+   SELECT 
+      DISTINCT
+      a.ANX_ID_SERVICIO,
+      a.ANX_SERVICIO
+      -- a.*
+   FROM SSI_ANEXO a
+
+), cte_directores AS (
+
+   SELECT 
+      i.ID_ESP_INTERV,
+      d.*,
+      i.ESP_NOMBRE
+   FROM SSI_ESP_INTERVENCION i
+   LEFT JOIN cte_servicios d ON i.ID_SERVICIO = d.ANX_ID_SERVICIO
+
+)
+SELECT * FROM cte_directores
+/
+
+-- 1166 | 24 | 948
+-- 1146 | 23 | 17980
+-- 90 | * | 835
+UPDATE SSI_ESP_INTERVENCION i
+   SET 
+      i.ID_PERSONAL = 835
+WHERE
+   i.ID_ESP_INTERV NOT IN (23, 24)
+/
+
+-- ! COMMIT;
+
+
+
+-- ! COMMIT;
+
+
+
+SELECT 
+            TR.IDPERSONAL AS IDPERSONAL,
+            U.UORNOMBRE AS UORNOMBRE,
+            U.UORABREVIATURA AS UORABREVIATURA,
+            (
+                PER.PERNOMBRE || ' ' ||
+                PER.PERAPEPATERNO || ' ' ||
+                PER.PERAPEMATERNO
+            ) AS NOMBRES
+        FROM TGUNIDADORGANICA U
+        INNER JOIN TRPERSONAL TR ON U.IDUNIDADORGANICA = TR.PRHUNIDADORGANICA
+        INNER JOIN TGPERSONA PER ON PER.IDPERSONA = TR.PRHPERSONA
+        WHERE 
+            TR.PRHESTADO = 1
+            AND tr.IDPERSONAL =  19518
+            
+
+
+-- UNIDAD DE FORTALECIMIENTO DE SERVICIOS Y COORDINACIÓN TERRITORIAL
+SELECT 
+   TR.IDPERSONAL,
+   U.UORNOMBRE,
+   U.UORABREVIATURA,
+   PER.PERNOMBRE || ' ' ||
+   PER.PERAPEPATERNO || ' ' ||
+   PER.PERAPEMATERNO AS NOMBRES
+FROM TGUNIDADORGANICA U
+INNER JOIN TRPERSONAL TR
+   ON U.IDUNIDADORGANICA = TR.PRHUNIDADORGANICA
+INNER JOIN TGPERSONA PER
+   ON PER.IDPERSONA = TR.PRHPERSONA
+WHERE 
+tr.
+u.IDUNIDADORGANICA = 1114 
+-- U.UORNOMBRE = 'UNIDAD DE FORTALECIMIENTO DE SERVICIOS Y COORDINACIÓN TERRITORIAL'  AND TR.PRHESTADO = 1
+ORDER BY NOMBRES;
+
+-- 1114
+SELECT * FROM TGUNIDADORGANICA u
+
+-- COMMIT;
+
+SELECT * FROM TGUNIDADORGANICA u
+WHERE
+   u.UORNOMBRE LIKE '%EMER%'
+
+-- 1166
+
+UPDATE SSI_ESP_INTERVENCION i
+   SET i.ID_UNIDADORGANICA_PADRE = 1166
+WHERE i.ID_ESP_INTERV = 24
+/
+
+
+
+SELECT * FROM TRPERSONAL p
+WHERE
+   -- p.PRHCORREOINSTITUCIONAL LIKE '%annie%'
+   p.PRHCORREOINSTITUCIONAL LIKE '%grey%'
+   -- p.PRHCORREOINSTITUCIONAL LIKE '%chura%'
+
+
+
+SELECT * FROM TGUSUARIO
+
+SELECT * FROM TSUSUARIO;
+/
+
+SELECT * FROM SSI_ZONA_INTERVENCION z
+WHERE
+   z.SI_ID_SERVICIO = 2
+/
+
+UPDATE SSI_ZONA_INTERVENCION z
+WHERE
+   z.SI_ID_SERVICIO = 2
+/
+
+SELECT * FROM SSI_UBIGEO_NOMBRES u
+WHERE u.U_ID_UBIGEO = '050101'
+/
+
+
+SELECT * FROM SSI_ANEXOS_CABECERA ac
+ORDER BY
+   ac.ID_ANEXO_CABECERA DESC
+/
+
+SELECT 
+   c.CF_CODIGO AS COD_FAMILIA,
+   c.PF_ID_FAMILIA
+FROM SSI_CODIGOS_FAMILIAS c
+WHERE
+   c.SI_ID_SERVICIO = 2
+/
+
+-- ! COMMIT;
+
+
+UPDATE SSI_ANEXOS_CABECERA ac
+   SET ac.IDS_PERSONAL_VALIDA = NULL
+WHERE
+   ac.ID_ANEXO_CABECERA = 209
+/
+
+
+
+SELECT * FROM SSI_ZONA_INTERVENCION z
+WHERE
+   -- z.ZO_DESCRIPCION = 'LORERO'
+   z.ZO_ID_ZONA = 378
+/
+
+UPDATE SSI_ZONA_INTERVENCION z
+   SET z.ZO_DESCRIPCION = 'LORETO'
+WHERE
+   z.ZO_ID_ZONA = 378
+/
+
+-- ! COMMIT;
+
+SELECT * FROM RH_EVAL_PUNTAJE
+/
+
+SELECT * FROM RH_EVALUACION e
+WHERE
+   -- e.EV_NOMBRE LIKE '%GUEVARA VILLEGAS%'
+   e.EV_IDCONVOCATORIA = 7435
+   AND e.EV_ESTADO >= 4
+/

@@ -6,7 +6,7 @@ compatibility: opencode
 
 ## Qué hago
 
-Leo y proceso el archivo `sigeif_data_base_schema.sql` para extraer y organizar
+Leo y proceso el archivo `oracle_schema_tables_catalog.md` para extraer y organizar
 la información del modelo de datos antes de que se genere cualquier SQL.
 
 ## Información que extraigo

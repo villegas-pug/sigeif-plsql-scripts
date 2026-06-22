@@ -1820,20 +1820,3 @@ END;
 /
 
 
-
-SELECT * FROM TSSISTEMA s
-WHERE
-    s.SISNOMBRE LIKE '%SIGES%'
-    OR s.SISNOMBRE LIKE '%SIGEIF%'
-/
-
--- ! Antes: http://172.19.0.44:3004/?#/inicio
--- ? Ahota: https://srvapp03.inabif.gob.pe/siges/#/inicio
-UPDATE TSSISTEMA s
-    SET s.SISURL = 'https://srvapp03.inabif.gob.pe/siges/#/inicio'
-WHERE
-    s.IDSISTEMA = 166
-/
-
-
--- ! COMMIT;

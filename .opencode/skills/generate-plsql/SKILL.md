@@ -12,7 +12,7 @@ constraints, secuencias y bloques transaccionales.
 
 La generacion siempre debe basarse en el archivo:
 
-`plsql_scripts/sigeif_data_base_schema.sql`
+`plsql_scripts/oracle_schema_tables_catalog.md`
 
 ## Gate obligatorio de contexto
 
@@ -48,7 +48,7 @@ ejecucion. No debo crear nombres de tabla ni campos sin esos prefijos.
 
 Antes de generar SQL, PL/SQL, DML o DDL:
 
-1. Leer `plsql_scripts/sigeif_data_base_schema.sql`.
+1. Leer `plsql_scripts/oracle_schema_tables_catalog.md`.
 2. Extraer tablas candidatas relacionadas con el requerimiento.
 3. Verificar columnas exactas, tipos, PK, FK, constraints y secuencias.
 4. Identificar relaciones directas e indirectas entre tablas.
@@ -63,7 +63,7 @@ definido en el schema, por ejemplo:
 
 ## Convenciones del proyecto
 
-Debo seguir las convenciones observadas en `sigeif_data_base_schema.sql`:
+Debo seguir las convenciones observadas en `oracle_schema_tables_catalog.md`:
 
 - Tablas en mayusculas, usualmente con prefijo `SSI_`.
 - Columnas en mayusculas con prefijo corto por tabla o dominio.

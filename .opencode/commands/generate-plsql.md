@@ -18,7 +18,7 @@ prefijo de tabla o prefijo de campos, pregunta:
 Solo cuando tengas el contexto obligatorio confirmado, ejecuta:
 
 1. Usa la skill `generate-plsql`.
-2. Lee `plsql_scripts/sigeif_data_base_schema.sql` antes de generar SQL o PL/SQL.
+2. Lee `plsql_scripts/oracle_schema_tables_catalog.md` antes de generar SQL o PL/SQL.
 3. Identifica tablas candidatas, columnas exactas, PK, FK, constraints, secuencias y relaciones directas o indirectas.
 4. Genera SQL/PLSQL Oracle para: $ARGUMENTS.
 5. Respeta las convenciones de nombres, prefijos, indentacion de 3 espacios y separador `/` del proyecto.

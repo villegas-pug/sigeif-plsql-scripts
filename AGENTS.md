@@ -11,10 +11,10 @@ Reglas:
 
 ## Contexto del Proyecto
 Este proyecto trabaja con base de datos **Oracle**.
-El schema completo está definido en `sigeif_data_base_schema.sql`.
+El schema completo está definido en `oracle_schema_tables_catalog.md`.
 
 ## REGLA CRÍTICA
-Antes de generar, validar, optimizar o ejecutar cualquier SQL/PLSQL, procedure, function, trigger o vista, SIEMPRE debes leer `sigeif_data_base_schema.sql` para conocer tablas, columnas, tipos, relaciones, índices y nombres exactos.
+Antes de generar, validar, optimizar o ejecutar cualquier SQL/PLSQL, procedure, function, trigger o vista, SIEMPRE debes leer `oracle_schema_tables_catalog.md` para conocer tablas, columnas, tipos, relaciones, índices y nombres exactos.
 
 Reglas derivadas:
 - Si el schema no fue leído en la sesión actual, no generar SQL/PLSQL
