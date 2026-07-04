@@ -8,7 +8,7 @@
 
 ## Campo: `AP_TIPO_CONTROL`
 
-- cabecera | label | radio | select | selectM | text | date | number | textarea | inputSearch | fullName
+- cabecera | label | radio | select | selectM | text | date | number | textarea | inputSearch | fullName | textM | timeRangeM
   
 ## Campo: `AP_MODO_CONTROL`
 - editable | readonly | redirected | http

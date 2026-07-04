@@ -328,7 +328,9 @@ BEGIN
          )                                                                       AS DIRECTOR_COORDINADOR,
          ac.FECHA_REGISTRO                                                       AS FECHA_DE_REGISTRO,
          ap.AP_PREGUNTA                                                          AS PREGUNTAS,
+         ap.AP_PREGUNTA2                                                          AS PREGUNTAS2,
          ru.AR_RESPUESTA                                                         AS RESPUESTAS,
+         ru.AR_RESPUESTA2                                                         AS RESPUESTAS2,
 
          -- ? Aux
          ap.AP_NUM_PREGUNTA                                                      AS NUMERO_PREGUNTA,
@@ -364,10 +366,12 @@ BEGIN
          AND ru.CORRELATIVO = ac.CORRELATIVO
          AND ru.AP_ID_PREGUNTA = ap.AP_ID_PREGUNTA
          AND ru.rn = 1
-      WHERE NVL(ac.ELIMINADO, 0) = 0
-      AND NVL(anx.ANX_ELIMINADO, 0) = 0
-      AND NVL(ap.AP_ELIMINADO, 0) = 0
-      AND NVL(ap.AP_TIPO_CONTROL, 'NA') NOT IN ('cabecera', 'label')
+      WHERE 
+         anx.ID_SERVICIO_PADRE = 4 -- * SIGES
+         AND NVL(ac.ELIMINADO, 0) = 0
+         AND NVL(anx.ANX_ELIMINADO, 0) = 0
+         AND NVL(ap.AP_ELIMINADO, 0) = 0
+         AND NVL(ap.AP_TIPO_CONTROL, 'NA') NOT IN ('cabecera', 'label')
       ORDER BY
          ac.ID_ANEXO_CABECERA,
          ap.AP_NUM_GRUPO,
@@ -392,6 +396,7 @@ END USP_GENERAR_REPORTES_SIGES;
 /
 
 -- ! COMMIT;
+
 -- ? ROLLBACK;
 
 -- * 1.1 Llamar al procedimiento almacenado: RPT_ASISTENCIA_ECONOMICA
@@ -524,16 +529,12 @@ ORDER BY
 
 
 SELECT * FROM SSI_ANEXOS_PREGUNTAS p
-WHERE
-
-
 /
 
 SELECT * FROM SSI_ANEXOS_CABECERA
 /
 
 SELECT * FROM SSI_ANEXO a
-W
 /
 
 /*
