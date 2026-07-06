@@ -1,30 +1,30 @@
 # Catalogo de tablas Oracle - USRSEGURIDAD
 
-- Fecha generacion: 2026-06-20 15:57:57
+- Fecha generacion: 2026-07-06 00:35:02
 - Esquema origen: USRSEGURIDAD
 
 ## Resumen
 
-- Total tablas: 1102
-- Total columnas: 22329
+- Total tablas: 1105
+- Total columnas: 22395
 
 ### Distribucion por tipo de dato
 
 | Tipo | Cantidad |
 |---|---:|
 | BLOB | 97 |
-| CHAR | 614 |
+| CHAR | 617 |
 | CLOB | 29 |
-| DATE | 2682 |
+| DATE | 2690 |
 | FLOAT | 94 |
 | NCHAR | 4 |
 | NCLOB | 3 |
-| NUMBER | 7108 |
+| NUMBER | 7146 |
 | NVARCHAR2 | 31 |
 | RAW | 2 |
 | TIMESTAMP(6) | 34 |
 | TIMESTAMP(9) | 2 |
-| VARCHAR2 | 11629 |
+| VARCHAR2 | 11646 |
 
 ## Detalle por tabla
 
@@ -4306,6 +4306,7 @@
 | TIC_FEC_CIERRE | DATE | 7 |  |  | Y |  |
 | TIC_ELIMINADO_MOTIVO | VARCHAR2 | 100 |  |  | Y |  |
 | TIC_TECNICO | NUMBER | 22 |  |  | Y |  |
+| TIC_FLG_HABILITACION_LOCADOR | NUMBER | 22 | 2 |  | Y | 0 |
 
 ### MDA_TICKET_ASIGNACION
 
@@ -4351,6 +4352,72 @@
 | TAT_REAPERTURADA | NUMBER | 22 | 1 |  | N | 0 |
 | TAT_MENSAJE | VARCHAR2 | 1000 |  |  | Y |  |
 | TAT_ORDEN | NUMBER | 22 |  |  | Y |  |
+
+### MDA_TKT_FICHA_LOCADOR
+
+| Columna | Tipo | Longitud | Precision | Scale | Nullable | Default |
+|---|---|---:|---:|---:|---|---|
+| ID_TKT_FICHA_LOCADOR | NUMBER | 22 |  |  | N |  |
+| TFL_ID_TICKET | NUMBER | 22 |  |  | N |  |
+| TFL_ANHO_ORDEN | CHAR | 4 |  |  | N |  |
+| TFL_NRO_ORDEN | NUMBER | 22 | 5 |  | N |  |
+| TFL_RUC | CHAR | 11 |  |  | N |  |
+| TFL_PROVEDDOR | VARCHAR2 | 100 |  |  | N |  |
+| TFL_ID_ARCHIVO_ORDEN | NUMBER | 22 | 8 |  | N |  |
+| TFL_TIPO_DOCUMENTO | NUMBER | 22 | 6 |  | N |  |
+| TFL_NRO_DOCUMENTO | VARCHAR2 | 20 |  |  | N |  |
+| TFL_NOMBRES | VARCHAR2 | 50 |  |  | N |  |
+| TFL_PRIMER_APELLIDO | VARCHAR2 | 50 |  |  | N |  |
+| TFL_SEGUNDO_APELLIDO | VARCHAR2 | 50 |  |  | N |  |
+| TFL_ID_ESTADO_CIVIL | NUMBER | 22 | 6 |  | N |  |
+| TFL_FEC_NACIMIENTO | DATE | 7 |  |  | N |  |
+| TFL_SEXO | NUMBER | 22 | 1 |  | N |  |
+| TFL_CORREO_PERSONAL | VARCHAR2 | 100 |  |  | N |  |
+| TFL_TEL_PERSONAL | VARCHAR2 | 50 |  |  | N |  |
+| TFL_UBIGEO_DIR | CHAR | 6 |  |  | N |  |
+| TFL_DIRECCION | VARCHAR2 | 200 |  |  | N |  |
+| TFL_ID_UNIDAD_ORGANICA | NUMBER | 22 | 6 |  | N |  |
+| TFL_UNIDAD_ORGANICA | VARCHAR2 | 150 |  |  | N |  |
+| TFL_FLG_SOLICITA_SGD | NUMBER | 22 | 1 |  | Y |  |
+| TFL_FLG_SOLICITA_SIGA | NUMBER | 22 | 1 |  | Y |  |
+| TFL_FLG_SOLICITA_SIAF | NUMBER | 22 | 1 |  | Y |  |
+| TFL_FLG_SOLICITA_INTRANET | NUMBER | 22 | 1 |  | Y |  |
+| TFL_FLG_SOLICITA_IMPRESORA | NUMBER | 22 | 1 |  | Y |  |
+| TFL_FLG_SOLICITA_ESCANER | NUMBER | 22 | 1 |  | Y |  |
+| TFL_FLG_SOLICITA_CARPETA_COMPRATIDA | NUMBER | 22 | 1 |  | Y |  |
+| TFL_FLG_SOLICITA_ENVIO_CORREO_EXTERNO | NUMBER | 22 | 1 |  | Y |  |
+| TFL_FLG_SOLICITA_REDES_SOCIALES_YOUTUBE | NUMBER | 22 | 1 |  | Y |  |
+| TFL_FLG_SOLICITA_ACCESO_REMOTO | NUMBER | 22 | 1 |  | Y |  |
+| TFL_FLG_SOLICITA_OTROS | NUMBER | 22 | 1 |  | Y |  |
+| TFL_SOLICITUD_SGD | VARCHAR2 | 2000 |  |  | Y |  |
+| TFL_SOLICITUD_SIGA | VARCHAR2 | 2000 |  |  | Y |  |
+| TFL_SOLICITUD_SIAF | VARCHAR2 | 2000 |  |  | Y |  |
+| TFL_SOLICITUD_INTRANET | VARCHAR2 | 2000 |  |  | Y |  |
+| TFL_SOLICITUD_OTROS | VARCHAR2 | 2000 |  |  | Y |  |
+| TFL_FEC_REGISTRA | DATE | 7 |  |  | Y | SYSDATE |
+| TFL_USU_REGISTRA | NUMBER | 22 |  |  | Y |  |
+| TFL_FEC_ACTUALIZA | DATE | 7 |  |  | Y |  |
+| TFL_USU_ACTUALIZA | NUMBER | 22 |  |  | Y |  |
+| TFL_FEC_ELIMINA | DATE | 7 |  |  | Y |  |
+| TFL_USU_ELIMINA | NUMBER | 22 |  |  | Y |  |
+| TFL_ESTADO | NUMBER | 22 | 1 |  | N | 1 |
+| TFL_ELIMINADO | NUMBER | 22 | 1 |  | N | 0 |
+
+### MDA_TKT_FICHA_LOCADOR_PERMISO
+
+| Columna | Tipo | Longitud | Precision | Scale | Nullable | Default |
+|---|---|---:|---:|---:|---|---|
+| ID_TKT_FICHA_LOCADOR_PERMISO | NUMBER | 22 |  |  | N |  |
+| TFLP_ID_TKT_FICHA_LOCADOR | NUMBER | 22 |  |  | N |  |
+| TFLP_ID_PERFIL | NUMBER | 22 |  |  | N |  |
+| TFLP_USU_REGISTRA | NUMBER | 22 |  |  | Y |  |
+| TFLP_FEC_REGISTRA | DATE | 7 |  |  | N | SYSDATE |
+| TFLP_USU_ACTUALIZA | NUMBER | 22 |  |  | Y |  |
+| TFLP_FEC_ACTUALIZA | DATE | 7 |  |  | Y |  |
+| TFLP_USU_ELIMINA | NUMBER | 22 |  |  | Y |  |
+| TFLP_FEC_ELIMINA | DATE | 7 |  |  | Y |  |
+| TFLP_ESTADO | NUMBER | 22 | 1 |  | N | 1 |
+| TFLP_ELIMINADO | NUMBER | 22 | 1 |  | N | 0 |
 
 ### MF_DOC_ANEXO_12
 
@@ -9407,6 +9474,13 @@
 | ESTADO | NUMBER | 22 | 1 |  | N | 1 |
 | FECHA_REGISTRO | DATE | 7 |  |  | Y | SYSDATE |
 
+### SAE_NOTIF_LISTA_NEGRA
+
+| Columna | Tipo | Longitud | Precision | Scale | Nullable | Default |
+|---|---|---:|---:|---:|---|---|
+| CORREO_ENVIADO | VARCHAR2 | 200 |  |  | N |  |
+| ERROR | VARCHAR2 | 1000 |  |  | Y |  |
+
 ### SAE_NOTIF_MANTENER_CONT
 
 | Columna | Tipo | Longitud | Precision | Scale | Nullable | Default |
@@ -9467,7 +9541,7 @@
 | CORREO | VARCHAR2 | 150 |  |  | Y |  |
 | RINNASO | VARCHAR2 | 15 |  |  | Y |  |
 | SISFOH | VARCHAR2 | 15 |  |  | Y |  |
-| DESCRIPCION | VARCHAR2 | 200 |  |  | Y |  |
+| DESCRIPCION | VARCHAR2 | 500 |  |  | Y |  |
 | FORMATO | NUMBER | 22 | 1 |  | Y |  |
 | PERIODO | VARCHAR2 | 30 |  |  | Y |  |
 | DOCS_SUBSAN | VARCHAR2 | 200 |  |  | Y |  |
@@ -16660,6 +16734,7 @@
 | FECHA_ACREDITACION | DATE | 7 |  |  | Y |  |
 | MODALIDAD | VARCHAR2 | 55 |  |  | Y |  |
 | CENTRO | VARCHAR2 | 255 |  |  | Y |  |
+| FECHA_INSCRIPCION | DATE | 7 |  |  | Y |  |
 
 ### SSI_ANEXOS_PREGUNTAS
 
@@ -16701,6 +16776,11 @@
 | AP_HTTP_METODO | VARCHAR2 | 15 |  |  | Y |  |
 | AP_HTTP_PARAMS | VARCHAR2 | 1000 |  |  | Y |  |
 | AP_EDITABLE_BIFURCACIONES | VARCHAR2 | 100 |  |  | Y |  |
+| AP_LONG | NUMBER | 22 |  |  | Y |  |
+| AP_LONG_BIFURCACION | NUMBER | 22 |  |  | Y |  |
+| AP_RANGO_LONGITUD | VARCHAR2 | 55 |  |  | Y |  |
+| AP_REQ_ALFNUM | NUMBER | 22 | 1 |  | Y |  |
+| AP_REQ_CONTADOR | NUMBER | 22 | 1 |  | Y |  |
 
 ### SSI_ANEXOS_RESPUESTAS
 

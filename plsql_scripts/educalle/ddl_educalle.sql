@@ -366,7 +366,9 @@ BEGIN
          p.AP_EDITABLE_BIFURCACIONES AS EDITABLEBIFURCACIONES,
          p.AP_LONG AS LNG,
          p.AP_LONG_BIFURCACION AS LNGBIFURCACION,
-
+         p.AP_RANGO_LONGITUD AS RANGOLONGITUD,
+         p.AP_REQ_ALFNUM AS REQALFNUM,
+         p.AP_REQ_CONTADOR AS REQCONTADOR,
 
          REPLACE(
             REPLACE(
@@ -380,18 +382,20 @@ BEGIN
 
          (
             CASE
-               WHEN a.ANX_REQ_OBLIGATORIEDAD = 1 THEN p.AP_OBLIGATORIA1 -- ? Si obligatorieda de anexo es `1`, persiste de pregunta
+               WHEN a.ANX_REQ_OBLIGATORIEDAD = 1 THEN p.AP_OBLIGATORIA1 -- ? Si obligatorieda de anexo es `1`, mantiene de pregunta
                ELSE 0
             END
          )
          AS OBLIGATORIA,
          (
             CASE
-               WHEN a.ANX_REQ_OBLIGATORIEDAD = 1 THEN P.AP_OBLIGATORIA2 -- ? Si obligatorieda de anexo es `1`, persiste de pregunta
+               WHEN a.ANX_REQ_OBLIGATORIEDAD = 1 THEN P.AP_OBLIGATORIA2 -- ? Si obligatorieda de anexo es `1`, mantiene de pregunta
                ELSE 0
             END
          ) AS OBLIGATORIA2,
 
+         p.AP_OBLIGATORIA1 AS REQ_OBLIGATORIA1_CIERRE, -- ? Se valida en cierre de ficha
+         P.AP_OBLIGATORIA2 AS REQ_OBLIGATORIA2_CIERRE, -- ? Se valida en cierre de ficha
 
          p.AP_OPCIONES AS OPCIONES,
          p.AP_TIPO_CONTROL AS TIPOCONTROL,
@@ -420,6 +424,7 @@ END;
 /
 
 -- ! COMMIT;
+
 
 
 SELECT
@@ -515,22 +520,20 @@ BEGIN
             THEN TRUNC(
                     MONTHS_BETWEEN(SYSDATE, TO_DATE(R_EDAD.AR_RESPUESTA, 'YYYY-MM-DD')) / 12
                  )
-            ELSE NULL
+            ELSE 0
          END AS EDAD,
          /* ===== PREGUNTA 4272 - GENERO ===== */
          R_GEN.AR_RESPUESTA AS GENERO,
          /* ===== PREGUNTA 4263 - FECHA DE ABORDAJE ===== */
          /* Formato: YYYY-MM-DD (ISO 8601) */
          CASE
-            WHEN R_FAB.AR_RESPUESTA IS NOT NULL
-            THEN TO_DATE(R_FAB.AR_RESPUESTA, 'YYYY-MM-DD')
+            WHEN (R_FAB.AR_RESPUESTA IS NOT NULL) THEN TO_DATE(R_FAB.AR_RESPUESTA, 'YYYY-MM-DD')
             ELSE NULL
          END AS FECHAABORDAJE,
          /* ===== PREGUNTA 4264 - FECHA DE INGRESO ===== */
          /* Formato: YYYY-MM-DD (ISO 8601) */
          CASE
-            WHEN R_FING.AR_RESPUESTA IS NOT NULL
-            THEN TO_DATE(R_FING.AR_RESPUESTA, 'YYYY-MM-DD')
+            WHEN (R_FING.AR_RESPUESTA IS NOT NULL) THEN TO_DATE(R_FING.AR_RESPUESTA, 'YYYY-MM-DD')
             ELSE NULL
          END AS FECHAINGRESO
       FROM SSI_ANEXOS_CABECERA AC
@@ -538,26 +541,26 @@ BEGIN
          ON A.ID_ANEXO = AC.ID_ANEXO
       LEFT JOIN TGUNIDADORGANICA U
          ON U.IDUNIDADORGANICA = AC.ID_CENTRO
-      /* ----- Pregunta 4271: NOMBRES ----- */
+      /* ----- Pregunta 4273: NOMBRES ----- */
       LEFT JOIN SSI_ANEXOS_RESPUESTAS_V2 R_NOM
          ON R_NOM.ID_ANEXO    = AC.ID_ANEXO
         AND R_NOM.ID_CENTRO   = AC.ID_CENTRO
         AND R_NOM.CORRELATIVO = AC.CORRELATIVO
-        AND R_NOM.AP_ID_PREGUNTA = 4271
+        AND R_NOM.AP_ID_PREGUNTA = 4273
         AND R_NOM.AR_ELIMINADO   = 0
-      /* ----- Pregunta 4273: EDAD (fecha de nacimiento) ----- */
+      /* ----- Pregunta 4275: EDAD (fecha de nacimiento) ----- */
       LEFT JOIN SSI_ANEXOS_RESPUESTAS_V2 R_EDAD
          ON R_EDAD.ID_ANEXO    = AC.ID_ANEXO
         AND R_EDAD.ID_CENTRO   = AC.ID_CENTRO
         AND R_EDAD.CORRELATIVO = AC.CORRELATIVO
-        AND R_EDAD.AP_ID_PREGUNTA = 4273
+        AND R_EDAD.AP_ID_PREGUNTA = 4275
         AND R_EDAD.AR_ELIMINADO   = 0
-      /* ----- Pregunta 4272: GENERO ----- */
+      /* ----- Pregunta 4274: GENERO ----- */
       LEFT JOIN SSI_ANEXOS_RESPUESTAS_V2 R_GEN
          ON R_GEN.ID_ANEXO    = AC.ID_ANEXO
         AND R_GEN.ID_CENTRO   = AC.ID_CENTRO
         AND R_GEN.CORRELATIVO = AC.CORRELATIVO
-        AND R_GEN.AP_ID_PREGUNTA = 4272
+        AND R_GEN.AP_ID_PREGUNTA = 4274
         AND R_GEN.AR_ELIMINADO   = 0
       /* ----- Pregunta 4263: FECHA DE ABORDAJE ----- */
       LEFT JOIN SSI_ANEXOS_RESPUESTAS_V2 R_FAB
@@ -592,6 +595,15 @@ END;
 /
 
 -- ! COMMIT;
+
+-- ! Test
+SELECT * FROM SSI_ANEXOS_RESPUESTAS_V2 r
+WHERE
+   -- r.AP_ID_PREGUNTA = 4275
+   r.AP_ID_PREGUNTA = 4273
+ORDER BY
+   r.AR_ID_RESPUESTA DESC
+/
 
 -- * 1.6 Indicadores EDUCALLE
 
@@ -860,20 +872,123 @@ ALTER TABLE SSI_ANEXOS_PREGUNTAS
    ADD AP_LONG_BIFURCACION NUMBER NULL
 /
 
+-- * 2.2.12 Nuevos campos `AP_RANGO_LONGITUD & AP_REQ_ALFNUM & AP_REQ_CONTADOR`
+ALTER TABLE SSI_ANEXOS_PREGUNTAS
+   ADD AP_RANGO_LONGITUD VARCHAR2(55) NULL
+/
+
+ALTER TABLE SSI_ANEXOS_PREGUNTAS
+   ADD AP_REQ_ALFNUM NUMBER(1) NULL
+/
+
+ALTER TABLE SSI_ANEXOS_PREGUNTAS
+   ADD AP_REQ_CONTADOR NUMBER(1) NULL
+/
+
 -- ! COMMIT;
 
+-- * 2.3 Getion de `FechaInscripcion` && `CodigoNNA`
+
+-- * 2.3.1
+ALTER TABLE SSI_ANEXOS_CABECERA
+   ADD FECHA_INSCRIPCION DATE NULL
+/
+
+
+-- * 2.3.2 `USP_SISEC_SAVE_CONFORMIDAD_ANXCABECERA`
+
+-- =============================================================
+-- Propósito : Actualizar fecha de inscripción en SSI_ANEXOS_CABECERA.
+-- Parámetros:
+--   p_id_anexo_cabecera IN SSI_ANEXOS_CABECERA.ID_ANEXO_CABECERA%TYPE
+--   p_fecha_inscripcion IN SSI_ANEXOS_CABECERA.FECHA_INSCRIPCION%TYPE
+-- Autor     : OpenCode
+-- Fecha     : 2026-07-06
+-- =============================================================
+CREATE OR REPLACE PROCEDURE USP_SISEC_SAVE_CONFORMIDAD_ANXCABECERA (
+   p_id_anexo_cabecera IN NUMBER,
+   p_fecha_inscripcion IN DATE
+)
+AS
+   v_id_anexo_cabecera NUMBER := p_id_anexo_cabecera;
+   v_fecha_inscripcion DATE := p_fecha_inscripcion;
+BEGIN
+   UPDATE SSI_ANEXOS_CABECERA ac
+      SET ac.FECHA_INSCRIPCION = v_fecha_inscripcion,
+          ac.FECHA_MODIFICA    = SYSDATE
+    WHERE ac.ID_ANEXO_CABECERA = v_id_anexo_cabecera;
+
+   IF SQL%ROWCOUNT = 0 THEN
+      ROLLBACK;
+      RAISE_APPLICATION_ERROR(
+         -20001,
+         'No se encontró SSI_ANEXOS_CABECERA con ID_ANEXO_CABECERA = ' || v_id_anexo_cabecera
+      );
+   END IF;
+
+   COMMIT;
+
+EXCEPTION
+   WHEN OTHERS THEN
+      ROLLBACK;
+      DBMS_OUTPUT.PUT_LINE('Error en USP_SISEC_SAVE_CONFORMIDAD_ANXCABECERA');
+      DBMS_OUTPUT.PUT_LINE('SQLCODE: ' || SQLCODE);
+      DBMS_OUTPUT.PUT_LINE('SQLERRM: ' || SQLERRM);
+      RAISE;
+END USP_SISEC_SAVE_CONFORMIDAD_ANXCABECERA;
+/
+
+-- ! COMMIT;
+
+-- ! Test:
+SELECT * FROM SSI_ANEXOS_CABECERA c
+WHERE
+   c.ID_ANEXO_CABECERA = 419
+/
+
 -- ! Eliminar preguntas
+
+-- ! 1
 DELETE FROM SSI_ANEXOS_PREGUNTAS p
 WHERE
    p.SI_ID_SERVICIO = 5
 /
+
+-- ! 2 Eliminar respuestas, si `idPregunta` cambia.
+-- 2.1
+DELETE FROM SSI_ANEXOS_RESPUESTAS_V2 r
+WHERE
+   r.AP_ID_PREGUNTA IN (
+      SELECT p.AP_ID_PREGUNTA FROM SSI_ANEXOS_PREGUNTAS p
+      WHERE
+         p.SI_ID_SERVICIO = 5 -- SISEC
+   )
+/
+
+-- 2.2
+DELETE FROM SSI_ANEXOS_CABECERA c
+-- SELECT * FROM SSI_ANEXOS_CABECERA c
+WHERE
+   c.ID_ANEXO = 43
+/
+
+SELECT * FROM SSI_ANEXO
+/
+
+-- ! COMMIT;
 
 SELECT * FROM SSI_ANEXOS_PREGUNTAS p
 WHERE
    p.SI_ID_SERVICIO = 4
 /
 
+SELECT * FROM SSI_ANEXOS_RESPUESTAS_V2 r
+WHERE
+   r.AP_ID_PREGUNTA = 4275
+/
+
 -- ! COMMIT;
+
 
 
 SELECT * FROM TGCATALOGO c
@@ -961,9 +1076,19 @@ FROM SSI_UBIGEO_NOMBRES p
 /
 
 
-SELECT * FROM SSI_ANEXO
+SELECT * FROM SSI_ANEXO a
+WHERE
+   a.ID_ANEXO = 43
 /
 
+UPDATE SSI_ANEXO a
+   SET
+      a.ANX_REQ_OBLIGATORIEDAD = 0
+WHERE
+   a.ID_ANEXO = 43
+/
+
+-- ! COMMIT;
 
 
 
@@ -1117,3 +1242,152 @@ BEGIN
    DBMS_SQL.RETURN_RESULT(c_resultado_busqueda);
 END;
 /
+
+
+-- =============================================================
+-- Tipo      : PROCEDURE
+-- Nombre    : USP_ACTUALIZAR_ANEXO_COMPLETO_V2
+-- Proposito : Propuesta para unificar la actualizacion e insercion
+--             de detalle en SSI_ANEXOS_RESPUESTAS_V2 usando una sola
+--             lectura del JSON y la misma logica de busqueda del
+--             bloque "Actualizar detalle".
+-- Parametros:
+--   p_id_cabecera          IN  NUMBER
+--   p_id_anexo             IN  NUMBER
+--   p_id_centro            IN  NUMBER
+--   p_fecha_aplicacion     IN  DATE
+--   p_fecha_registro       IN  DATE
+--   p_usu_modifica         IN  NUMBER
+--   p_id_resp_supervision  IN  NUMBER
+--   p_id_director          IN  NUMBER
+--   p_id_supervisado       IN  VARCHAR2
+--   p_respuestas_json      IN  CLOB
+--   p_periodo              IN  VARCHAR2
+--   p_tipo                 IN  VARCHAR2
+--   p_acreditacion_vigente IN  NUMBER
+--   p_fecha_acreditacion   IN  DATE
+--   p_modalidad            IN  VARCHAR2
+--   p_correlativo          OUT NUMBER
+-- Autor     : OpenCode
+-- Fecha     : 2026-07-05
+-- =============================================================
+CREATE OR REPLACE PROCEDURE USP_ACTUALIZAR_ANEXO_COMPLETO_V2 (
+   p_id_cabecera          IN NUMBER,
+   p_id_anexo             IN NUMBER,
+   p_id_centro            IN NUMBER,
+   p_fecha_aplicacion     IN DATE,
+   p_fecha_registro       IN DATE,
+   p_usu_modifica         IN NUMBER,
+   p_id_resp_supervision  IN NUMBER,
+   p_id_director          IN NUMBER,
+   p_id_supervisado       IN VARCHAR2,
+   p_respuestas_json      IN CLOB,
+   p_periodo              IN VARCHAR2,
+   p_tipo                 IN VARCHAR2,
+   p_acreditacion_vigente IN NUMBER,
+   p_fecha_acreditacion   IN DATE,
+   p_modalidad            IN VARCHAR2,
+   p_correlativo          OUT NUMBER
+)
+AS
+   v_correlativo NUMBER;
+BEGIN
+   SELECT ac.CORRELATIVO
+     INTO v_correlativo
+     FROM SSI_ANEXOS_CABECERA ac
+    WHERE ac.ID_ANEXO_CABECERA = p_id_cabecera;
+
+   UPDATE SSI_ANEXOS_CABECERA ac
+      SET ac.FECHA_APLICACION      = p_fecha_aplicacion,
+          ac.FECHA_REGISTRO        = p_fecha_registro,
+          ac.USU_MODIFICA          = p_usu_modifica,
+          ac.FECHA_MODIFICA        = SYSDATE,
+          ac.ID_RESP_SUPERVISION   = p_id_resp_supervision,
+          ac.ID_DIRECTOR           = p_id_director,
+          ac.ID_SUPERVISADO        = p_id_supervisado,
+          ac.PERIODO               = p_periodo,
+          ac.TIPO                  = p_tipo,
+          ac.ACREDITACION_VIGENTE  = p_acreditacion_vigente,
+          ac.FECHA_ACREDITACION    = p_fecha_acreditacion,
+          ac.MODALIDAD             = p_modalidad
+    WHERE ac.ID_ANEXO_CABECERA = p_id_cabecera;
+
+   FOR r IN (
+      SELECT jt.ap_id_pregunta,
+             jt.ar_respuesta,
+             jt.ar_respuesta2,
+             jt.ar_observacion,
+             jt.ar_puntaje
+        FROM JSON_TABLE(
+                p_respuestas_json,
+                '$[*]'
+                COLUMNS (
+                   ap_id_pregunta NUMBER PATH '$.idPregunta',
+                   ar_respuesta   VARCHAR2(4000) PATH '$.respuesta',
+                   ar_respuesta2  VARCHAR2(4000) PATH '$.respuesta2',
+                   ar_observacion VARCHAR2(4000) PATH '$.observacion',
+                   ar_puntaje     NUMBER PATH '$.puntaje'
+                )
+             ) jt
+   ) LOOP
+      UPDATE SSI_ANEXOS_RESPUESTAS_V2 ar
+         SET ar.AR_RESPUESTA      = r.ar_respuesta,
+             ar.AR_RESPUESTA2     = r.ar_respuesta2,
+             ar.AR_OBSERVACION    = r.ar_observacion,
+             ar.AR_PUNTAJE        = r.ar_puntaje,
+             ar.AR_USU_MODIFICA   = p_usu_modifica,
+             ar.AR_FECHA_MODIFICA = SYSDATE
+       WHERE ar.ID_ANEXO       = p_id_anexo
+         AND ar.ID_CENTRO      = p_id_centro
+         AND ar.CORRELATIVO    = v_correlativo
+         AND ar.AP_ID_PREGUNTA = r.ap_id_pregunta;
+
+      IF SQL%ROWCOUNT = 0 THEN
+         INSERT INTO SSI_ANEXOS_RESPUESTAS_V2 (
+            AR_ID_RESPUESTA,
+            ID_ANEXO,
+            ID_CENTRO,
+            CORRELATIVO,
+            FECHA_APLICACION,
+            AP_ID_PREGUNTA,
+            AR_RESPUESTA,
+            AR_RESPUESTA2,
+            AR_OBSERVACION,
+            AR_PUNTAJE,
+            AR_USU_REGISTRA,
+            AR_FECHA_REGISTRA
+         )
+         VALUES (
+            SEQ_SSI_ANEXOS_RESP_V2.NEXTVAL,
+            p_id_anexo,
+            p_id_centro,
+            v_correlativo,
+            p_fecha_aplicacion,
+            r.ap_id_pregunta,
+            r.ar_respuesta,
+            r.ar_respuesta2,
+            r.ar_observacion,
+            r.ar_puntaje,
+            p_usu_modifica,
+            SYSDATE
+         );
+      END IF;
+   END LOOP;
+
+   p_correlativo := v_correlativo;
+   COMMIT;
+
+EXCEPTION
+   WHEN NO_DATA_FOUND THEN
+      ROLLBACK;
+      RAISE_APPLICATION_ERROR(
+         -20001,
+         'No se encontro la cabecera con ID ' || p_id_cabecera
+      );
+   WHEN OTHERS THEN
+      ROLLBACK;
+      RAISE;
+END USP_ACTUALIZAR_ANEXO_COMPLETO_V2;
+/
+
+-- ! COMMIT;
