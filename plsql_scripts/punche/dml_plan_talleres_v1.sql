@@ -183,3 +183,23 @@ SELECT * FROM SSI_PROGRAMACION_TALLERES
 SELECT * FROM SSI_PROGRAMACION_TALLERES_PARTICIPANTES
 /
 
+SELECT * FROM TG_PAIS p
+WHERE
+   p.PA_NOMBRE LIKE '%PER%'
+/
+
+SELECT * FROM TGINSTITUCION i
+ORDER BY
+   i.IDINSTITUCION DESC
+/
+
+SELECT
+    a.column_name
+FROM
+    all_cons_columns a
+JOIN
+    all_constraints c ON a.constraint_name = c.constraint_name
+WHERE
+    c.constraint_name = 'SYS_C0014058'
+    AND c.table_name = 'TGINSTITUCION'
+/
