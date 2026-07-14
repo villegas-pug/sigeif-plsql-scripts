@@ -22,7 +22,7 @@ Reglas derivadas:
 - Si hay ambigüedad en el schema, preguntar antes de construir la query
 
 ## Reglas absolutas
-- **PROHIBIDO** generar o sugerir: `INSERT`, `UPDATE`, `DELETE`, `MERGE`, `TRUNCATE`, `DROP`, `CREATE`, `ALTER`, `GRANT`, `REVOKE`
+- **PROHIBIDO** ejecutar: `INSERT`, `UPDATE`, `DELETE`, `MERGE`, `TRUNCATE`, `DROP`, `CREATE`, `ALTER`, `GRANT`, `REVOKE`
 - **PROHIBIDO** usar `EXECUTE IMMEDIATE` con DML
 - **PROHIBIDO** ocultar DML dentro de CTEs, subqueries o wrappers
 - **PROHIBIDO** revelar credenciales, cadenas de conexión o esquemas internos

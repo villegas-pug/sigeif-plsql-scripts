@@ -2008,7 +2008,98 @@ INSERT INTO TGCATALOGO(
    SELECT NULL, 118, 2, 4, 'FECHAS ESPECIALES', 1, 1, SYSDATE FROM DUAL;
 
 
+/*
+*     ░ 26 Nuevos catalogos para `PUNCHE`
+* ============================================================================================================================================= */
+
+-- * 26.1 ...
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT NULL, 119, 0, 0, 'MODALIDAD SESIÓN - FAMILIAS IGUALITARIAS', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT NULL, 119, 1, 1, 'PRESENCIAL', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT NULL, 119, 1, 2, 'TELEASISTENCIA', 1, 1, SYSDATE FROM DUAL
+/
+
+-- * 26.2 ...
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT NULL, 119, 2, 1, 'PADRE/MADRE', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT NULL, 119, 2, 2, 'HERMANO/A', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT NULL, 119, 2, 3, 'ABUELO/A', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT NULL, 119, 2, 4, 'TÍO/A', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT NULL, 119, 2, 5, 'PRIMO', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT NULL, 119, 2, 6, 'CUÑADO/A', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT NULL, 119, 2, 7, 'OTRO(A) PARIENTE', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT NULL, 119, 2, 8, 'OTRO(A) NO PARIENTE', 1, 1, SYSDATE FROM DUAL
+/
+
+
+-- * 26.3 ...
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT NULL, 119, 3, 1, 'MADRE', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT NULL, 119, 3, 2, 'HERMANO/A', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT NULL, 119, 3, 3, 'ABUELO/A', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT NULL, 119, 3, 4, 'TÍO/A', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT NULL, 119, 3, 5, 'PRIMO/A', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT NULL, 119, 3, 6, 'PADRASTRO/MADRASTRA', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT NULL, 119, 3, 7, 'HERMANASTRO/A', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT NULL, 119, 3, 8, 'CUÑADO/A', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT NULL, 119, 3, 9, 'SUEGRO/A', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT NULL, 119, 3, 10, 'SOBRINO/A', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT NULL, 119, 3, 11, 'MISMO NNA', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT NULL, 119, 3, 12, 'OTRO(A) PARIENTE', 1, 1, SYSDATE FROM DUAL
+   UNION ALL
+   SELECT NULL, 119, 3, 13, 'OTRO(A) NO PARIENTE', 1, 1, SYSDATE FROM DUAL
+/
+
+
 -- ! COMMIT;
+-- ? ROLLBACK;
 
 
 -- ! Test
@@ -2019,13 +2110,14 @@ SELECT
    -- COUNT(1)
 FROM TGCATALOGO c
 WHERE 
-   c.CATGRUPO = 118
-   AND c.CATSUBGRUPO = 1
+   c.CATGRUPO = 119
+   AND c.CATSUBGRUPO = 2
 ORDER BY
-    -- c.CATGRUPO DESC
+    c.CATGRUPO DESC
     -- c.CATSUBGRUPO DESC
-    c.IDCATALOGO ASC;
+    -- c.IDCATALOGO ASC
     -- c.CATTIPO
+/
 
 ROLLBACK;
 
@@ -2040,14 +2132,18 @@ WHERE
    AND c.CATGRUPO = 118
 ORDER BY
     -- c.CATSUBGRUPO
-    c.IDCATALOGO ASC;
+    c.IDCATALOGO ASC
+/
 
 -- 3
 SELECT 
     c.*
 FROM TGCATALOGO c
+/* WHERE
+   c.CATDESCRIPCIOn LIKE '%TELE-A%' */
 ORDER BY
-    c.IDCATALOGO DESC;
+    c.IDCATALOGO DESC
+/
 
 
 
@@ -2055,7 +2151,7 @@ ORDER BY
 
 -- ? PROMPT 06May2026
 
-Analiza el componente "@src\pages\talleres\GestionTalleres.vue" y propon un plan de mejora. Te doy contexto de lo que vas a cambiar:
+/* Analiza el componente "@src\pages\talleres\GestionTalleres.vue" y propon un plan de mejora. Te doy contexto de lo que vas a cambiar:
 1. En el modal "REGISTRO DE PROGRAMACIÓN DE TALLER" en la seccion "DATOS TALLER" el orden de los combos cambia a: (1)Poblacion, (2)Tipo Evento, (3)Taller, (4)Lugar. 
 Importante: No crees componentes, solo reorganiza los existentes.
 2. El componente "comboTipoEvento" es suministrado por un endpoint y la llamada será condicional: Si el "idCatalogo" del combo "comboPoblacion" es 6131, 
@@ -2098,19 +2194,22 @@ El arreglo de objetos devuelto por el endpoint GET ${this.host_punche}/findAllTa
       "estado": 1,
       "eliminado": 0
    },
-]
+] */
 
+/*
 El combo "comboTalleresFiltrados" permite escribir buscar talleres por aproximación, es decir, si el usuario escribe "TALLER N" se muestran los talleres cuyo 
 nombre contenga esa cadena de texto y tambien para ingreso libre de talleres que no se encuentren en el combo, por lo tanto, el combo no debe ser bloqueado, 
 disabled o readonly. Si es "TEXTO LIBRE" no envia al backend el idTaller sino el texto ingresado por el usuario, tal como esta actualmente implementado, pero 
 analiza si es necesario antes de enviar al backend.
 4. Todos los componentes no deben estar bloqueados, disabled o readonly ej: combo, input, button
+*/
 
 
 -- idCatalogo comboTipoEvento
-6788, 6789, 6790, 6791, 6792, 6793, 6796, 6797, 6798
+-- 6788, 6789, 6790, 6791, 6792, 6793, 6796, 6797, 6798
 
 -- Rangos idTaller
+/*
 291-294
 295-307
 308-312
@@ -2120,6 +2219,8 @@ analiza si es necesario antes de enviar al backend.
 327-332
 333-336
 337-342
+
+*/
 
 
 
