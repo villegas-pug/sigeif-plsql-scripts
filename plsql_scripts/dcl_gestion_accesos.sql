@@ -79,6 +79,8 @@ VALUES(
 )
 /
 
+-- ? ROLLBACK;
+
 -- * 2.2 `INICIO`
 INSERT INTO TSOPCION(
                OPCDESCRIPCION, 
@@ -119,6 +121,8 @@ WHERE
     -- o.IDOPCION IN (2437, 2438)
     o.IDOPCION = 2497
 /
+
+-- ? ROLLBACK;
 
 UPDATE TSOPCION o
 SET
@@ -332,7 +336,7 @@ VALUES(
 SELECT * FROM TSSISTEMA s
 WHERE
    -- s.IDSISTEMA = 324
-   s.SISNOMBRE LIKE '%SIGEIF%'
+   s.SISNOMBRE LIKE '%SISEC%'
 /
 
 SELECT * FROM TSOPCION o
@@ -399,9 +403,9 @@ FROM TSSISTEMA s
    INNER JOIN TSOPCION o  ON o.OPCMODULO  = m.IDMODULO
    LEFT  JOIN TSOPCION op ON op.IDOPCION  = o.OPCPADRE
 WHERE 
-   s.IDSISTEMA = 126 -- 126 | SISTEMA DE INFORMACIÓN DE GESTIÓN DE FAMILIAS (SIGEIF)
-   AND m.IDMODULO = 511 -- 126 | SISTEMA DE INFORMACIÓN DE GESTIÓN DE FAMILIAS (SIGEIF)
-   AND o.OPCPADRE = 2240 -- INTERVENCION
+   s.IDSISTEMA = 324
+   -- AND m.IDMODULO = 511
+   -- AND o.OPCPADRE = 2240
    AND m.MODESTADO = 1
 ORDER BY m.MOD_ORDEN, o.OPCNIVEL, o.OPCORDEN, o.OPCDESCRIPCION
 /
@@ -464,7 +468,7 @@ ORDER BY OPCORDEN
 
 
 
--- ! SCRIPT C — Alta combinada TSOPCION + TSACCESO (RECOMENDADO)
+-- ! SCRIPT — Alta combinada TSOPCION + TSACCESO (RECOMENDADO)
 
 DECLARE
    v_id_opcion_new     TSOPCION.IDOPCION%TYPE;
@@ -472,19 +476,19 @@ DECLARE
    v_error_code        NUMBER;
    v_error_message     VARCHAR2(4000);
 
-   v_sis_id            TSSISTEMA.IDSISTEMA%TYPE       := 126;
-   v_mod_id            TSMODULO.IDMODULO%TYPE         := 511;
-   v_opc_padre         TSOPCION.OPCPADRE%TYPE         := 2240;
-   v_opc_descripcion   TSOPCION.OPCDESCRIPCION%TYPE   := 'Promoción e Incidencia Comunitaria';
-   v_opc_enlace        TSOPCION.OPCENLACE%TYPE        := 'promocion-incidencia';
-   v_opc_orden         TSOPCION.OPCORDEN%TYPE         := 4;
+   v_sis_id            TSSISTEMA.IDSISTEMA%TYPE       := 324;
+   v_mod_id            TSMODULO.IDMODULO%TYPE         := 554;
+   v_opc_padre         TSOPCION.OPCPADRE%TYPE         := 2437;
+   v_opc_descripcion   TSOPCION.OPCDESCRIPCION%TYPE   := 'Usuario de NNA';
+   v_opc_enlace        TSOPCION.OPCENLACE%TYPE        := 'usuario-nna';
+   v_opc_orden         TSOPCION.OPCORDEN%TYPE         := 2;
    v_opc_nivel         TSOPCION.OPCNIVEL%TYPE         := 2;
    v_opc_destino       TSOPCION.OPCDESTINO%TYPE       := 1;
    v_opc_tipo_enlace   TSOPCION.OPTTIPOENLACE%TYPE    := 1;
    v_opc_estado        TSOPCION.OPCESTADO%TYPE        := 1;
    v_opc_usu_registra  TSOPCION.OPCUSUREGISTRA%TYPE   := 1;
 
-   v_acc_perfil        TSACCESO.ACCPERFIL%TYPE        := 221;
+   v_acc_perfil        TSACCESO.ACCPERFIL%TYPE        := 1821;
    v_acc_estado        TSACCESO.ACCESTADO%TYPE        := 1;
    v_acc_usu_registra  TSACCESO.ACCUSUREGISTRA%TYPE   := 1;
 BEGIN
@@ -577,19 +581,21 @@ SELECT o.IDOPCION, o.OPCDESCRIPCION, o.OPCMODULO, o.OPCPADRE,
        o.OPCENLACE, o.OPCNIVEL, o.OPCORDEN, o.OPCESTADO,
        o.OPCUSUREGISTRA, o.OPCFECHAREGISTRA
 FROM TSOPCION o
-WHERE o.OPCDESCRIPCION = 'Promoción e Incidencia Comunitaria'
-  AND o.OPCMODULO      = 511
-  AND o.OPCPADRE       = 2240
-  AND o.OPCESTADO      = 1
-  AND o.OPCUSUELIMINA IS NULL
+WHERE 
+   o.OPCDESCRIPCION = 'Promoción e Incidencia Comunitaria'
+   AND o.OPCMODULO      = 511
+   AND o.OPCPADRE       = 2240
+   AND o.OPCESTADO      = 1
+   AND o.OPCUSUELIMINA IS NULL
 /
 
 -- D.2) Confirmar fila en TSACCESO
 SELECT a.IDACCESO, a.ACCOPCION, a.ACCPERFIL, a.ACCESTADO,
        a.ACCUSUREGISTRA, a.ACCFECHAREGISTRA
 FROM TSACCESO a
-WHERE a.ACCOPCION = 2497
-  AND a.ACCPERFIL = 221
+WHERE 
+   a.ACCOPCION = 2497
+  -- AND a.ACCPERFIL = 221
 /
 
 -- D.3) JOIN integrado
@@ -597,8 +603,9 @@ SELECT o.IDOPCION, o.OPCDESCRIPCION, o.OPCMODULO, o.OPCPADRE,
        a.IDACCESO, a.ACCPERFIL, a.ACCESTADO
 FROM TSOPCION o
 JOIN TSACCESO a ON a.ACCOPCION = o.IDOPCION
-WHERE o.IDOPCION = 2497
-  AND a.ACCPERFIL = 221
+WHERE 
+   o.IDOPCION = 2438
+   -- AND a.ACCPERFIL = 221
 /
 
 -- D.4) Verificar que NO hay duplicados

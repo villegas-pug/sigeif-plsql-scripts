@@ -463,6 +463,12 @@ AS
    *             tripa ID_ANEXO + ID_CENTRO + CORRELATIVO. Cada pregunta es una
    *             fila distinta (diferenciada por AP_ID_PREGUNTA), por lo que se
    *             requieren 5 LEFT JOINs independientes.
+   *
+   *             Adicionalmente, AC.ID_RESP_SUPERVISION se resuelve mediante
+   *             TRPERSONAL.IDPERSONAL -> TGPERSONA.IDPERSONA para obtener
+   *             el ID y nombre del educador de calle (campos ID_EDUCADOR_CALLE
+   *             y NOMBRE_EDUCADOR_CALLE). LEFT JOIN para preservar cabeceras
+   *             sin educador asignado.
    */
 BEGIN
    OPEN p_cursor FOR
@@ -535,7 +541,12 @@ BEGIN
          CASE
             WHEN (R_FING.AR_RESPUESTA IS NOT NULL) THEN TO_DATE(R_FING.AR_RESPUESTA, 'YYYY-MM-DD')
             ELSE AC.FECHA_INSCRIPCION 
-         END AS FECHAINGRESO
+         END AS FECHAINGRESO,
+         /* ===== Educador de calle (ID_RESP_SUPERVISION) ===== */
+         AC.ID_RESP_SUPERVISION AS ID_EDUCADOR_CALLE,
+         per_resp.PERNOMBRE || ' ' ||
+         per_resp.PERAPEPATERNO || ' ' ||
+         per_resp.PERAPEMATERNO AS NOMBRE_EDUCADOR_CALLE
       FROM SSI_ANEXOS_CABECERA AC
       LEFT JOIN SSI_ANEXO A
          ON A.ID_ANEXO = AC.ID_ANEXO
@@ -576,6 +587,11 @@ BEGIN
         AND R_FING.CORRELATIVO = AC.CORRELATIVO
         AND R_FING.AP_ID_PREGUNTA = 4264
         AND R_FING.AR_ELIMINADO   = 0
+      /* ----- Educador de calle: TRPERSONAL/TGPERSONA ----- */
+      LEFT JOIN TRPERSONAL tp_resp
+         ON tp_resp.IDPERSONAL = ac.ID_RESP_SUPERVISION
+      LEFT JOIN TGPERSONA per_resp
+         ON per_resp.IDPERSONA = tp_resp.PRHPERSONA
       WHERE
          AC.ELIMINADO = 0
          AND A.ID_SERVICIO_PADRE = p_id_servicio_padre
@@ -892,6 +908,11 @@ ALTER TABLE SSI_ANEXOS_PREGUNTAS
    ADD AP_REQ_CONTADOR NUMBER(1) NULL
 /
 
+-- * 2.2.13 Nuevos campos `AP_RANGO_LONGITUD & AP_REQ_ALFNUM & AP_REQ_CONTADOR`
+ALTER TABLE SSI_ANEXOS_PREGUNTAS
+   ADD AP_BLOQ_SUBMIT_SI_INVALIDO VARCHAR2(1000) NULL
+/
+
 -- ! COMMIT;
 
 -- * 2.3 Getion de `FechaInscripcion` && `CodigoNNA`
@@ -971,6 +992,7 @@ WHERE
 /
 
 -- ! COMMIT;
+
 
 
 
