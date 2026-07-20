@@ -1,12 +1,20 @@
 -- =============================================================
 -- Tipo    : PROCEDURE
--- Nombre  : PRC_PUNCHE_TALLERES_FAMILIAS_LISTAR_TODAS
--- Propósito: Retorna el listado completo de TALLERES PROGRAMADOS
---            en el servicio PUNCHE (SI_ID_SERVICIO = 2), sin filtros
---            de entrada. Una fila por combinación
---            (zona + familia + cuidador + taller programado).
+-- Nombre  : PRC_PUNCHE_TALLERES_FAMILIAS_LISTAR
+-- Propósito: Retorna el listado de TALLERES PROGRAMADOS en el
+--            servicio PUNCHE (SI_ID_SERVICIO = 2), con filtros
+--            opcionales por rango de fecha. Una fila por
+--            combinación (zona + familia + cuidador + taller
+--            programado).
 -- Parámetros:
---   p_cursor_out OUT SYS_REFCURSOR — cursor con el resultado.
+--   p_cursor_out OUT SYS_REFCURSOR       — cursor con el resultado.
+--   p_fecha_ini  IN  DATE DEFAULT NULL   — fecha inicial del rango
+--                                          (incluida). Si NULL, no
+--                                          se filtra por inicio.
+--   p_fecha_fin  IN  DATE DEFAULT NULL   — fecha final del rango
+--                                          (incluida, día completo).
+--                                          Si NULL, no se filtra
+--                                          por fin.
 -- Autor   : [ REEMPLAZAR: nombre del autor ]
 -- Fecha   : [ REEMPLAZAR: fecha de creación ]
 -- =============================================================
@@ -45,10 +53,23 @@
 --     los campos OBJETIVO, MÓDULO, UNIDAD, SESIÓN y TALLER.
 --   * Alias con comillas dobles: preserva acentos exactos del
 --     encabezado (MÓDULO, SESIÓN, FECHA_TALLER, HORA_TÉRMINO).
+--   * Filtros de fecha (rango medio-abierto):
+--       pt.PT_FEC_HORA_INI >= p_fecha_ini
+--       AND pt.PT_FEC_HORA_INI <  p_fecha_fin + 1
+--     Estrategia OR-NULL: si ambos parámetros son NULL, no se
+--     aplica ningún filtro (devuelve todo, comportamiento
+--     equivalente al SP original). Si solo uno viene, el otro
+--     extremo queda abierto. Si p_fecha_ini > p_fecha_fin, el
+--     filtro simplemente no devuelve filas (sin error).
+--   * Columna filtrada: pt.PT_FEC_HORA_INI (TIMESTAMP(6) en
+--     SSI_PROG_TALLERES). Oracle hace conversión implícita
+--     DATE -> TIMESTAMP(6) agregando 00:00:00.000000.
 -- =============================================================
 
-CREATE OR REPLACE PROCEDURE PRC_PUNCHE_TALLERES_FAMILIAS_LISTAR_TODAS (
-   p_cursor_out OUT SYS_REFCURSOR
+CREATE OR REPLACE PROCEDURE PRC_PUNCHE_TALLERES_FAMILIAS_LISTAR (
+   p_cursor_out OUT SYS_REFCURSOR,
+   p_fecha_ini  IN  DATE DEFAULT NULL,
+   p_fecha_fin  IN  DATE DEFAULT NULL
 )
 IS
    v_error_code    NUMBER;
@@ -218,7 +239,11 @@ BEGIN
             AND zi.ZO_ESTADO     = 1
             AND fi.FI_ESTADO     = 1
             AND fi.FI_ELIMINADO  = 0
-         ORDER BY
+            -- Filtros opcionales por rango de fecha (rango medio-abierto).
+            -- Si ambos parámetros son NULL no se aplica ningún filtro.
+            AND (p_fecha_ini IS NULL OR pt.PT_FEC_HORA_INI >= p_fecha_ini)
+            AND (p_fecha_fin IS NULL OR pt.PT_FEC_HORA_INI <  p_fecha_fin + 1)
+          ORDER BY
             zi.ZO_ID_ZONA      ASC,
             pf.PF_COD_FAMILIA  ASC,
             pt.PT_FEC_HORA_INI ASC
@@ -230,21 +255,69 @@ EXCEPTION
       v_error_message := SQLERRM;
       RAISE_APPLICATION_ERROR(
          -20999,
-         'Error en PRC_PUNCHE_TALLERES_FAMILIAS_LISTAR_TODAS: '
+         'Error en PRC_PUNCHE_TALLERES_FAMILIAS_LISTAR: '
             || v_error_message
       );
-END PRC_PUNCHE_TALLERES_FAMILIAS_LISTAR_TODAS;
+END PRC_PUNCHE_TALLERES_FAMILIAS_LISTAR;
 /
 
 --! COMMIT;
 
 -- =============================================================
+-- ! DROP del SP con el nombre antiguo
+-- ! Ejecutar SOLO cuando se haya confirmado que ningún caller
+-- ! sigue invocando PRC_PUNCHE_TALLERES_FAMILIAS_LISTAR_TODAS.
+-- =============================================================
+-- DROP PROCEDURE PRC_PUNCHE_TALLERES_FAMILIAS_LISTAR_TODAS;
+-- /
+
+-- =============================================================
 -- Bloque de invocación / prueba
 -- =============================================================
+-- Caso 1: sin filtros (debe devolver idéntico al SP original)
 DECLARE
    c_resultado_busqueda SYS_REFCURSOR;
 BEGIN
-   PRC_PUNCHE_TALLERES_FAMILIAS_LISTAR_TODAS(c_resultado_busqueda);
+   PRC_PUNCHE_TALLERES_FAMILIAS_LISTAR(c_resultado_busqueda);
+   DBMS_SQL.RETURN_RESULT(c_resultado_busqueda);
+END;
+/
+
+-- Caso 2: solo fecha de inicio
+DECLARE
+   c_resultado_busqueda SYS_REFCURSOR;
+BEGIN
+   PRC_PUNCHE_TALLERES_FAMILIAS_LISTAR(
+      c_resultado_busqueda,
+      p_fecha_ini => DATE '2026-01-01',
+      p_fecha_fin => NULL
+   );
+   DBMS_SQL.RETURN_RESULT(c_resultado_busqueda);
+END;
+/
+
+-- Caso 3: solo fecha de fin (incluye el día completo)
+DECLARE
+   c_resultado_busqueda SYS_REFCURSOR;
+BEGIN
+   PRC_PUNCHE_TALLERES_FAMILIAS_LISTAR(
+      c_resultado_busqueda,
+      p_fecha_ini => NULL,
+      p_fecha_fin => DATE '2026-07-20'
+   );
+   DBMS_SQL.RETURN_RESULT(c_resultado_busqueda);
+END;
+/
+
+-- Caso 4: rango cerrado (medio-abierto)
+DECLARE
+   c_resultado_busqueda SYS_REFCURSOR;
+BEGIN
+   PRC_PUNCHE_TALLERES_FAMILIAS_LISTAR(
+      c_resultado_busqueda,
+      p_fecha_ini => DATE '2026-01-01',
+      p_fecha_fin => DATE '2026-07-20'
+   );
    DBMS_SQL.RETURN_RESULT(c_resultado_busqueda);
 END;
 /

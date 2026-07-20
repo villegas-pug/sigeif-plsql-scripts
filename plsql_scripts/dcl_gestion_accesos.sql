@@ -329,6 +329,13 @@ VALUES(
 )
 /
 
+UPDATE TSOPCION o
+   SET OPCIMAGEN = 'assignment'
+WHERE
+   o.IDOPCION IN (2520)
+/
+
+-- ! COMMIT;
 
 -- ! Test
 -- 126 | SISTEMA DE INFORMACIÓN DE GESTIÓN DE FAMILIAS (SIGEIF)
@@ -336,12 +343,13 @@ VALUES(
 SELECT * FROM TSSISTEMA s
 WHERE
    -- s.IDSISTEMA = 324
-   s.SISNOMBRE LIKE '%SISEC%'
+   -- s.SISNOMBRE LIKE '%SISEC%'
+   s.SISNOMBRE LIKE '%SIGEIF%' -- 126
 /
 
 SELECT * FROM TSOPCION o
 WHERE
-   o.OPCDESCRIPCION LIKE '%INI%'
+   o.OPCDESCRIPCION LIKE '%INTERV%'
 ORDER BY
    o.IDOPCION DESC
 /
@@ -403,8 +411,9 @@ FROM TSSISTEMA s
    INNER JOIN TSOPCION o  ON o.OPCMODULO  = m.IDMODULO
    LEFT  JOIN TSOPCION op ON op.IDOPCION  = o.OPCPADRE
 WHERE 
-   s.IDSISTEMA = 324
-   -- AND m.IDMODULO = 511
+   -- s.IDSISTEMA = 324 -- * SISEC
+   s.IDSISTEMA = 126 -- * SIGEIF
+   AND m.IDMODULO = 511 -- * SIGEIF
    -- AND o.OPCPADRE = 2240
    AND m.MODESTADO = 1
 ORDER BY m.MOD_ORDEN, o.OPCNIVEL, o.OPCORDEN, o.OPCDESCRIPCION
@@ -413,7 +422,7 @@ ORDER BY m.MOD_ORDEN, o.OPCNIVEL, o.OPCORDEN, o.OPCDESCRIPCION
 SELECT * FROM TSACCESO a
 WHERE
     -- a.IDACCESO IN (3893, 3892)
-    a.ACCOPCION = 2240
+    a.ACCOPCION = 2249
 /
 
 -- ! Test
@@ -458,10 +467,13 @@ WHERE OPCMODULO = 511
 /
 
 -- V7 — Verificar orden 4 libre
-SELECT OPCPADRE, OPCORDEN, OPCDESCRIPCION
-FROM TSOPCION
-WHERE OPCPADRE = 2240
-ORDER BY OPCORDEN
+SELECT 
+   -- OPCPADRE, OPCORDEN, OPCDESCRIPCION
+   o.*
+FROM TSOPCION o
+/* WHERE 
+   OPCPADRE = 2240 */
+ORDER BY IDOPCION DESC 
 /
 
 
@@ -476,26 +488,40 @@ DECLARE
    v_error_code        NUMBER;
    v_error_message     VARCHAR2(4000);
 
-   v_sis_id            TSSISTEMA.IDSISTEMA%TYPE       := 324;
+
+   -- * 1. SISEC
+   /*v_sis_id            TSSISTEMA.IDSISTEMA%TYPE       := 324;
    v_mod_id            TSMODULO.IDMODULO%TYPE         := 554;
    v_opc_padre         TSOPCION.OPCPADRE%TYPE         := 2437;
    v_opc_descripcion   TSOPCION.OPCDESCRIPCION%TYPE   := 'Usuario de NNA';
    v_opc_enlace        TSOPCION.OPCENLACE%TYPE        := 'usuario-nna';
    v_opc_orden         TSOPCION.OPCORDEN%TYPE         := 2;
+   v_opc_nivel         TSOPCION.OPCNIVEL%TYPE         := 2;*/
+
+   -- * 2. SIGEIF
+   v_sis_id            TSSISTEMA.IDSISTEMA%TYPE       := 126;
+   v_mod_id            TSMODULO.IDMODULO%TYPE         := 511;
+   v_opc_padre         TSOPCION.OPCPADRE%TYPE         := 2520;
+   v_opc_descripcion   TSOPCION.OPCDESCRIPCION%TYPE   := 'Intervención';
+   v_opc_enlace        TSOPCION.OPCENLACE%TYPE        := 'reportes-intervencion';
+   v_opc_orden         TSOPCION.OPCORDEN%TYPE         := 1;
    v_opc_nivel         TSOPCION.OPCNIVEL%TYPE         := 2;
+
    v_opc_destino       TSOPCION.OPCDESTINO%TYPE       := 1;
    v_opc_tipo_enlace   TSOPCION.OPTTIPOENLACE%TYPE    := 1;
    v_opc_estado        TSOPCION.OPCESTADO%TYPE        := 1;
    v_opc_usu_registra  TSOPCION.OPCUSUREGISTRA%TYPE   := 1;
 
-   v_acc_perfil        TSACCESO.ACCPERFIL%TYPE        := 1821;
+   -- v_acc_perfil        TSACCESO.ACCPERFIL%TYPE        := 1821; -- SISEC
+   v_acc_perfil        TSACCESO.ACCPERFIL%TYPE        := 221; -- SIGEIF
+
    v_acc_estado        TSACCESO.ACCESTADO%TYPE        := 1;
    v_acc_usu_registra  TSACCESO.ACCUSUREGISTRA%TYPE   := 1;
 BEGIN
    -- Validaciones de negocio previas
-   IF v_opc_nivel = 2 AND v_opc_padre IS NULL THEN
+   /* IF v_opc_nivel = 2 AND v_opc_padre IS NULL THEN
       RAISE_APPLICATION_ERROR(-20010, 'Nivel 2 requiere OPCPADRE no nulo.');
-   END IF;
+   END IF; */
 
    -- Verificar módulo pertenece al sistema y está activo
    DECLARE
