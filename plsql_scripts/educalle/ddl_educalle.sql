@@ -710,6 +710,13 @@ ORDER BY
    i.ID_ESP_INTERV DESC
 /
 
+DELETE FROM SSI_ESP_INTERVENCION i
+WHERE
+   i.ID_ESP_INTERV BETWEEN 52 AND 223
+/
+
+-- ! COMMIT;
+
 -- ? 2. Cabecera de Anexos
 SELECT
    a.*
@@ -971,11 +978,24 @@ END USP_SISEC_SAVE_CONFORMIDAD_ANXCABECERA;
 
 
 SELECT * FROM SSI_ESP_INTERVENCION i
+WHERE
+   i.ESP_UBIGEO = '040000'
 ORDER BY
    i.ID_ESP_INTERV DESC
 /
 
+-- ? Actualizar 6 digitos de `UBIGEO`
+UPDATE SSI_ESP_INTERVENCION i
+SET
+   i.ESP_UBIGEO = (
+                     CASE
+                        WHEN i.ESP_UBIGEO IS NOT NULL THEN LPAD(i.ESP_UBIGEO, 6, '0')
+                        ELSE i.ESP_UBIGEO
+                     END
+   )
+/
 
+-- ! COMMIT;
 
 -- ! Test:
 SELECT * FROM SSI_ANEXOS_CABECERA c
@@ -993,6 +1013,10 @@ WHERE
 
 -- ! COMMIT;
 
+SELECT * FROM SSI_UBIGEO_NOMBRES u
+WHERE
+   u.U_ID_UBIGEO = '040000'
+/
 
 
 

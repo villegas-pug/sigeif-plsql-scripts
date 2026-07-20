@@ -1,12 +1,12 @@
 # Catalogo de tablas Oracle - USRSEGURIDAD
 
-- Fecha generacion: 2026-07-06 00:35:02
+- Fecha generacion: 2026-07-19 19:54:13
 - Esquema origen: USRSEGURIDAD
 
 ## Resumen
 
-- Total tablas: 1105
-- Total columnas: 22395
+- Total tablas: 1112
+- Total columnas: 22512
 
 ### Distribucion por tipo de dato
 
@@ -15,16 +15,16 @@
 | BLOB | 97 |
 | CHAR | 617 |
 | CLOB | 29 |
-| DATE | 2690 |
+| DATE | 2719 |
 | FLOAT | 94 |
 | NCHAR | 4 |
 | NCLOB | 3 |
-| NUMBER | 7146 |
+| NUMBER | 7211 |
 | NVARCHAR2 | 31 |
 | RAW | 2 |
 | TIMESTAMP(6) | 34 |
 | TIMESTAMP(9) | 2 |
-| VARCHAR2 | 11646 |
+| VARCHAR2 | 11669 |
 
 ## Detalle por tabla
 
@@ -4970,6 +4970,7 @@
 | ACT_FEC_ACTUALIZA | DATE | 7 |  |  | Y |  |
 | ACT_USU_ELIMINA | NUMBER | 22 | 11 |  | Y |  |
 | ACT_FEC_ELIMINA | DATE | 7 |  |  | Y |  |
+| ACT_SI_ARCHIVO | NUMBER | 22 | 1 |  | N | 0 |
 
 ### PW_ALIADOS
 
@@ -5013,6 +5014,29 @@
 | ALI_USU_ELIMINA | NUMBER | 22 | 11 |  | Y |  |
 | ALI_FEC_ELIMINA | DATE | 7 |  |  | Y |  |
 | ALI_SERVICIO_ABREVIATURA | VARCHAR2 | 200 |  |  | Y |  |
+
+### PW_ARCHIVO
+
+| Columna | Tipo | Longitud | Precision | Scale | Nullable | Default |
+|---|---|---:|---:|---:|---|---|
+| ID_ARCHIVO | NUMBER | 22 |  |  | N | "USRSEGURIDAD"."ISEQ$$_394664".nextval |
+| ARC_ENTIDAD | VARCHAR2 | 100 |  |  | N |  |
+| ARC_ID_ENTIDAD | NUMBER | 22 |  |  | Y |  |
+| ARC_ID_ENTIDAD_PADRE | NUMBER | 22 |  |  | Y |  |
+| ARC_ORDEN | NUMBER | 22 |  |  | Y | 1 |
+| ARC_NOMBRE_ORIGINAL | VARCHAR2 | 300 |  |  | N |  |
+| ARC_RUTA_ARCHIVO | VARCHAR2 | 500 |  |  | N |  |
+| ARC_TIPO_MIME | VARCHAR2 | 100 |  |  | Y |  |
+| ARC_EXTENSION | VARCHAR2 | 20 |  |  | Y |  |
+| ARC_TAMANIO | NUMBER | 22 |  |  | Y |  |
+| ARC_ESTADO | NUMBER | 22 | 1 |  | N | 1 |
+| ARC_ELIMINADO | NUMBER | 22 | 1 |  | N | 0 |
+| ARC_USU_REGISTRO | NUMBER | 22 |  |  | Y |  |
+| ARC_FEC_REGISTRO | DATE | 7 |  |  | Y | SYSDATE |
+| ARC_USU_ACTUALIZA | NUMBER | 22 |  |  | Y |  |
+| ARC_FEC_ACTUALIZA | DATE | 7 |  |  | Y |  |
+| ARC_USU_ELIMINA | NUMBER | 22 |  |  | Y |  |
+| ARC_FEC_ELIMINA | DATE | 7 |  |  | Y |  |
 
 ### PW_CONFIGURACION
 
@@ -9443,6 +9467,9 @@
 | NOT_ELIMINADO | NUMBER | 22 | 1 |  | N | 0 |
 | NOT_FECHA_NOTIFICACION | DATE | 7 |  |  | Y |  |
 | NOT_USUARIO_NOTIFICA | NUMBER | 22 |  |  | Y |  |
+| NOT_FECHA_ELIMINA | DATE | 7 |  |  | Y |  |
+| NOT_USUARIO_ELIMINA | NUMBER | 22 |  |  | Y |  |
+| NOT_ERROR | VARCHAR2 | 2000 |  |  | Y |  |
 
 ### SAE_NOTIFICACION_CONTINUIDAD
 
@@ -9647,6 +9674,7 @@
 | PAD_CAUSAL_EXT | NUMBER | 22 | 1 |  | Y | 0 |
 | PAD_FEC_CAUSAL_EXT | DATE | 7 |  |  | Y |  |
 | PAD_ENLACE_PUBLICACION | VARCHAR2 | 500 |  |  | Y |  |
+| PAD_FECHA_CORTE_CONTINUIDAD | DATE | 7 |  |  | Y |  |
 
 ### SAE_PADRON_ACOMP
 
@@ -11421,6 +11449,74 @@
 | FECHA_NACIMIENTO | DATE | 7 |  |  | Y |  |
 | SEXO | VARCHAR2 | 1 |  |  | Y |  |
 | FECHA_NACIMIENTO_T | VARCHAR2 | 10 |  |  | Y |  |
+
+### SAE_SESION
+
+| Columna | Tipo | Longitud | Precision | Scale | Nullable | Default |
+|---|---|---:|---:|---:|---|---|
+| ID_SS | NUMBER | 22 |  |  | N |  |
+| SS_TUTILO | NUMBER | 22 |  |  | Y |  |
+| SS_TIPO | NUMBER | 22 |  |  | Y |  |
+| SS_DEPARTAMENTO | VARCHAR2 | 20 |  |  | Y |  |
+| SS_PROVINCIA | VARCHAR2 | 20 |  |  | Y |  |
+| SS_DISTRITO | VARCHAR2 | 20 |  |  | Y |  |
+| SS_DIRECCION | VARCHAR2 | 500 |  |  | Y |  |
+| SS_FEC_EVENTO | DATE | 7 |  |  | Y |  |
+| SS_FEC_REGISTRA | DATE | 7 |  |  | Y |  |
+| SS_USU_REGISTRA | NUMBER | 22 |  |  | Y |  |
+| SS_FEC_ACTUALIZA | DATE | 7 |  |  | Y |  |
+| SS_USU_ACTUALIZA | NUMBER | 22 |  |  | Y |  |
+| SS_FEC_ELIMINA | DATE | 7 |  |  | Y |  |
+| SS_USU_ELIMINA | NUMBER | 22 |  |  | Y |  |
+| SS_ELIMINADO | NUMBER | 22 |  |  | N |  |
+| SS_ESTADO | NUMBER | 22 |  |  | Y |  |
+
+### SAE_SESION_DETALLE
+
+| Columna | Tipo | Longitud | Precision | Scale | Nullable | Default |
+|---|---|---:|---:|---:|---|---|
+| ID_SSD | NUMBER | 22 |  |  | N |  |
+| ID_SS | NUMBER | 22 |  |  | Y |  |
+| SSD_ADM | NUMBER | 22 |  |  | Y |  |
+| SSD_BENEF | NUMBER | 22 |  |  | Y |  |
+| SSD_FEC_REGISTRA | DATE | 7 |  |  | Y |  |
+| SSD_USU_REGISTRA | NUMBER | 22 |  |  | Y |  |
+| SSD_FEC_ACTUALIZA | DATE | 7 |  |  | Y |  |
+| SSD_USU_ACTUALIZA | NUMBER | 22 |  |  | Y |  |
+| SSD_FEC_ELIMINA | DATE | 7 |  |  | Y |  |
+| SSD_USU_ELIMINA | NUMBER | 22 |  |  | Y |  |
+| SSD_ELIMINADO | NUMBER | 22 |  |  | Y |  |
+| SSD_EST_INTEGRANTE | NUMBER | 22 |  |  | Y |  |
+| SSD_CANT_BENEF | NUMBER | 22 |  |  | Y |  |
+
+### SAE_SESION_TIPO
+
+| Columna | Tipo | Longitud | Precision | Scale | Nullable | Default |
+|---|---|---:|---:|---:|---|---|
+| ID_SESION_TIPO | NUMBER | 22 |  |  | N |  |
+| ID_SESION_TITULO | NUMBER | 22 |  |  | Y |  |
+| SSTI_CONCEPTO | VARCHAR2 | 800 |  |  | Y |  |
+| SSTI_FEC_REGISTRA | DATE | 7 |  |  | N | SYSDATE |
+| SSTI_USU_REGISTRA | NUMBER | 22 |  |  | N |  |
+| SSTI_FEC_ACTUALIZA | DATE | 7 |  |  | Y |  |
+| SSTI_USU_ACTUALIZA | NUMBER | 22 |  |  | Y |  |
+| SSTI_FEC_ELIMINA | DATE | 7 |  |  | Y |  |
+| SSTI_USU_ELIMINA | NUMBER | 22 |  |  | Y |  |
+| SSTI_ELIMINADO | NUMBER | 22 |  |  | N | 0 |
+
+### SAE_SESION_TITULO
+
+| Columna | Tipo | Longitud | Precision | Scale | Nullable | Default |
+|---|---|---:|---:|---:|---|---|
+| ID_SESION_TITULO | NUMBER | 22 |  |  | N |  |
+| SST_CONCEPTO | VARCHAR2 | 500 |  |  | Y |  |
+| SST_FEC_REGISTRA | DATE | 7 |  |  | N | SYSDATE |
+| SST_USU_REGISTRA | NUMBER | 22 |  |  | N |  |
+| SST_FEC_ACTUALIZA | DATE | 7 |  |  | Y |  |
+| SST_USU_ACTUALIZA | DATE | 7 |  |  | Y |  |
+| SST_FEC_ELIMINA | DATE | 7 |  |  | Y |  |
+| SST_USU_ELIMINA | NUMBER | 22 |  |  | Y |  |
+| SST_ELIMINADO | NUMBER | 22 |  |  | N | 0 |
 
 ### SAE_SEXO_ADM
 
@@ -13899,6 +13995,7 @@
 | USR_FEC_ELIMINA | DATE | 7 |  |  | Y | NULL |
 | ID_SEDE | NUMBER | 22 |  |  | Y | 1 |
 | USR_CORREO | VARCHAR2 | 50 |  |  | Y | NULL |
+| USR_SI_CLAVE_INICIAL | NUMBER | 22 | 1 |  | N | 1 |
 
 ### SAS_USUARIO_PERFIL
 
@@ -15060,6 +15157,31 @@
 | DOC_FECHA_ACTUALIZA | DATE | 7 |  |  | Y | NULL |
 | DOC_USU_ELIMINA | NUMBER | 22 | 11 |  | Y | NULL |
 | DOC_FECHA_ELIMINA | DATE | 7 |  |  | Y | NULL |
+
+### SG_INCIDENCIA_EXTEMPORANEA
+
+| Columna | Tipo | Longitud | Precision | Scale | Nullable | Default |
+|---|---|---:|---:|---:|---|---|
+| ID_EXTEMPORANEA | NUMBER | 22 |  |  | N | "USRSEGURIDAD"."ISEQ$$_395909".nextval |
+| IEX_CODIGO | VARCHAR2 | 20 |  |  | N |  |
+| IEX_ID_CENTRO | NUMBER | 22 |  |  | N |  |
+| IEX_ID_TIPO_INCIDENCIA | NUMBER | 22 |  |  | N |  |
+| IEX_ID_SUBTIPO_INCIDENCIA | NUMBER | 22 |  |  | N |  |
+| IEX_FECHA_INCIDENCIA | DATE | 7 |  |  | N |  |
+| IEX_FEC_INICIO_VIGENCIA | DATE | 7 |  |  | Y |  |
+| IEX_CANT_DIAS | NUMBER | 22 | 2 |  | Y |  |
+| IEX_FEC_FIN_VIGENCIA | DATE | 7 |  |  | Y |  |
+| IEX_OBSERVACION | VARCHAR2 | 1000 |  |  | Y |  |
+| IEX_ID_INCIDENCIA | NUMBER | 22 |  |  | Y |  |
+| IEX_ESTADO_HABILITACION | NUMBER | 22 | 1 |  | N | 1 |
+| IEX_ESTADO | NUMBER | 22 | 1 |  | N | 1 |
+| IEX_ELIMINADO | NUMBER | 22 | 1 |  | N | 0 |
+| IEX_USU_REGISTRO | NUMBER | 22 | 11 |  | Y |  |
+| IEX_FEC_REGISTRO | DATE | 7 |  |  | Y | SYSDATE |
+| IEX_USU_ACTUALIZA | NUMBER | 22 | 11 |  | Y |  |
+| IEX_FEC_ACTUALIZA | DATE | 7 |  |  | Y |  |
+| IEX_USU_ELIMINA | NUMBER | 22 | 11 |  | Y |  |
+| IEX_FEC_ELIMINA | DATE | 7 |  |  | Y |  |
 
 ### SG_INCIDENCIA_MEDIDA
 
@@ -16781,6 +16903,7 @@
 | AP_RANGO_LONGITUD | VARCHAR2 | 55 |  |  | Y |  |
 | AP_REQ_ALFNUM | NUMBER | 22 | 1 |  | Y |  |
 | AP_REQ_CONTADOR | NUMBER | 22 | 1 |  | Y |  |
+| AP_BLOQ_SUBMIT_SI_INVALIDO | VARCHAR2 | 1000 |  |  | Y |  |
 
 ### SSI_ANEXOS_RESPUESTAS
 
@@ -16905,6 +17028,15 @@
 | CO_FEC_ACTUALIZA | DATE | 7 |  |  | Y |  |
 | CO_ESTADO | NUMBER | 22 | 1 |  | Y | 1 |
 | CO_ELIMINADO | NUMBER | 22 | 1 |  | Y | 0 |
+
+### SSI_CORRELATIVO_FAMILIA
+
+| Columna | Tipo | Longitud | Precision | Scale | Nullable | Default |
+|---|---|---:|---:|---:|---|---|
+| SI_ID_SERVICIO | NUMBER | 22 |  |  | N |  |
+| UO_ID_UNIDADORGANICA | NUMBER | 22 |  |  | N |  |
+| CF_ULTIMO_NUMERO | NUMBER | 22 |  |  | N | 0 |
+| CF_FECHA_ACTUALIZA | DATE | 7 |  |  | Y |  |
 
 ### SSI_DET_PATFAM
 
@@ -17370,7 +17502,7 @@
 | TA_ID_TALLER | NUMBER | 22 |  |  | N |  |
 | PE_ID_PERSONAL | NUMBER | 22 |  |  | Y |  |
 | UO_ID_UNIDADORG | NUMBER | 22 |  |  | Y |  |
-| PT_TEMA | VARCHAR2 | 500 |  |  | N |  |
+| PT_TEMA | VARCHAR2 | 1000 |  |  | Y |  |
 | PT_LUGAR_TALLER | VARCHAR2 | 500 |  |  | N |  |
 | PT_ANEXO_NOMBRE | VARCHAR2 | 500 |  |  | Y |  |
 | PT_ANEXO | BLOB | 4000 |  |  | Y |  |
@@ -17385,6 +17517,8 @@
 | PT_ESTADO | NUMBER | 22 | 1 |  | Y | 1 |
 | PT_ELIMINADO | NUMBER | 22 | 1 |  | Y | 0 |
 | PT_TIPO_EVENTO | NUMBER | 22 |  |  | Y |  |
+| PT_TIPO_RESPONSABLE_DICTADO | NUMBER | 22 | 1 |  | Y |  |
+| PT_RESPONSABLES_DICTADO | VARCHAR2 | 300 |  |  | Y |  |
 
 ### SSI_PROG_TALLER_FAMILIAS
 
@@ -17401,6 +17535,7 @@
 | PD_ESTADO | NUMBER | 22 | 1 |  | Y | 1 |
 | PD_ELIMINADO | NUMBER | 22 | 1 |  | Y | 0 |
 | DP_ID_DET_PATFAM | NUMBER | 22 |  |  | Y |  |
+| PD_INTEGRANTES_ASISTIERON | VARCHAR2 | 1000 |  |  | Y |  |
 
 ### SSI_SERVICIOS_INABIF
 
@@ -18038,6 +18173,10 @@
 | AU_USU_RECHAZA | NUMBER | 22 |  |  | Y |  |
 | AU_FEC_RECHAZA | DATE | 7 |  |  | Y |  |
 | AU_MOTIVO_ANULACION | VARCHAR2 | 2000 |  |  | Y |  |
+| AU_USU_REVIERTE | NUMBER | 22 |  |  | Y |  |
+| AU_FEC_REVIERTE | DATE | 7 |  |  | Y |  |
+| AU_MOTIVO_REVERSION | VARCHAR2 | 2000 |  |  | Y |  |
+| AU_MOTIVO_RECHAZA | VARCHAR2 | 2000 |  |  | Y |  |
 
 ### TA_CORREO
 
@@ -18374,6 +18513,12 @@
 | SA_USU_REG_RETORNO_REAL | NUMBER | 22 |  |  | Y |  |
 | SA_USU_OBSERVA_BIENESTAR | NUMBER | 22 |  |  | Y |  |
 | SA_FEC_OBSERVA_BIENESTAR | DATE | 7 |  |  | Y |  |
+| SA_USU_REVIERTE | NUMBER | 22 |  |  | Y |  |
+| SA_FEC_REVIERTE | DATE | 7 |  |  | Y |  |
+| SA_MOTIVO_REVERSION | VARCHAR2 | 2000 |  |  | Y |  |
+| SA_USU_RECHAZA | NUMBER | 22 |  |  | Y |  |
+| SA_FEC_RECHAZA | DATE | 7 |  |  | Y |  |
+| SA_MOTIVO_RECHAZA | VARCHAR2 | 2000 |  |  | Y |  |
 
 ### TA_SALIDA_AUTORIZACION
 
