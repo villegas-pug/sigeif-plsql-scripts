@@ -1,30 +1,30 @@
 # Catalogo de tablas Oracle - USRSEGURIDAD
 
-- Fecha generacion: 2026-07-19 19:54:13
+- Fecha generacion: 2026-08-05 10:36:13
 - Esquema origen: USRSEGURIDAD
 
 ## Resumen
 
-- Total tablas: 1112
-- Total columnas: 22512
+- Total tablas: 1113
+- Total columnas: 22656
 
 ### Distribucion por tipo de dato
 
 | Tipo | Cantidad |
 |---|---:|
 | BLOB | 97 |
-| CHAR | 617 |
-| CLOB | 29 |
-| DATE | 2719 |
+| CHAR | 620 |
+| CLOB | 31 |
+| DATE | 2728 |
 | FLOAT | 94 |
 | NCHAR | 4 |
 | NCLOB | 3 |
-| NUMBER | 7211 |
+| NUMBER | 7272 |
 | NVARCHAR2 | 31 |
-| RAW | 2 |
+| RAW | 4 |
 | TIMESTAMP(6) | 34 |
 | TIMESTAMP(9) | 2 |
-| VARCHAR2 | 11669 |
+| VARCHAR2 | 11736 |
 
 ## Detalle por tabla
 
@@ -6140,6 +6140,9 @@
 | EV_ESTADO_CONOCIMIENTOS | NUMBER | 22 | 1 |  | Y |  |
 | EV_FEC_INICIO_CONOC | DATE | 7 |  |  | Y |  |
 | EV_FEC_FIN_CONOC | DATE | 7 |  |  | Y |  |
+| EV_FLG_BON_FUERZAS_ARM | NUMBER | 22 | 1 |  | Y |  |
+| EV_FLG_BON_DISCAPACIDAD | NUMBER | 22 | 1 |  | Y |  |
+| EV_FLG_BON_DEP_CALIF | NUMBER | 22 | 1 |  | Y |  |
 
 ### RH_EVAL_DETALLE
 
@@ -8506,6 +8509,7 @@
 | EVD_ESTADO_ORIGINAL | NUMBER | 22 |  |  | Y |  |
 | EVD_FECHA_CAMBIO_ESTADO | DATE | 7 |  |  | Y |  |
 | EVD_OBS_PARA_CAMBIO_RESULTADO | NUMBER | 22 |  |  | Y |  |
+| EVD_ARCHIVAMIENTO_TIPO | NUMBER | 22 |  |  | Y |  |
 
 ### SAE_EVALUACION_EVENTO
 
@@ -11517,13 +11521,6 @@
 | SST_FEC_ELIMINA | DATE | 7 |  |  | Y |  |
 | SST_USU_ELIMINA | NUMBER | 22 |  |  | Y |  |
 | SST_ELIMINADO | NUMBER | 22 |  |  | N | 0 |
-
-### SAE_SEXO_ADM
-
-| Columna | Tipo | Longitud | Precision | Scale | Nullable | Default |
-|---|---|---:|---:|---:|---|---|
-| DNI | VARCHAR2 | 20 |  |  | N |  |
-| SEXO | VARCHAR2 | 20 |  |  | N |  |
 
 ### SAE_SINADEF_COTEJO
 
@@ -17845,6 +17842,122 @@
 | WORK_ITEM | VARCHAR2 | 21 |  |  | Y |  |
 | XML_CLOB | CLOB | 4000 |  |  | Y |  |
 
+### SYS_EXPORT_SCHEMA_02
+
+| Columna | Tipo | Longitud | Precision | Scale | Nullable | Default |
+|---|---|---:|---:|---:|---|---|
+| ABORT_STEP | NUMBER | 22 |  |  | Y |  |
+| ACCESS_METHOD | VARCHAR2 | 16 |  |  | Y |  |
+| ANCESTOR_OBJECT_NAME | VARCHAR2 | 128 |  |  | Y |  |
+| ANCESTOR_OBJECT_SCHEMA | VARCHAR2 | 128 |  |  | Y |  |
+| ANCESTOR_OBJECT_TYPE | VARCHAR2 | 128 |  |  | Y |  |
+| ANCESTOR_PROCESS_ORDER | NUMBER | 22 |  |  | Y |  |
+| BASE_OBJECT_NAME | VARCHAR2 | 128 |  |  | Y |  |
+| BASE_OBJECT_SCHEMA | VARCHAR2 | 128 |  |  | Y |  |
+| BASE_OBJECT_TYPE | VARCHAR2 | 128 |  |  | Y |  |
+| BASE_PROCESS_ORDER | NUMBER | 22 |  |  | Y |  |
+| BLOCK_SIZE | NUMBER | 22 |  |  | Y |  |
+| CLUSTER_OK | NUMBER | 22 |  |  | Y |  |
+| COMPLETED_BYTES | NUMBER | 22 |  |  | Y |  |
+| COMPLETED_ROWS | NUMBER | 22 |  |  | Y |  |
+| COMPLETION_TIME | DATE | 7 |  |  | Y |  |
+| CONTROL_QUEUE | VARCHAR2 | 128 |  |  | Y |  |
+| CREATION_LEVEL | NUMBER | 22 |  |  | Y |  |
+| CREATION_TIME | DATE | 7 |  |  | Y |  |
+| CUMULATIVE_TIME | NUMBER | 22 |  |  | Y |  |
+| DATA_BUFFER_SIZE | NUMBER | 22 |  |  | Y |  |
+| DATA_IO | NUMBER | 22 |  |  | Y |  |
+| DATAOBJ_NUM | NUMBER | 22 |  |  | Y |  |
+| DB_VERSION | VARCHAR2 | 60 |  |  | Y |  |
+| DEGREE | NUMBER | 22 |  |  | Y |  |
+| DOMAIN_PROCESS_ORDER | NUMBER | 22 |  |  | Y |  |
+| DUMP_ALLOCATION | NUMBER | 22 |  |  | Y |  |
+| DUMP_FILEID | NUMBER | 22 |  |  | Y |  |
+| DUMP_LENGTH | NUMBER | 22 |  |  | Y |  |
+| DUMP_ORIG_LENGTH | NUMBER | 22 |  |  | Y |  |
+| DUMP_POSITION | NUMBER | 22 |  |  | Y |  |
+| DUPLICATE | NUMBER | 22 |  |  | Y |  |
+| ELAPSED_TIME | NUMBER | 22 |  |  | Y |  |
+| ERROR_COUNT | NUMBER | 22 |  |  | Y |  |
+| EXTEND_SIZE | NUMBER | 22 |  |  | Y |  |
+| FILE_MAX_SIZE | NUMBER | 22 |  |  | Y |  |
+| FILE_NAME | VARCHAR2 | 4000 |  |  | Y |  |
+| FILE_TYPE | NUMBER | 22 |  |  | Y |  |
+| FLAGS | NUMBER | 22 |  |  | Y |  |
+| GRANTOR | VARCHAR2 | 128 |  |  | Y |  |
+| GRANULES | NUMBER | 22 |  |  | Y |  |
+| GUID | RAW | 16 |  |  | Y |  |
+| IN_PROGRESS | CHAR | 1 |  |  | Y |  |
+| INSTANCE | VARCHAR2 | 60 |  |  | Y |  |
+| INSTANCE_ID | NUMBER | 22 |  |  | Y |  |
+| IS_DEFAULT | NUMBER | 22 |  |  | Y |  |
+| JOB_MODE | VARCHAR2 | 21 |  |  | Y |  |
+| JOB_VERSION | VARCHAR2 | 60 |  |  | Y |  |
+| LAST_FILE | NUMBER | 22 |  |  | Y |  |
+| LAST_UPDATE | DATE | 7 |  |  | Y |  |
+| LOAD_METHOD | NUMBER | 22 |  |  | Y |  |
+| METADATA_BUFFER_SIZE | NUMBER | 22 |  |  | Y |  |
+| METADATA_IO | NUMBER | 22 |  |  | Y |  |
+| NAME | VARCHAR2 | 128 |  |  | Y |  |
+| OBJECT_INT_OID | VARCHAR2 | 130 |  |  | Y |  |
+| OBJECT_LONG_NAME | VARCHAR2 | 4000 |  |  | Y |  |
+| OBJECT_NAME | VARCHAR2 | 200 |  |  | Y |  |
+| OBJECT_NUMBER | NUMBER | 22 |  |  | Y |  |
+| OBJECT_PATH_SEQNO | NUMBER | 22 |  |  | Y |  |
+| OBJECT_ROW | NUMBER | 22 |  |  | Y |  |
+| OBJECT_SCHEMA | VARCHAR2 | 128 |  |  | Y |  |
+| OBJECT_TABLESPACE | VARCHAR2 | 128 |  |  | Y |  |
+| OBJECT_TYPE | VARCHAR2 | 128 |  |  | Y |  |
+| OBJECT_TYPE_PATH | VARCHAR2 | 200 |  |  | Y |  |
+| OLD_VALUE | VARCHAR2 | 4000 |  |  | Y |  |
+| OPERATION | VARCHAR2 | 8 |  |  | Y |  |
+| OPTION_TAG | VARCHAR2 | 128 |  |  | Y |  |
+| ORIG_BASE_OBJECT_NAME | VARCHAR2 | 128 |  |  | Y |  |
+| ORIG_BASE_OBJECT_SCHEMA | VARCHAR2 | 128 |  |  | Y |  |
+| ORIGINAL_OBJECT_NAME | VARCHAR2 | 128 |  |  | Y |  |
+| ORIGINAL_OBJECT_SCHEMA | VARCHAR2 | 128 |  |  | Y |  |
+| PACKET_NUMBER | NUMBER | 22 |  |  | Y |  |
+| PARALLELIZATION | NUMBER | 22 |  |  | Y |  |
+| PARENT_OBJECT_NAME | VARCHAR2 | 128 |  |  | Y |  |
+| PARENT_OBJECT_SCHEMA | VARCHAR2 | 128 |  |  | Y |  |
+| PARENT_PROCESS_ORDER | NUMBER | 22 |  |  | Y |  |
+| PARTITION_NAME | VARCHAR2 | 128 |  |  | Y |  |
+| PHASE | NUMBER | 22 |  |  | Y |  |
+| PLATFORM | VARCHAR2 | 101 |  |  | Y |  |
+| PROCESS_NAME | VARCHAR2 | 128 |  |  | Y |  |
+| PROCESS_ORDER | NUMBER | 22 |  |  | Y |  |
+| PROCESSING_STATE | CHAR | 1 |  |  | Y |  |
+| PROCESSING_STATUS | CHAR | 1 |  |  | Y |  |
+| PROPERTY | NUMBER | 22 |  |  | Y |  |
+| PROXY_SCHEMA | VARCHAR2 | 128 |  |  | Y |  |
+| PROXY_VIEW | VARCHAR2 | 128 |  |  | Y |  |
+| QUEUE_TABNUM | NUMBER | 22 |  |  | Y |  |
+| REMOTE_LINK | VARCHAR2 | 128 |  |  | Y |  |
+| SCN | NUMBER | 22 |  |  | Y |  |
+| SEED | NUMBER | 22 |  |  | Y |  |
+| SERVICE_NAME | VARCHAR2 | 64 |  |  | Y |  |
+| SIZE_ESTIMATE | NUMBER | 22 |  |  | Y |  |
+| SRC_COMPAT | VARCHAR2 | 60 |  |  | Y |  |
+| START_TIME | DATE | 7 |  |  | Y |  |
+| STATE | VARCHAR2 | 12 |  |  | Y |  |
+| STATUS_QUEUE | VARCHAR2 | 128 |  |  | Y |  |
+| SUBPARTITION_NAME | VARCHAR2 | 128 |  |  | Y |  |
+| TARGET_XML_CLOB | CLOB | 4000 |  |  | Y |  |
+| TDE_REWRAPPED_KEY | RAW | 2000 |  |  | Y |  |
+| TEMPLATE_TABLE | VARCHAR2 | 128 |  |  | Y |  |
+| TIMEZONE | VARCHAR2 | 64 |  |  | Y |  |
+| TOTAL_BYTES | NUMBER | 22 |  |  | Y |  |
+| TRIGFLAG | NUMBER | 22 |  |  | Y |  |
+| UNLOAD_METHOD | NUMBER | 22 |  |  | Y |  |
+| USER_DIRECTORY | VARCHAR2 | 4000 |  |  | Y |  |
+| USER_FILE_NAME | VARCHAR2 | 4000 |  |  | Y |  |
+| USER_NAME | VARCHAR2 | 128 |  |  | Y |  |
+| VALUE_N | NUMBER | 22 |  |  | Y |  |
+| VALUE_T | VARCHAR2 | 4000 |  |  | Y |  |
+| VERSION | NUMBER | 22 |  |  | Y |  |
+| WORK_ITEM | VARCHAR2 | 21 |  |  | Y |  |
+| XML_CLOB | CLOB | 4000 |  |  | Y |  |
+
 ### TAWEBSERVICE
 
 | Columna | Tipo | Longitud | Precision | Scale | Nullable | Default |
@@ -18909,8 +19022,8 @@
 | IDCARGO | NUMBER | 22 |  |  | N |  |
 | CARNOMBRE | VARCHAR2 | 400 |  |  | Y |  |
 | CARCODINTEGRIX | VARCHAR2 | 20 |  |  | Y |  |
-| CARESTADO | NUMBER | 22 |  |  | Y |  |
-| CARELIMINADO | NUMBER | 22 |  |  | Y |  |
+| CARESTADO | NUMBER | 22 |  |  | Y | 1 |
+| CARELIMINADO | NUMBER | 22 |  |  | Y | 0 |
 | CAR_COD_SISPER | VARCHAR2 | 8 |  |  | Y |  |
 | CAR_FLG_ELIMINO_TERM_SERVICIO | NUMBER | 22 | 1 |  | Y | 0 |
 | CAR_ABREVIATURA | VARCHAR2 | 100 |  |  | Y |  |
@@ -18921,6 +19034,7 @@
 | CAR_FEC_ACTUALIZA | DATE | 7 |  |  | Y |  |
 | CAR_USU_ELIMINA | NUMBER | 22 |  |  | Y |  |
 | CAR_FEC_ELIMINA | DATE | 7 |  |  | Y |  |
+| CAR_ID_UNIDAD_ORGANICA | NUMBER | 22 |  |  | Y |  |
 
 ### TGCATALOGO
 
@@ -19147,7 +19261,7 @@
 | PERGRADOINSTRUCCION | NUMBER | 22 | 11 |  | Y |  |
 | PERPADRE | NUMBER | 22 | 11 |  | Y |  |
 | PERMADRE | NUMBER | 22 | 11 |  | Y |  |
-| PERESTADO | NUMBER | 22 | 1 |  | N |  |
+| PERESTADO | NUMBER | 22 | 1 |  | N | 1 |
 | PERUSUREGISTRA | NUMBER | 22 | 11 |  | Y |  |
 | PERFECHAREGISTRA | DATE | 7 |  |  | Y | SYSDATE |
 | PERUSUACTUALIZA | NUMBER | 22 | 11 |  | Y |  |
@@ -19300,6 +19414,8 @@
 | UOR_ID_DEPT_ZKTECO | NUMBER | 22 |  |  | Y |  |
 | UOR_NUM_CAMARAS | NUMBER | 22 |  |  | Y | 0 |
 | UOR_PERFIL_POBLACION_SISGEO | NUMBER | 22 |  |  | Y | NULL |
+| UOR_SERVICIO_PADRE | NUMBER | 22 |  |  | Y |  |
+| ZO_ID_ZONA | NUMBER | 22 |  |  | Y |  |
 
 ### TG_ACCESOS
 
@@ -21080,6 +21196,36 @@
 | UNIDAD | VARCHAR2 | 200 |  |  | Y |  |
 
 ### TMP_ADENDA_JUL_2025
+
+| Columna | Tipo | Longitud | Precision | Scale | Nullable | Default |
+|---|---|---:|---:|---:|---|---|
+| APE_PAT | VARCHAR2 | 100 |  |  | Y |  |
+| APE_MAT | VARCHAR2 | 100 |  |  | Y |  |
+| NOMBRES | VARCHAR2 | 50 |  |  | Y |  |
+| SEXO | VARCHAR2 | 10 |  |  | Y |  |
+| RUC | VARCHAR2 | 11 |  |  | Y |  |
+| DOC_IDENTIDAD | VARCHAR2 | 11 |  |  | Y |  |
+| TIPO_DOC_IDENTIDAD | VARCHAR2 | 50 |  |  | Y |  |
+| DIRECCION | VARCHAR2 | 300 |  |  | Y |  |
+| DISTRITO | VARCHAR2 | 200 |  |  | Y |  |
+| PROVINCIA | VARCHAR2 | 200 |  |  | Y |  |
+| DEPARTAMENTO | VARCHAR2 | 200 |  |  | Y |  |
+| DEPENDENCIA | VARCHAR2 | 200 |  |  | Y |  |
+| DEPENDENCIA_DESTAQUE | VARCHAR2 | 200 |  |  | Y |  |
+| REMUNERACION | NUMBER | 22 |  |  | Y |  |
+| NUM_CONTRATO | VARCHAR2 | 20 |  |  | Y |  |
+| FEC_INICIO_CONTRATO | DATE | 7 |  |  | Y |  |
+| FEC_FIN_CONTRATO | VARCHAR2 | 200 |  |  | Y |  |
+| FEC_SUSCRIPCION_CONTRATO | DATE | 7 |  |  | Y |  |
+| NUM_ADENDA | VARCHAR2 | 20 |  |  | Y |  |
+| FEC_INICIO_ULT_ADENDA | DATE | 7 |  |  | Y |  |
+| FEC_FIN_ULT_ADENDA | DATE | 7 |  |  | Y |  |
+| FEC_SUSCRIPCION_ADENDA | DATE | 7 |  |  | Y |  |
+| FLG_CESADO | VARCHAR2 | 1 |  |  | Y |  |
+| OBSERVACIONES | VARCHAR2 | 200 |  |  | Y |  |
+| UNIDAD | VARCHAR2 | 200 |  |  | Y |  |
+
+### TMP_ADENDA_JUL_2026
 
 | Columna | Tipo | Longitud | Precision | Scale | Nullable | Default |
 |---|---|---:|---:|---:|---|---|
