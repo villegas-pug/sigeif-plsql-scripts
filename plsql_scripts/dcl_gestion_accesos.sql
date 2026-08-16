@@ -219,11 +219,19 @@ VALUES(
 
 -- ! 1.
 SELECT * FROM TSOPCION o
-/* WHERE
-   o.OPCDESCRIPCION LIKE '%INI%' */
+WHERE        
+   o.OPCDESCRIPCION LIKE '%Asistencia al Taller%' -- "enlace": "asistencia-talleres-familias",
 ORDER BY
    o.IDOPCION DESC
 /
+
+UPDATE TSOPCION o
+   SET o.OPCESTADO = 0
+WHERE
+   o.IDOPCION = 2251
+/
+
+-- ! COMMIT; 
 
 -- ! 2. 
 SELECT * FROM TSACCESO a
@@ -280,7 +288,8 @@ WHERE
 
 SELECT * FROM TSMODULO m
 WHERE
-    m.IDMODULO = 554
+    -- m.IDMODULO = 554
+    m.MODNOMBRE LIKE '%Asistenci%'
 /
 
 UPDATE TSMODULO m

@@ -55,6 +55,13 @@
 --   * Columna filtrada: es.ES_FEC_HORA_INI (TIMESTAMP(6) en
 --     SSI_EJECUCION_SESIONES). Oracle hace conversión implícita
 --     DATE -> TIMESTAMP(6) agregando 00:00:00.000000.
+--   * ACOMPAÑANTE_FAMILIAR: se obtiene de
+--     SSI_POTENCIALES_FAMILIAS.PER_ID_PERSONAL (acompañante asignado
+--     a la familia), resolviendo el nombre completo vía
+--     TRPERSONAL -> TGPERSONA (PERNOMBRE + PERAPEPATERNO +
+--     PERAPEMATERNO). LEFT JOIN para preservar familias sin
+--     acompañante asignado; si es NULL se muestra 'NO REGISTRA'.
+--     Se proyecta después de ZONA_INTERVENCION.
 -- =============================================================
 
 CREATE OR REPLACE PROCEDURE PRC_PUNCHE_SESIONES_LISTAR (
@@ -69,9 +76,10 @@ BEGIN
    OPEN p_cursor_out FOR
       SELECT
          ROWNUM                                        AS NRO,
-         sub.COD_ZON,
-         sub.ZONA_INTERVENCION,
-         sub.CODIGO_FAMILIA,
+          sub.COD_ZON,
+          sub.ZONA_INTERVENCION,
+          sub."ACOMPAÑANTE_FAMILIAR",
+          sub.CODIGO_FAMILIA,
          sub.PRIMER_APELLIDO_CUIDADOR,
          sub.SEGUNDO_APELLIDO_CUIDADOR,
          sub.NOMBRES_CUIDADOR,
@@ -92,6 +100,14 @@ BEGIN
          SELECT
             zi.ZO_ID_ZONA                                AS COD_ZON,
             zi.ZO_DESCRIPCION                            AS ZONA_INTERVENCION,
+            NVL(
+               TRIM(
+                  per_acom.PERNOMBRE || ' ' ||
+                  per_acom.PERAPEPATERNO || ' ' ||
+                  per_acom.PERAPEMATERNO
+               ),
+               'NO REGISTRA'
+            )                                            AS "ACOMPAÑANTE_FAMILIAR",
             pf.PF_COD_FAMILIA                            AS CODIGO_FAMILIA,
             fi.FI_PRIMER_APE                             AS PRIMER_APELLIDO_CUIDADOR,
             fi.FI_SEGUNDO_APE                            AS SEGUNDO_APELLIDO_CUIDADOR,
@@ -158,8 +174,13 @@ BEGIN
             ON cat_sex.IDCATALOGO = fi.CA_ID_SEXO
          LEFT JOIN TGCATALOGO cat_pare
             ON cat_pare.IDCATALOGO = fi.CA_ID_PARENTESCO
-         LEFT JOIN TGCATALOGO cat_mod
-            ON cat_mod.IDCATALOGO = es.CA_ID_MODALIDAD
+          LEFT JOIN TGCATALOGO cat_mod
+             ON cat_mod.IDCATALOGO = es.CA_ID_MODALIDAD
+          /* ----- Acompañante familiar: pf.PER_ID_PERSONAL -> TRPERSONAL/TGPERSONA ----- */
+          LEFT JOIN TRPERSONAL tp_acom
+             ON tp_acom.IDPERSONAL = pf.PER_ID_PERSONAL
+          LEFT JOIN TGPERSONA per_acom
+             ON per_acom.IDPERSONA = tp_acom.PRHPERSONA
          WHERE
             es.ES_REALIZO_SESION  = 1
             AND es.ES_ESTADO      = 1
@@ -169,6 +190,8 @@ BEGIN
             AND fi.FI_CUIDADOR    = 1
             AND fi.FI_ESTADO      = 1
             AND fi.FI_ELIMINADO   = 0
+            AND dp.DP_ESTADO = 1
+            AND dp.DP_ELIMINADO = 0
             AND zi.SI_ID_SERVICIO = 2
             AND (pf.SI_ID_SERVICIO = 2 OR zi.SI_ID_SERVICIO = 2)
             -- Filtros opcionales por rango de fecha (rango medio-abierto).
