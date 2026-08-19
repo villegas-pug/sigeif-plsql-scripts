@@ -3,9 +3,9 @@
 -- Nombre  : PRC_PUNCHE_SESIONES_LISTAR
 -- Propósito: Retorna el listado de sesiones EJECUTADAS en el
 --            servicio PUNCHE (SI_ID_SERVICIO = 2), con filtros
---            opcionales por rango de fecha. Una fila por
---            combinación (zona + familia + cuidador + ejecución
---            de sesión).
+--            opcionales por rango de fecha y por zona de
+--            intervencion. Una fila por combinación (zona +
+--            familia + cuidador + ejecución de sesión).
 -- Parámetros:
 --   p_cursor_out OUT SYS_REFCURSOR       — cursor con el resultado.
 --   p_fecha_ini  IN  DATE DEFAULT NULL   — fecha inicial del rango
@@ -15,8 +15,14 @@
 --                                          (incluida, día completo).
 --                                          Si NULL, no se filtra
 --                                          por fin.
--- Autor   : [ REEMPLAZAR: nombre del autor ]
--- Fecha   : [ REEMPLAZAR: fecha de creación ]
+--   p_id_zona   IN  NUMBER DEFAULT -1   — filtro por zona de intervencion
+--                                          (zi.ZO_ID_ZONA). Si -1 o NULL,
+--                                          no se filtra (todas las zonas
+--                                          del servicio 2).
+-- Autor   : OpenCode (procedure-builder)
+-- Fecha   : 2026-08-19
+-- Alcance : Solo lectura. SELECT sobre SSI_EJECUCION_SESIONES +
+--          catalogos y joins descritos abajo.
 -- =============================================================
 -- Notas de implementación:
 --   * SP de SOLO LECTURA. No ejecuta DML. No usa COMMIT/ROLLBACK.
@@ -62,12 +68,28 @@
 --     PERAPEMATERNO). LEFT JOIN para preservar familias sin
 --     acompañante asignado; si es NULL se muestra 'NO REGISTRA'.
 --     Se proyecta después de ZONA_INTERVENCION.
+--   * CODIGO_FAMILIA: se obtiene desde SSI_CODIGOS_FAMILIAS
+--     (subconsulta escalar correlacionada por pf.PF_ID_FAMILIA,
+--     filtrando CF_TIPO_CODIGO = 1, CF_ESTADO = 1 y
+--     CF_ELIMINADO = 0). Si hay varias filas activas para la
+--     misma familia, se toma MAX(CF_CODIGO) (último código activo
+--     registrado). Si no existe fila que cumpla las condiciones,
+--     se devuelve NULL literal. NO se proyecta desde
+--     pf.PF_COD_FAMILIA (legacy).
+--   * Filtro opcional por zona (p_id_zona):
+--       - p_id_zona = -1 (default) o NULL: sin filtro, devuelve todas las
+--         zonas del servicio 2.
+--       - Cualquier otro valor: filtra por zi.ZO_ID_ZONA (columna del
+--         catalogo ya en JOIN con pf.ZO_ID_ZONA).
+--       Sin validacion EXISTS: si el ID no existe, el WHERE no devuelve
+--       filas (sin error), mismo patron que los filtros de fecha.
 -- =============================================================
 
 CREATE OR REPLACE PROCEDURE PRC_PUNCHE_SESIONES_LISTAR (
    p_cursor_out OUT SYS_REFCURSOR,
-   p_fecha_ini  IN  DATE DEFAULT NULL,
-   p_fecha_fin  IN  DATE DEFAULT NULL
+   p_fecha_ini  IN  DATE     DEFAULT NULL,
+   p_fecha_fin  IN  DATE     DEFAULT NULL,
+   p_id_zona    IN  NUMBER   DEFAULT -1
 )
 IS
    v_error_code    NUMBER;
@@ -76,10 +98,10 @@ BEGIN
    OPEN p_cursor_out FOR
       SELECT
          ROWNUM                                        AS NRO,
-          sub.COD_ZON,
-          sub.ZONA_INTERVENCION,
-          sub."ACOMPAÑANTE_FAMILIAR",
-          sub.CODIGO_FAMILIA,
+         sub.COD_ZON,
+         sub.ZONA_INTERVENCION,
+         sub."ACOMPAÑANTE_FAMILIAR",
+         sub.CODIGO_FAMILIA,
          sub.PRIMER_APELLIDO_CUIDADOR,
          sub.SEGUNDO_APELLIDO_CUIDADOR,
          sub.NOMBRES_CUIDADOR,
@@ -107,8 +129,15 @@ BEGIN
                   per_acom.PERAPEMATERNO
                ),
                'NO REGISTRA'
-            )                                            AS "ACOMPAÑANTE_FAMILIAR",
-            pf.PF_COD_FAMILIA                            AS CODIGO_FAMILIA,
+             )                                            AS "ACOMPAÑANTE_FAMILIAR",
+             (
+                SELECT MAX(cf.CF_CODIGO)
+                FROM SSI_CODIGOS_FAMILIAS cf
+                WHERE cf.PF_ID_FAMILIA  = pf.PF_ID_FAMILIA
+                  AND cf.CF_TIPO_CODIGO = 1
+                  AND cf.CF_ESTADO      = 1
+                  AND cf.CF_ELIMINADO   = 0
+             )                                            AS CODIGO_FAMILIA,
             fi.FI_PRIMER_APE                             AS PRIMER_APELLIDO_CUIDADOR,
             fi.FI_SEGUNDO_APE                            AS SEGUNDO_APELLIDO_CUIDADOR,
             fi.FI_NOMBRES                                AS NOMBRES_CUIDADOR,
@@ -198,6 +227,10 @@ BEGIN
             -- Si ambos parámetros son NULL no se aplica ningún filtro.
             AND (p_fecha_ini IS NULL OR es.ES_FEC_HORA_INI >= p_fecha_ini)
             AND (p_fecha_fin IS NULL OR es.ES_FEC_HORA_INI <  p_fecha_fin + 1)
+            -- Filtro opcional por zona de intervencion.
+            -- p_id_zona = -1 (default) o NULL => todas las zonas del servicio 2.
+            -- Cualquier otro valor filtra por zi.ZO_ID_ZONA.
+            AND (p_id_zona IS NULL OR p_id_zona = -1 OR zi.ZO_ID_ZONA = p_id_zona)
           ORDER BY
             zi.ZO_ID_ZONA      ASC,
             pf.PF_COD_FAMILIA  ASC,
@@ -272,6 +305,66 @@ BEGIN
       c_resultado_busqueda,
       p_fecha_ini => DATE '2026-01-01',
       p_fecha_fin => DATE '2026-07-20'
+   );
+   DBMS_SQL.RETURN_RESULT(c_resultado_busqueda);
+END;
+/
+
+-- =============================================================
+-- Bloque auxiliar: zonas disponibles del servicio 2
+-- (ejecutar antes de los nuevos casos 5/6/7 para elegir un ID)
+-- =============================================================
+SELECT
+   zi.ZO_ID_ZONA,
+   zi.ZO_DESCRIPCION,
+   zi.SI_ID_SERVICIO,
+   zi.ZO_ESTADO,
+   zi.ZO_ELIMINADO
+FROM SSI_ZONA_INTERVENCION zi
+WHERE zi.SI_ID_SERVICIO = 2
+   AND zi.ZO_ESTADO      = 1
+   AND zi.ZO_ELIMINADO   = 0
+ORDER BY zi.ZO_ID_ZONA
+/
+
+-- Caso 5: p_id_zona = -1 (todas las zonas, explicito)
+DECLARE
+   c_resultado_busqueda SYS_REFCURSOR;
+BEGIN
+   PRC_PUNCHE_SESIONES_LISTAR(
+      c_resultado_busqueda,
+      p_fecha_ini => NULL,
+      p_fecha_fin => NULL,
+      p_id_zona   => -1
+   );
+   DBMS_SQL.RETURN_RESULT(c_resultado_busqueda);
+END;
+/
+
+-- Caso 6: p_id_zona con un ID especifico del servicio 2
+-- (REEMPLAZAR el ID 999 con un ZO_ID_ZONA valido del servicio 2)
+DECLARE
+   c_resultado_busqueda SYS_REFCURSOR;
+BEGIN
+   PRC_PUNCHE_SESIONES_LISTAR(
+      c_resultado_busqueda,
+      p_fecha_ini => DATE '2026-01-01',
+      p_fecha_fin => DATE '2026-07-20',
+      p_id_zona   => 999  /* REEMPLAZAR con un ZO_ID_ZONA valido del servicio 2 */
+   );
+   DBMS_SQL.RETURN_RESULT(c_resultado_busqueda);
+END;
+/
+
+-- Caso 7: p_id_zona = NULL (equivalente a todas las zonas por D3)
+DECLARE
+   c_resultado_busqueda SYS_REFCURSOR;
+BEGIN
+   PRC_PUNCHE_SESIONES_LISTAR(
+      c_resultado_busqueda,
+      p_fecha_ini => NULL,
+      p_fecha_fin => NULL,
+      p_id_zona   => NULL
    );
    DBMS_SQL.RETURN_RESULT(c_resultado_busqueda);
 END;

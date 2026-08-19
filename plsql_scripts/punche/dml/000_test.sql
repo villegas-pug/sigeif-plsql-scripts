@@ -87,3 +87,195 @@ GROUP BY
 /
 
 -- DP_ESTADO | DP_ELIMINADO
+
+
+-- =============================================================================
+-- Tipo    : DELETE (DML manual, requiere confirmacion del operador)
+-- Bloque  : anexo20_servicio2_integrante10214
+-- Proposito: Eliminar de SSI_ANEXOS_RESPUESTAS (V1) las respuestas del
+--            Anexo 20 (Ficha de derivacion y/o referencia) del servicio
+--            2 (PUNCHE) para el integrante FI_ID_INTEGRANTE = 10214.
+--            V1 no expone ID_ANEXO: la ruta al anexo/servicio es
+--            SSI_ANEXOS_RESPUESTAS.AP_ID_PREGUNTA -> SSI_ANEXOS_PREGUNTAS.
+-- Autor   : OpenCode (data-validator)
+-- Fecha   : 2026-08-12
+-- Alcance : solo lectura en este agente; el COMMIT/ROLLBACK lo decide
+--            el operador tras revisar el conteo previo.
+-- =============================================================================
+-- Notas:
+--   * SI_ID_SERVICIO=2 (PUNCHE) y AP_NUM_ANEXO=20 (Ficha derivacion/referencia)
+--     ya validados en usps_ssi_inabif_v1.sql lineas 3377-3381.
+--   * No se toca SSI_ANEXOS_PREGUNTAS (catalogo maestro de preguntas).
+--   * Convencion: EXISTS con subquery, alias ar/ap, identacion 3 espacios,
+--     terminador /, marcadores -- ! COMMIT; y -- ? ROLLBACK;.
+-- =============================================================================
+
+-- * 1. SELECT de validacion previa (conteo de filas candidatas)
+SELECT
+   COUNT(1) AS total_a_eliminar
+   -- ar.*
+FROM SSI_ANEXOS_RESPUESTAS ar
+WHERE ar.FI_ID_INTEGRANTE = 10214
+   AND EXISTS (
+      SELECT 1
+      FROM SSI_ANEXOS_PREGUNTAS ap
+      WHERE ap.AP_ID_PREGUNTA = ar.AP_ID_PREGUNTA
+         AND ap.SI_ID_SERVICIO = 2
+         AND ap.AP_NUM_ANEXO  = 20
+   )
+/
+
+-- * 2. DELETE objetivo (mismo predicado que el conteo previo)
+DELETE FROM SSI_ANEXOS_RESPUESTAS ar
+WHERE ar.FI_ID_INTEGRANTE = 10214
+   AND EXISTS (
+      SELECT 1
+      FROM SSI_ANEXOS_PREGUNTAS ap
+      WHERE ap.AP_ID_PREGUNTA = ar.AP_ID_PREGUNTA
+         AND ap.SI_ID_SERVICIO = 2
+         AND ap.AP_NUM_ANEXO  = 20
+   )
+/
+
+-- ! COMMIT;
+-- ? ROLLBACK;
+/
+
+SELECT * FROM SSI_CODIGOS_FAMILIAS c
+WHERE c.CF_TIPO_CODIGO = 'FAMILIA'
+/
+
+-- =============================================================================
+-- Tipo    : DELETE (DML manual, requiere confirmacion del operador)
+-- Bloque  : anexo27_servicio2_global
+-- Proposito: Eliminar de SSI_ANEXOS_RESPUESTAS las respuestas del
+--            Anexo 27 del servicio 2 (PUNCHE) para TODOS los
+--            integrantes (sin filtro por FI_ID_INTEGRANTE).
+-- Autor   : OpenCode (procedure-builder)
+-- Fecha   : 2026-08-19
+-- Alcance : solo lectura en este agente; el COMMIT/ROLLBACK lo decide
+--            el operador tras revisar el conteo previo.
+-- =============================================================================
+-- Notas:
+--   * SI_ID_SERVICIO=2 (PUNCHE) y AP_NUM_ANEXO=27 validados en el schema.
+--   * No se toca SSI_ANEXOS_PREGUNTAS (catalogo maestro de preguntas).
+--   * Convencion: EXISTS con subquery, alias ar/ap, identacion 3 espacios,
+--     terminador /, marcadores -- ! COMMIT; y -- ? ROLLBACK;.
+-- =============================================================================
+
+-- * 1. SELECT de validacion previa (conteo de filas candidatas)
+SELECT
+   -- COUNT(1) AS total_a_eliminar
+   ar.*
+FROM SSI_ANEXOS_RESPUESTAS ar
+WHERE EXISTS (
+   SELECT 1
+   FROM SSI_ANEXOS_PREGUNTAS ap
+   WHERE ap.AP_ID_PREGUNTA = ar.AP_ID_PREGUNTA
+      AND ap.SI_ID_SERVICIO = 2
+      AND ap.AP_NUM_ANEXO  = 27
+)
+/
+
+-- * 2. DELETE objetivo (mismo predicado que el conteo previo)
+DELETE FROM SSI_ANEXOS_RESPUESTAS ar
+WHERE EXISTS (
+   SELECT 1
+   FROM SSI_ANEXOS_PREGUNTAS ap
+   WHERE ap.AP_ID_PREGUNTA = ar.AP_ID_PREGUNTA
+      AND ap.SI_ID_SERVICIO = 2
+      AND ap.AP_NUM_ANEXO  = 27
+)
+/
+
+-- ! COMMIT;
+-- ? ROLLBACK;
+/
+
+-- =============================================================================
+-- Tipo    : DELETE (DML manual, requiere confirmacion del operador)
+-- Bloque  : anexo27_servicio2_preguntas_catalogo
+-- Proposito: Eliminar de SSI_ANEXOS_PREGUNTAS (catalogo maestro) las
+--            preguntas del Anexo 27 del servicio 2 (PUNCHE).
+--            Previamente se borraron las respuestas (anexo27_servicio2_global).
+-- Autor   : OpenCode (procedure-builder)
+-- Fecha   : 2026-08-19
+-- Alcance : solo lectura en este agente; el COMMIT/ROLLBACK lo decide
+--            el operador tras revisar el conteo previo.
+-- =============================================================================
+-- Notas:
+--   * Requiere que el bloque anexo27_servicio2_global haya sido ejecutado
+--     y commiteado (sino, ORA-02292 por FK SSI_ANEXOS_RESPUESTAS.AP_ID_PREGUNTA).
+--   * SI_ID_SERVICIO=2 (PUNCHE) y AP_NUM_ANEXO=27 validados en el schema.
+--   * Convencion: EXISTS con subquery, alias ap, identacion 3 espacios,
+--     terminador /, marcadores -- ! COMMIT; y -- ? ROLLBACK;.
+-- =============================================================================
+
+-- * 1. SELECT de validacion previa: conteo de preguntas candidatas a borrar
+SELECT
+   -- COUNT(1) AS total_preguntas_a_eliminar
+   ap.*
+FROM SSI_ANEXOS_PREGUNTAS ap
+WHERE ap.SI_ID_SERVICIO = 2
+   AND ap.AP_NUM_ANEXO  = 27
+/
+
+-- * 2. SELECT de verificacion de FK residual: debe devolver 0 filas
+--    (si devuelve >0, las respuestas NO fueron borradas/commiteadas y el DELETE fallara)
+SELECT
+   COUNT(1) AS respuestas_residuales
+FROM SSI_ANEXOS_RESPUESTAS ar
+WHERE EXISTS (
+   SELECT 1
+   FROM SSI_ANEXOS_PREGUNTAS ap
+   WHERE ap.AP_ID_PREGUNTA = ar.AP_ID_PREGUNTA
+      AND ap.SI_ID_SERVICIO = 2
+      AND ap.AP_NUM_ANEXO  = 27
+)
+/
+
+-- * 3. SELECT de dimensionamiento: cuantas preguntas por grupo dentro del Anexo 27
+SELECT
+   ap.AP_NUM_GRUPO,
+   COUNT(1) AS preguntas_por_grupo
+FROM SSI_ANEXOS_PREGUNTAS ap
+WHERE ap.SI_ID_SERVICIO = 2
+   AND ap.AP_NUM_ANEXO  = 27
+GROUP BY ap.AP_NUM_GRUPO
+ORDER BY ap.AP_NUM_GRUPO
+/
+
+-- * 4. SELECT de detalle: listado completo de preguntas a eliminar (para revision visual)
+SELECT
+   ap.AP_ID_PREGUNTA,
+   ap.AP_NUM_GRUPO,
+   ap.AP_NUM_PREGUNTA,
+   SUBSTR(ap.AP_PREGUNTA, 1, 80) AS AP_PREGUNTA_PREVIEW,
+   ap.AP_TIPO_CONTROL
+FROM SSI_ANEXOS_PREGUNTAS ap
+WHERE ap.SI_ID_SERVICIO = 2
+   AND ap.AP_NUM_ANEXO  = 27
+ORDER BY ap.AP_NUM_GRUPO, ap.AP_NUM_PREGUNTA
+/
+
+-- * 5. DELETE objetivo (mismo predicado que el conteo previo)
+DELETE FROM SSI_ANEXOS_PREGUNTAS ap
+WHERE ap.SI_ID_SERVICIO = 2
+   AND ap.AP_NUM_ANEXO  = 27
+/
+
+-- ! COMMIT;
+-- ? ROLLBACK;
+/
+
+
+UPDATE SSI_ANEXOS_PREGUNTAS ap
+   SET ap.AP_PREGUNTA = 'OBJETIVO ESPECÍFICO 4'
+WHERE 
+   ap.AP_ID_PREGUNTA = 1365
+/
+
+-- 1349 | Objetivo Específico 1 y 2
+-- 1358 | Objetivo Específico 3
+-- 1365 | Objetivo Específico 4
+
