@@ -83,6 +83,23 @@
 --         catalogo ya en JOIN con pf.ZO_ID_ZONA).
 --       Sin validacion EXISTS: si el ID no existe, el WHERE no devuelve
 --       filas (sin error), mismo patron que los filtros de fecha.
+--   * Anclaje del JOIN con SSI_UNIDAD_SESIONES: la sesion del reporte
+--     se toma del DET_PATFAM (dp.SE_ID_SESION), NO de la ejecucion
+--     (es.SE_ID_SESION). Razon: si una ejecucion guarda un SE_ID_SESION
+--     distinto al de su detalle, anclar por ejecucion multiplicaba
+--     filas (una misma ejecucion cruzada con varias sesiones del
+--     catalogo). Anclar al DET_PATFAM garantiza 1 sesion por ejecucion
+--     activa y elimina la duplicacion.
+--   * Anclaje del JOIN con SSI_UNIDADES, SSI_MODULOS y
+--     SSI_OBJETIVOS_ESPECIFICOS: las columnas UN_ID_UNIDAD,
+--     MO_ID_MODULO y OE_ID_OBJETIVO se leen DIRECTAMENTE desde
+--     SSI_DET_PATFAM (dp.UN_ID_UNIDAD, dp.MO_ID_MODULO, dp.OE_ID_OBJETIVO),
+--     NO se navega la cascada us -> un -> mo -> oe. Esto refuerza la
+--     fuente unica de verdad en el DET_PATFAM y evita multiplicacion
+--     cuando la jerarquia del catalogo no esta alineada con la
+--     ejecucion. Como regla de negocio: un DET_PATFAM activo no puede
+--     tener estas columnas en NULL (no existen DET_PATFAM huerfanos),
+--     por lo que el INNER JOIN es seguro.
 -- =============================================================
 
 CREATE OR REPLACE PROCEDURE PRC_PUNCHE_SESIONES_LISTAR (
@@ -120,6 +137,7 @@ BEGIN
          sub.PARTICIPANTES_PARENTESCO
       FROM (
          SELECT
+
             zi.ZO_ID_ZONA                                AS COD_ZON,
             zi.ZO_DESCRIPCION                            AS ZONA_INTERVENCION,
             NVL(
@@ -192,13 +210,13 @@ BEGIN
          JOIN SSI_FAMILIA_INTEGRANTES fi
             ON fi.PF_ID_FAMILIA = pf.PF_ID_FAMILIA
          JOIN SSI_UNIDAD_SESIONES us
-            ON us.SE_ID_SESION = es.SE_ID_SESION
-         JOIN SSI_UNIDADES un
-            ON un.UN_ID_UNIDAD = us.UN_ID_UNIDAD
-         JOIN SSI_MODULOS mo
-            ON mo.MO_ID_MODULO = un.MO_ID_MODULO
-         JOIN SSI_OBJETIVOS_ESPECIFICOS oe
-            ON oe.OE_ID_OBJETIVO = mo.OE_ID_OBJETIVO
+             ON us.SE_ID_SESION = dp.SE_ID_SESION
+JOIN SSI_UNIDADES un
+             ON un.UN_ID_UNIDAD = dp.UN_ID_UNIDAD
+          JOIN SSI_MODULOS mo
+             ON mo.MO_ID_MODULO = dp.MO_ID_MODULO
+          JOIN SSI_OBJETIVOS_ESPECIFICOS oe
+             ON oe.OE_ID_OBJETIVO = dp.OE_ID_OBJETIVO
          LEFT JOIN TGCATALOGO cat_sex
             ON cat_sex.IDCATALOGO = fi.CA_ID_SEXO
          LEFT JOIN TGCATALOGO cat_pare
@@ -249,6 +267,7 @@ END PRC_PUNCHE_SESIONES_LISTAR;
 /
 
 -- ! COMMIT;
+
 
 -- =============================================================
 -- ! DROP del SP con el nombre antiguo
@@ -368,4 +387,136 @@ BEGIN
    );
    DBMS_SQL.RETURN_RESULT(c_resultado_busqueda);
 END;
+/
+
+-- =============================================================
+-- Validacion post-cambio: conteo de filas vs. logica anterior.
+-- Ejecutar Caso 1 (sin filtros) y comparar el COUNT(*) con este
+-- SELECT directo (que replica la cadena JOIN actual). Si coincide,
+-- la duplicacion esta corregida sin perdidas.
+-- =============================================================
+SELECT
+   COUNT(*) AS total_directo
+FROM SSI_EJECUCION_SESIONES es
+JOIN SSI_DET_PATFAM dp
+   ON dp.DP_ID_DET_PATFAM = es.DP_ID_DET_PATFAM
+JOIN SSI_PATFAM pa
+   ON pa.PA_ID_PATFAM = dp.PA_ID_PATFAM
+JOIN SSI_POTENCIALES_FAMILIAS pf
+   ON pf.PF_ID_FAMILIA = pa.PF_ID_FAMILIA
+JOIN SSI_ZONA_INTERVENCION zi
+   ON zi.ZO_ID_ZONA = pf.ZO_ID_ZONA
+JOIN SSI_UNIDAD_SESIONES us
+   ON us.SE_ID_SESION = dp.SE_ID_SESION
+JOIN SSI_UNIDADES un
+   ON un.UN_ID_UNIDAD = dp.UN_ID_UNIDAD
+JOIN SSI_MODULOS mo
+   ON mo.MO_ID_MODULO = dp.MO_ID_MODULO
+JOIN SSI_OBJETIVOS_ESPECIFICOS oe
+   ON oe.OE_ID_OBJETIVO = dp.OE_ID_OBJETIVO
+JOIN SSI_FAMILIA_INTEGRANTES fi
+   ON fi.PF_ID_FAMILIA = pf.PF_ID_FAMILIA
+WHERE
+   es.ES_REALIZO_SESION = 1
+   AND es.ES_ESTADO      = 1
+   AND es.ES_ELIMINADO   = 0
+   AND dp.DP_ESTADO      = 1
+   AND dp.DP_ELIMINADO   = 0
+   AND pf.PF_ESTADO      = 1
+   AND pf.PF_ELIMINADO   = 0
+   AND fi.FI_CUIDADOR    = 1
+   AND fi.FI_ESTADO      = 1
+   AND fi.FI_ELIMINADO   = 0
+   AND zi.SI_ID_SERVICIO = 2
+   AND us.SE_ESTADO      = 1
+   AND us.SE_ELIMINADO   = 0
+/
+
+
+
+
+
+-- * D1 — ¿Cuántas filas devuelve el SP vs. el conteo esperado?
+-- Ejecuta el SP sin filtros (Caso 1) y captura el COUNT(*).
+-- Compáralo con este conteo directo:
+SELECT 
+   COUNT(*) AS total_esperado
+FROM SSI_EJECUCION_SESIONES es
+JOIN SSI_DET_PATFAM dp ON dp.DP_ID_DET_PATFAM = es.DP_ID_DET_PATFAM
+JOIN SSI_PATFAM pa ON pa.PA_ID_PATFAM = dp.PA_ID_PATFAM
+JOIN SSI_POTENCIALES_FAMILIAS pf ON pf.PF_ID_FAMILIA = pa.PF_ID_FAMILIA
+JOIN SSI_ZONA_INTERVENCION zi ON zi.ZO_ID_ZONA = pf.ZO_ID_ZONA
+JOIN SSI_UNIDAD_SESIONES us ON us.SE_ID_SESION = es.SE_ID_SESION
+JOIN SSI_FAMILIA_INTEGRANTES fi
+   ON fi.PF_ID_FAMILIA = pf.PF_ID_FAMILIA
+   AND fi.FI_CUIDADOR = 1
+   AND fi.FI_ESTADO = 1
+   AND fi.FI_ELIMINADO = 0
+WHERE
+   es.ES_REALIZO_SESION = 1
+   AND es.ES_ESTADO = 1
+   AND es.ES_ELIMINADO = 0
+   AND dp.DP_ESTADO = 1
+   AND dp.DP_ELIMINADO = 0
+   AND pa.PA_ESTADO = 1
+   AND pa.PA_ELIMINADO = 0
+   AND pf.PF_ESTADO = 1
+   AND pf.PF_ELIMINADO = 0
+   AND zi.SI_ID_SERVICIO = 2
+   AND us.SE_ESTADO = 1
+   AND us.SE_ELIMINADO = 0
+/
+
+-- * Si D1 > total del SP → el problema está en otra parte (no en este JOIN).
+-- Si D1 < total del SP → el SP está multiplicando (probablemente por el resto del LISTAGG o las subconsultas).
+-- D2 — Detectar familias con varios cuidadores activos (Causa #1)
+SELECT
+   fi.PF_ID_FAMILIA,
+   COUNT(*) AS cuidadores_activos
+FROM SSI_FAMILIA_INTEGRANTES fi
+WHERE
+   fi.FI_CUIDADOR = 1
+   AND fi.FI_ESTADO = 1
+   AND fi.FI_ELIMINADO = 0
+   AND EXISTS (
+      SELECT 1 FROM SSI_POTENCIALES_FAMILIAS pf
+      WHERE pf.PF_ID_FAMILIA = fi.PF_ID_FAMILIA
+         AND pf.SI_ID_SERVICIO = 2
+   )
+GROUP BY fi.PF_ID_FAMILIA
+HAVING COUNT(*) > 1
+/
+
+-- Si devuelve filas: Causa #1 confirmada.
+-- * D3 — Detectar DP con múltiples ejecuciones activas (Causa #2)
+SELECT
+   es.DP_ID_DET_PATFAM,
+   COUNT(*) AS ejecuciones_activas
+FROM SSI_EJECUCION_SESIONES es
+WHERE
+   es.ES_REALIZO_SESION = 1
+   AND es.ES_ESTADO = 1
+   AND es.ES_ELIMINADO = 0
+GROUP BY es.DP_ID_DET_PATFAM
+HAVING COUNT(*) > 1
+/
+
+-- * D4 — Detectar PATFAM con múltiples detalles activos (Causa #3)
+SELECT
+   dp.PA_ID_PATFAM,
+   COUNT(*) AS detalles_activos
+FROM SSI_DET_PATFAM dp
+WHERE
+   dp.DP_ESTADO = 1
+   AND dp.DP_ELIMINADO = 0
+GROUP BY dp.PA_ID_PATFAM
+HAVING COUNT(*) > 1
+/
+
+SELECT * FROM SSI_EJECUCION_SESIONES es
+WHERE
+   es.ES_ID_EJECUCION IN (
+      569,
+      18928
+   )
 /

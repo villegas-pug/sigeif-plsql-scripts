@@ -40,6 +40,9 @@ ALTER TABLE SSI_ANEXOS_CABECERA
 * Relación  : SSI_ESP_INTERVENCION (ubigeo por centro/servicio),
 *             SSI_ANEXO (ID_SERVICIO_PADRE del anexo),
 *             SSI_ANEXOS_CABECERA (cabecera), SSI_ANEXOS_RESPUESTAS_V2 (detalle).
+* Nota     : Si p_centro no existe en SSI_ESP_INTERVENCION, se usa ubigeo
+*             fallback '0000' y CODIGO_NNA queda como 'SEC0000-...' para
+*             identificación y migración posterior.
 */
 create or replace PROCEDURE USP_CREAR_ANEXO_COMPLETO (
     p_id_anexo           IN NUMBER,
@@ -72,13 +75,19 @@ BEGIN
 
     -- Generar código NNA: SEC[ubigeo dp+prov]-[año]-[correlativo 4 cifras]
     -- 1) Ubigeo (departamento + provincia) desde SSI_ESP_INTERVENCION
-    SELECT SUBSTR(ei.ESP_UBIGEO, 1, 4)
-    INTO v_ubigeo_dp_prov
-    FROM SSI_ESP_INTERVENCION ei
-    WHERE ei.ESP_NOMBRE = p_centro
-       AND ei.ID_SERVICIO_PADRE = p_id_servicio_padre
-       AND NVL(ei.ESP_ELIMINADO, 0) = 0
-       AND ROWNUM = 1;
+    -- * Fallback: si el centro no existe, usar '0000' como marcador explícito
+    BEGIN
+       SELECT SUBSTR(ei.ESP_UBIGEO, 1, 4)
+       INTO v_ubigeo_dp_prov
+       FROM SSI_ESP_INTERVENCION ei
+       WHERE ei.ESP_NOMBRE = p_centro
+          AND ei.ID_SERVICIO_PADRE = p_id_servicio_padre
+          AND NVL(ei.ESP_ELIMINADO, 0) = 0
+          AND ROWNUM = 1;
+    EXCEPTION
+       WHEN NO_DATA_FOUND THEN
+          v_ubigeo_dp_prov := '0000';  -- * Centro no registrado: marcador explícito para migración posterior
+    END;
 
     -- 2) Año en curso
     v_anio_curso := TO_CHAR(SYSDATE, 'YYYY');
@@ -204,16 +213,29 @@ BEGIN
     p_correlativo := v_correlativo;
 
 EXCEPTION
-    WHEN NO_DATA_FOUND THEN
-       RAISE_APPLICATION_ERROR(-20001,
-          'No existe SSI_ESP_INTERVENCION para p_centro=' || p_centro
-          || ' y p_id_servicio_padre=' || p_id_servicio_padre);
-    WHEN OTHERS THEN
-       ROLLBACK;
-       RAISE_APPLICATION_ERROR(-20001,
-          'USP_CREAR_ANEXO_COMPLETO: ' || SQLERRM
-          || ' (SQLCODE=' || SQLCODE || ')');
+   WHEN OTHERS THEN
+      ROLLBACK;
+      RAISE_APPLICATION_ERROR(-20001,
+         'USP_CREAR_ANEXO_COMPLETO: ' || SQLERRM
+         || ' (SQLCODE=' || SQLCODE || ')');
 END;
 /
 
--- ! COMMIT;
+-- ! `
+
+SELECT 
+    i.ID_SERVICIO_PADRE,
+    i.*
+FROM SSI_ESP_INTERVENCION i
+ORDER BY
+    i.ID_ESP_INTERV ASC
+/
+
+UPDATE SSI_ESP_INTERVENCION i
+    SET 
+        i.ID_SERVICIO_PADRE = 4
+WHERE
+    i.ID_SERVICIO_PADRE IS NULL
+/
+
+-- ? ROLLBACK;

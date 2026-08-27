@@ -77,6 +77,15 @@
 --         catalogo ya en JOIN con pf.ZO_ID_ZONA).
 --       Sin validacion EXISTS: si el ID no existe, el WHERE no devuelve
 --       filas (sin error), mismo patron que los filtros de fecha.
+--   * Jerarquía del taller: doble ruta (una sola presente por taller):
+--       Ruta 1 (sesión): ta.SE_ID_SESION -> us -> un -> mo -> oe
+--       Ruta 2 (tema):   ta.TE_ID_TEMA   -> te -> un -> mo -> oe
+--     Un taller tiene solo UNA de las dos (nunca ambas), por lo que la
+--     UNIDAD se resuelve con NVL(us.UN_ID_UNIDAD, te.UN_ID_UNIDAD) sin
+--     ambigüedad. Si el taller es por tema, el campo "SESIÓN" se muestra
+--     como 'NO APLICA'. Los JOINs de la cadena son LEFT para no excluir
+--     talleres vinculados por tema; el WHERE mantiene el filtro duro
+--     oe.SI_ID_SERVICIO = 2 (no existen talleres huérfanos sin objetivo).
 -- =============================================================
 
 CREATE OR REPLACE PROCEDURE PRC_PUNCHE_TALLERES_FAMILIAS_LISTAR (
@@ -116,7 +125,16 @@ BEGIN
          SELECT
             zi.ZO_ID_ZONA                                AS COD_ZON,
             zi.ZO_DESCRIPCION                            AS ZONA_INTERVENCION,
-            pf.PF_COD_FAMILIA                            AS CODIGO_FAMILIA,
+            
+            (
+                SELECT MAX(cf.CF_CODIGO)
+                FROM SSI_CODIGOS_FAMILIAS cf
+                WHERE cf.PF_ID_FAMILIA  = pf.PF_ID_FAMILIA
+                  AND cf.CF_TIPO_CODIGO = 1
+                  AND cf.CF_ESTADO      = 1
+                  AND cf.CF_ELIMINADO   = 0
+             )                                            AS CODIGO_FAMILIA,
+
             fi.FI_PRIMER_APE                             AS PRIMER_APELLIDO_CUIDADOR,
             fi.FI_SEGUNDO_APE                            AS SEGUNDO_APELLIDO_CUIDADOR,
             fi.FI_NOMBRES                                AS NOMBRES_CUIDADOR,
@@ -125,7 +143,7 @@ BEGIN
             oe.OE_DESCRIPCION                             AS OBJETIVO,
             mo.MO_DESCRIPCION                             AS "MÓDULO",
             un.UN_DESCRIPCION                             AS UNIDAD,
-            us.SE_DESCRIPCION                             AS "SESIÓN",
+             NVL(us.SE_DESCRIPCION, 'NO APLICA')             AS "SESIÓN",
             ta.TA_DESCRIPCION                             AS TALLER,
             CASE
                WHEN pt.PT_RESPONSABLES_DICTADO IS NULL
@@ -214,17 +232,22 @@ BEGIN
                ),
                'NO REGISTRA'
             )                                            AS PARENTESCO_PARTICIPANTES
-         FROM SSI_PROG_TALLERES pt
-         JOIN SSI_TALLERES ta
-            ON ta.TA_ID_TALLER = pt.TA_ID_TALLER
-         JOIN SSI_UNIDAD_SESIONES us
-            ON us.SE_ID_SESION = ta.SE_ID_SESION
-         JOIN SSI_UNIDADES un
-            ON un.UN_ID_UNIDAD = us.UN_ID_UNIDAD
-         JOIN SSI_MODULOS mo
-            ON mo.MO_ID_MODULO = un.MO_ID_MODULO
-         JOIN SSI_OBJETIVOS_ESPECIFICOS oe
-            ON oe.OE_ID_OBJETIVO = mo.OE_ID_OBJETIVO
+          FROM SSI_PROG_TALLERES pt
+          JOIN SSI_TALLERES ta
+             ON ta.TA_ID_TALLER = pt.TA_ID_TALLER
+          /* Ruta 1 (sesión): ta.SE_ID_SESION -> us -> un -> mo -> oe */
+          LEFT JOIN SSI_UNIDAD_SESIONES us
+             ON us.SE_ID_SESION = ta.SE_ID_SESION
+          /* Ruta 2 (tema): ta.TE_ID_TEMA -> te -> un -> mo -> oe.
+             Un taller tiene solo UNA de las dos rutas (nunca ambas). */
+          LEFT JOIN SSI_TEMAS te
+             ON te.TE_ID_TEMA = ta.TE_ID_TEMA
+          LEFT JOIN SSI_UNIDADES un
+             ON un.UN_ID_UNIDAD = NVL(us.UN_ID_UNIDAD, te.UN_ID_UNIDAD)
+          LEFT JOIN SSI_MODULOS mo
+             ON mo.MO_ID_MODULO = un.MO_ID_MODULO
+          LEFT JOIN SSI_OBJETIVOS_ESPECIFICOS oe
+             ON oe.OE_ID_OBJETIVO = mo.OE_ID_OBJETIVO
          JOIN SSI_PROG_TALLER_FAMILIAS ptf
             ON ptf.PT_ID_PROG_TALLER = pt.PT_ID_PROG_TALLER
          JOIN SSI_POTENCIALES_FAMILIAS pf
@@ -396,6 +419,17 @@ BEGIN
       p_fecha_fin => NULL,
       p_id_zona   => NULL
    );
+   DBMS_SQL.RETURN_RESULT(c_resultado_busqueda);
+END;
+/
+
+-- Caso 8: verificar talleres vinculados por TEMA (ruta TE_ID_TEMA).
+-- En el resultado deben aparecer los talleres con TE_ID_TEMA NOT NULL
+-- (ej. los 'No aplica' de los temas 1 y 3) con "SESIÓN" = 'NO APLICA'.
+DECLARE
+   c_resultado_busqueda SYS_REFCURSOR;
+BEGIN
+   PRC_PUNCHE_TALLERES_FAMILIAS_LISTAR(c_resultado_busqueda);
    DBMS_SQL.RETURN_RESULT(c_resultado_busqueda);
 END;
 /
