@@ -279,3 +279,12 @@ WHERE
 -- 1358 | Objetivo Específico 3
 -- 1365 | Objetivo Específico 4
 
+
+SELECT 
+   *
+FROM SSI_ESP_INTERVENCION i
+WHERE 
+   -- TRIM(UPPER(i.ESP_NOMBRE)) = 'CAR BASICO IKARO XOBO'
+   TRIM(UPPER(i.ESP_NOMBRE)) LIKE '%IKARO'
+   -- AND ID_SERVICIO_PADRE = 4;
+/

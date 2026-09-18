@@ -1,14 +1,14 @@
 ---
 name: generate-plsql
-description: Use ONLY when generating Oracle SQL, PL/SQL, DML, DDL, cleanup scripts, validation queries, table definitions, ALTER scripts, INSERT, UPDATE or DELETE statements for this SIGEIF database project.
+description: Use ONLY when building Oracle DML, DDL, cleanup, or migration scripts for this SIGEIF project. Do not use for SELECT queries, validation analysis, or PL/SQL program units.
 compatibility: opencode
 ---
 
 ## Que hago
 
-Genero sentencias Oracle SQL y PL/SQL para el proyecto SIGEIF, incluyendo DML,
-DDL, scripts de limpieza, consultas de validacion, definicion de tablas,
-constraints, secuencias y bloques transaccionales.
+Genero scripts Oracle DML, DDL, limpieza y migracion para el proyecto SIGEIF.
+No cubro SELECT general, analisis de integridad, optimizacion ni procedures,
+functions, triggers, packages o bloques PL/SQL.
 
 La generacion siempre debe basarse en el archivo:
 
@@ -21,7 +21,7 @@ contexto inicial suficiente.
 
 Contexto minimo requerido:
 - Objetivo funcional del script.
-- Tipo de script requerido: `DML`, `DDL`, limpieza, migracion, validacion, seed, procedure, function, trigger o bloque anonimo.
+- Tipo de script requerido: `DML`, `DDL`, limpieza o migracion.
 - Tablas, dominio funcional o entidades involucradas.
 - Criterio principal de filtrado cuando aplique, por ejemplo servicio, zona, familia, aliado, anexo, fase o integrante.
 - Archivo destino si el usuario pide insertar o modificar un `.sql` existente.
@@ -91,7 +91,7 @@ Columnas de auditoria comunes, adaptadas al prefijo de la tabla:
 
 ## Reglas para DML
 
-Para `SELECT`, `INSERT`, `UPDATE` y `DELETE`:
+Para `INSERT`, `UPDATE`, `DELETE` y sentencias auxiliares de prevalidacion:
 
 - Usar sintaxis Oracle nativa.
 - No usar `LIMIT`, `TOP`, `ISNULL`, `GETDATE` ni sintaxis de otros motores.
@@ -139,26 +139,7 @@ Para `CREATE TABLE`, `ALTER TABLE`, `CREATE SEQUENCE`, `DROP` o constraints:
 - Agregar FK solo si la tabla/columna referenciada existe en el schema.
 - Si una FK referenciada no tiene PK declarada en el schema, advertirlo antes de generar la constraint.
 
-## Reglas para PL/SQL
-
-Para procedures, functions, triggers o bloques anonimos:
-
-- Incluir seccion `EXCEPTION`.
-- Capturar `WHEN OTHERS THEN` como minimo.
-- Registrar o exponer `SQLCODE` y `SQLERRM` cuando sea posible.
-- Usar variables con prefijo `v_`, parametros con `p_`, cursores con `cur_`.
-- Usar `%TYPE` o `%ROWTYPE` cuando se referencie una columna del schema.
-- Incluir `SAVEPOINT` en bloques que ejecutan DML masivo cuando aplique.
-
 ## Formato de respuesta
-
-Cuando el usuario pida analisis:
-
-- Tablas candidatas.
-- Campos clave reales.
-- Relaciones FK relevantes.
-- Riesgos o dependencias no obvias.
-- Orden de ejecucion recomendado.
 
 Cuando el usuario pida codigo:
 
@@ -183,8 +164,6 @@ Antes de entregar o escribir codigo, validar:
 
 ## Propuestas de mejora sugeridas
 
-- Ofrecer modo `analisis` para listar tablas, dependencias y orden sin generar DML.
-- Ofrecer modo `validacion` para generar solo `SELECT COUNT(*)` por tabla.
 - Ofrecer modo `script seguro` con `SAVEPOINT`, `DELETE`, `ROLLBACK` comentado y `COMMIT` comentado.
 - Ofrecer modo `archivo` para insertar el script en un `.sql` existente.
 - Para DDL, sugerir indices sobre columnas FK y filtros frecuentes, sin crearlos automaticamente si no fueron solicitados.

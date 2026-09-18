@@ -1,12 +1,12 @@
 ---
 name: read-schema
-description: Parsea y extrae información clave del archivo data_base_schema.sql para proporcionar contexto estructurado de tablas, columnas, relaciones e índices antes de generar SQL
+description: Use when analyzing or building Oracle artifacts that require exact tables, columns, relationships, constraints, indexes, or sequences from plsql_scripts/oracle_schema_tables_catalog.md.
 compatibility: opencode
 ---
 
 ## Qué hago
 
-Leo y proceso el archivo `oracle_schema_tables_catalog.md` para extraer y organizar
+Leo y proceso el archivo `plsql_scripts/oracle_schema_tables_catalog.md` para extraer y organizar
 la información del modelo de datos antes de que se genere cualquier SQL.
 
 ## Información que extraigo
@@ -45,7 +45,6 @@ Cuando extraigo el schema, priorizo:
 
 ## Cuándo usarme
 
-Úsame siempre al inicio de cualquier tarea SQL para garantizar que el
-código generado use nombres exactos del schema y respete las
-relaciones definidas. Esto previene errores de compilación por nombres
-incorrectos.
+Úsame al inicio de análisis o construcción Oracle que requiera hechos del
+schema. No infieras tablas, columnas, secuencias, constraints ni relaciones
+cuando el catálogo no las confirme.

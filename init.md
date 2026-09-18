@@ -1,14 +1,22 @@
-# 1. Inicializa opencode en tu proyecto (si no lo has hecho)
-opencode init
+# Uso de OpenCode en este proyecto
 
-# 2. Usa los commands desde el TUI con /
-/query dame todos los pedidos del cliente con ID 100 del mes actual
-/procedure proceso de facturación mensual para todos los contratos activos
-/optimize SELECT * FROM TABLA_EJEMPLO WHERE COLUMNA_EJEMPLO = 'VALOR'
-/validate inserción masiva de 5000 registros en TABLA_EJEMPLO
-/document TABLA_EJEMPLO
+El proyecto personaliza los agentes built-in `plan` y `build` mediante los
+overrides locales `.opencode/agents/plan.md` y `.opencode/agents/build.md`.
+No son agentes primarios adicionales.
 
-# 3. O invoca los subagentes manualmente con @
-@query-builder genera una consulta para...
-@procedure-builder crea un trigger para...
-@sql-optimizer revisa esta query...
+1. Usa `Plan` para analizar una solicitud Oracle o Excel. El override delega
+   solo a analistas y devuelve un plan con riesgos, dependencias y archivos.
+2. Usa `Build` para implementar una solicitud o un plan aprobado. El override
+   delega solo al builder especializado y no implementa directamente.
+3. Describe la necesidad en lenguaje natural. No hay slash commands del
+   proyecto y no se debe invocar subagentes con `@`, porque se saltarían los
+   gates de Plan y Build.
+
+Ejemplos:
+
+- Plan: `Analiza una limpieza de datos para una familia y prepara el plan.`
+- Build: `Implementa el script aprobado en plsql_scripts/...`.
+- Plan: `Analiza una plantilla Excel pivotada para preguntas SIGEIF.`
+- Build: `Genera el archivo Excel pivotado con el SELECT y las rutas indicadas.`
+- Plan: `Analiza el poblado fuzzy de IDs desde este catálogo Excel.`
+- Build: `Completa los IDs de este Excel usando el catálogo y los cinco parámetros confirmados.`
