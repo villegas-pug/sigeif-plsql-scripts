@@ -19,24 +19,28 @@ an ambiguity.
 - A read-only `SELECT` may run only in an authorized flow such as Excel pivot, after the query is shown and the user confirms it.
 
 ## Plan and Build Architecture
-`.opencode/agents/plan.md` and `.opencode/agents/build.md` are project-local
-overrides of OpenCode's built-in `plan` and `build` agents. They are not
-additional primary agents.
+The project uses OpenCode's built-in `plan` and `build` primary agents. Their
+project-specific permissions are configured additively in
+`.opencode/opencode.json`; no project agent file overrides their prompts.
 
-`plan` delegates analysis only:
+`plan` retains its built-in planning behavior and delegates Oracle/Excel
+technical analysis through Task only to the following analysts:
 - `oracle-design-analyst`: schema, dependencies, and implementation options.
 - `oracle-validation-analyst`: integrity constraints and prevalidation.
 - `oracle-performance-analyst`: performance, indexes, and tuning risks.
 - `excel-template-analyst`: pivot/unpivot inputs, structure, and risks.
 
-`build` delegates implementation only:
+`build` retains its built-in implementation behavior and delegates Oracle/Excel
+domain implementation through Task only to the following builders:
 - `oracle-query-builder`: SELECT queries and views.
 - `oracle-script-builder`: DML, DDL, cleanup, and migration scripts.
 - `oracle-plsql-builder`: procedures, functions, triggers, packages, and anonymous blocks.
 - `excel-template-builder`: Excel pivot/unpivot files through the approved Python scripts.
 - `data-analytics`: fuzzy catalog resolution that populates IDs in a target Excel from a source catalog.
 
-Primary overrides do not edit files, load Skills, or implement domain work.
+The project configuration denies direct edits and Skills to these primary
+agents so domain work remains with the allowed specialists. The built-in
+prompts remain active; these rules add project orchestration and safety gates.
 Analysts are read-only. Builders do not delegate; Oracle builders may write
 only `.sql` artifacts under `plsql_scripts/`. The Excel builder may run only
 the two approved Python commands after permission confirmation. `data-analytics`

@@ -1,15 +1,17 @@
 # Uso de OpenCode en este proyecto
 
-El proyecto personaliza los agentes built-in `plan` y `build` mediante los
-overrides locales `.opencode/agents/plan.md` y `.opencode/agents/build.md`.
-No son agentes primarios adicionales.
+El proyecto usa los agentes primarios built-in `plan` y `build` de OpenCode.
+La configuracion especifica de SIGEIF se agrega en `.opencode/opencode.json`;
+no existen overrides locales de sus prompts.
 
-1. Usa `Plan` para analizar una solicitud Oracle o Excel. El override delega
-   solo a analistas y devuelve un plan con riesgos, dependencias y archivos.
-2. Usa `Build` para implementar una solicitud o un plan aprobado. El override
-   delega solo al builder especializado y no implementa directamente.
+1. Usa `Plan` para analizar una solicitud Oracle o Excel. Conserva su
+   comportamiento built-in y delega el analisis tecnico a los analistas
+   permitidos, devolviendo un plan con riesgos, dependencias y archivos.
+2. Usa `Build` para implementar una solicitud o un plan aprobado. Conserva su
+   comportamiento built-in y delega el trabajo de dominio a los builders
+   permitidos.
 3. Describe la necesidad en lenguaje natural. No hay slash commands del
-   proyecto y no se debe invocar subagentes con `@`, porque se saltarían los
+   proyecto y no se debe invocar subagentes con `@`, porque se saltarian los
    gates de Plan y Build.
 
 Ejemplos:
