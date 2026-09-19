@@ -17,3 +17,5 @@ venv/
 __pycache__/
 .DS_Store
 Thumbs.db
+# Variables de entorno (credenciales)
+.env
