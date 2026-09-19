@@ -13,9 +13,12 @@ from typing import Any, Iterable
 
 MAX_EXCEL_ROWS = 1_048_576
 FORMULA_PREFIXES = ("=", "+", "-", "@")
+CSV_NUMBER_PATTERN = re.compile(
+   r"^[+-]?(?:(?:\d+(?:\.\d*)?)|(?:\.\d+))(?:[eE][+-]?\d+)?$"
+)
 
 
-def load_env(path: Path) -> dict[str, str]:
+def load_env(path: Path, profile: str | None = None) -> dict[str, str]:
    values: dict[str, str] = {}
    if not path.exists():
       return values
@@ -32,6 +35,12 @@ def load_env(path: Path) -> dict[str, str]:
       if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
          value = value[1:-1]
       values[key.strip()] = value
+   selected_profile = (profile or values.get("ORACLE_PROFILE", "")).strip().upper()
+   if selected_profile:
+      suffix = f"_{selected_profile}"
+      for key, value in list(values.items()):
+         if key.endswith(suffix):
+            values[key[:-len(suffix)]] = value
    return values
 
 
@@ -48,7 +57,9 @@ def make_dsn(config: dict[str, str]) -> str:
          "Define ORACLE_DSN o bien ORACLE_HOST con ORACLE_SID/ORACLE_SERVICE_NAME."
       )
    import oracledb
-   return oracledb.makedsn(host=host, port=int(port), sid=sid, service_name=service_name)
+   if sid:
+      return oracledb.makedsn(host, int(port), sid=sid)
+   return oracledb.makedsn(host, int(port), service_name=service_name)
 
 
 def load_manifest(path: Path) -> dict[str, Any]:
@@ -63,6 +74,10 @@ def load_manifest(path: Path) -> dict[str, Any]:
          raise ValueError(f"Falta el campo obligatorio del manifiesto: {field}")
    if manifest["format"] not in {"xlsx", "csv"}:
       raise ValueError("format debe ser xlsx o csv.")
+   if "sheet_name" in manifest and (
+      not isinstance(manifest["sheet_name"], str) or not manifest["sheet_name"].strip()
+   ):
+      raise ValueError("sheet_name debe ser texto no vacio.")
    if not isinstance(manifest["queries"], list) or not manifest["queries"]:
       raise ValueError("queries debe contener al menos una consulta.")
    for index, query in enumerate(manifest["queries"], start=1):
@@ -122,6 +137,7 @@ def confirmation_hash(manifest: dict[str, Any]) -> str:
       "output": manifest["output"],
       "format": manifest["format"],
       "sheet_mode": manifest.get("sheet_mode", "one_per_result"),
+      "sheet_name": manifest.get("sheet_name", "Resultados"),
       "queries": [
          {
             "name": query.get("name", f"resultado_{index}"),
@@ -156,6 +172,11 @@ def safe_cell(value: Any) -> Any:
    return value
 
 
+def is_csv_number(value: str) -> bool:
+   """Identifica numeros CSV sin convertir ni modificar el valor exportado."""
+   return bool(CSV_NUMBER_PATTERN.fullmatch(value.strip()))
+
+
 def write_result_csv(cursor: Any, temporary_path: Path) -> tuple[list[str], int]:
    headers = parse_headers(cursor.description or [])
    row_count = 0
@@ -185,58 +206,60 @@ def safe_sheet_title(value: str, used: set[str]) -> str:
    return candidate
 
 
-def safe_table_name(value: str, index: int) -> str:
-   name = re.sub(r"[^A-Za-z0-9_]", "_", value)
-   name = re.sub(r"^[^A-Za-z_]", "", name)[:200] or f"Resultado_{index}"
-   if name[0].isdigit():
-      name = f"R_{name}"
-   return f"T_{name}_{index}"
+def append_csv_to_sheet(worksheet: Any, path: Path, start_row: int) -> int:
+   from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 
-
-def append_csv_to_sheet(worksheet: Any, path: Path, table_name: str, start_row: int) -> int:
-   from openpyxl.worksheet.table import Table, TableStyleInfo
+   border_side = Side(style="thin", color="808080")
+   block_border = Border(
+      left=border_side,
+      right=border_side,
+      top=border_side,
+      bottom=border_side,
+   )
+   header_fill = PatternFill(fill_type="solid", fgColor="D9D9D9")
+   header_font = Font(bold=True)
+   left_alignment = Alignment(horizontal="left")
+   right_alignment = Alignment(horizontal="right")
    with path.open("r", encoding="utf-8", newline="") as stream:
       reader = csv.reader(stream)
       first_row = start_row
       last_row = start_row - 1
       last_column = 0
       for row in reader:
-         last_row += 1
-         last_column = max(last_column, len(row))
-         worksheet.append([safe_cell(value) for value in row])
+          current_row = last_row + 1
+          last_column = max(last_column, len(row))
+          for column, value in enumerate(row, start=1):
+            cell = worksheet.cell(row=current_row, column=column, value=safe_cell(value))
+            cell.alignment = right_alignment if current_row != first_row and is_csv_number(value) else left_alignment
+          last_row = current_row
    if last_row >= first_row and last_column:
-      from openpyxl.utils import get_column_letter
-      reference = f"A{first_row}:{get_column_letter(last_column)}{last_row}"
-      table = Table(displayName=table_name, ref=reference)
-      table.tableStyleInfo = TableStyleInfo(
-         name="TableStyleMedium2",
-         showFirstColumn=False,
-         showLastColumn=False,
-         showRowStripes=True,
-         showColumnStripes=False,
-      )
-      worksheet.add_table(table)
+      for current_row in range(first_row, last_row + 1):
+         for column in range(1, last_column + 1):
+            cell = worksheet.cell(row=current_row, column=column)
+            cell.border = block_border
+            if current_row == first_row:
+                cell.font = header_font
+                cell.fill = header_fill
+                cell.alignment = left_alignment
    return last_row
 
 
-def write_xlsx(results: list[dict[str, Any]], output_path: Path, sheet_mode: str) -> None:
+def write_xlsx(
+   results: list[dict[str, Any]], output_path: Path, sheet_mode: str, sheet_name: str
+) -> None:
    from openpyxl import Workbook
    workbook = Workbook()
    workbook.remove(workbook.active)
    used_titles: set[str] = set()
    if sheet_mode == "same_sheet":
-      worksheet = workbook.create_sheet(safe_sheet_title("Resultados", used_titles))
+      worksheet = workbook.create_sheet(safe_sheet_title(sheet_name, used_titles))
       row = 1
       for index, result in enumerate(results, start=1):
-         row = append_csv_to_sheet(
-            worksheet, result["temporary_path"], safe_table_name(result["name"], index), row
-         ) + 2
+         row = append_csv_to_sheet(worksheet, result["temporary_path"], row) + 1
    else:
       for index, result in enumerate(results, start=1):
          worksheet = workbook.create_sheet(safe_sheet_title(result["name"], used_titles))
-         append_csv_to_sheet(
-            worksheet, result["temporary_path"], safe_table_name(result["name"], index), 1
-         )
+         append_csv_to_sheet(worksheet, result["temporary_path"], 1)
          worksheet.freeze_panes = "A2"
    output_path.parent.mkdir(parents=True, exist_ok=True)
    workbook.save(output_path)
@@ -258,13 +281,13 @@ def connect(config: dict[str, str]) -> Any:
    password = config.get("ORACLE_PASSWORD") or config.get("ORACLE_PWD")
    if not user or not password:
       raise ValueError("Define ORACLE_USER y ORACLE_PASSWORD en el archivo .env.")
-   connection_args: dict[str, Any] = {"user": user, "password": password, "dsn": make_dsn(config)}
-   if config.get("ORACLE_CONFIG_DIR"):
-      connection_args["config_dir"] = config["ORACLE_CONFIG_DIR"]
-   return oracledb.connect(**connection_args)
+   dsn = make_dsn(config)
+   return oracledb.connect(user=user, password=password, dsn=dsn)
 
 
-def export(manifest: dict[str, Any], env_path: Path) -> list[Path]:
+def export(
+   manifest: dict[str, Any], env_path: Path, profile: str | None = None
+) -> list[Path]:
    actual_hash = confirmation_hash(manifest)
    if manifest.get("confirmed_query_hash") != actual_hash:
       raise ValueError(
@@ -280,6 +303,7 @@ def export(manifest: dict[str, Any], env_path: Path) -> list[Path]:
    sheet_mode = manifest.get("sheet_mode", "one_per_result")
    if sheet_mode not in {"same_sheet", "one_per_result"}:
       raise ValueError("sheet_mode debe ser same_sheet o one_per_result.")
+   sheet_name = str(manifest.get("sheet_name", "Resultados"))
    if output_path.exists():
       raise FileExistsError(f"El archivo de salida ya existe: {output_path}")
 
@@ -288,7 +312,7 @@ def export(manifest: dict[str, Any], env_path: Path) -> list[Path]:
    results: list[dict[str, Any]] = []
    connection = None
    try:
-      connection = connect(load_env(env_path))
+      connection = connect(load_env(env_path, profile))
       for index, query in enumerate(manifest["queries"], start=1):
          name = str(query.get("name") or f"resultado_{index}")
          descriptor, temporary_name = tempfile.mkstemp(
@@ -313,7 +337,7 @@ def export(manifest: dict[str, Any], env_path: Path) -> list[Path]:
    too_large = any(result["row_count"] >= MAX_EXCEL_ROWS for result in results)
    effective_format = "csv" if too_large else requested_format
    if effective_format == "xlsx":
-      write_xlsx(results, output_path, sheet_mode)
+      write_xlsx(results, output_path, sheet_mode, sheet_name)
       created = [output_path]
    else:
       csv_output = output_path.with_suffix(".csv") if output_path.suffix.lower() == ".xlsx" else output_path
@@ -341,6 +365,11 @@ def parse_args() -> argparse.Namespace:
    parser.add_argument("--manifest", required=True, help="Manifiesto JSON con consultas, binds y salida.")
    parser.add_argument("--env-file", default=".env", help="Archivo de configuracion Oracle.")
    parser.add_argument(
+      "--profile",
+      default="PROD",
+      help="Perfil del archivo .env; por defecto PROD. Sus variables *_PROFILE se mapean a variables base.",
+   )
+   parser.add_argument(
       "--print-query-hash", action="store_true", help="Muestra el hash sin conectarse a Oracle."
    )
    return parser.parse_args()
@@ -352,7 +381,7 @@ def main() -> None:
    if args.print_query_hash:
       print(confirmation_hash(manifest))
       return
-   export(manifest, Path(args.env_file).expanduser())
+   export(manifest, Path(args.env_file).expanduser(), args.profile)
 
 
 if __name__ == "__main__":
