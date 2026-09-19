@@ -49,12 +49,12 @@ def get_engine():
    return create_engine(connection_string, poolclass=NullPool, echo=False)
 
 
-def execute_query(query: str) -> pd.DataFrame:
+def execute_query(query: str, bind_values: dict[str, object] | None = None) -> pd.DataFrame:
    engine = None
    try:
       engine = get_engine()
       with engine.connect() as conn:
-         df = pd.read_sql_query(sql=text(query), con=conn)
+          df = pd.read_sql_query(sql=text(query), con=conn, params=bind_values or {})
       logger.info('Consulta ejecutada exitosamente, filas encontradas: %s', len(df))
       return df
    finally:
@@ -114,47 +114,30 @@ def export_template(question_headers: pd.DataFrame, output_path: Path, empty_row
 
 
 def parse_args() -> argparse.Namespace:
-   parser = argparse.ArgumentParser(
-      description='Genera una plantilla Excel SIGEIF pivotada desde un SELECT.'
-   )
-   parser.add_argument(
-      '--sql-query',
-      required=True,
-      help='Sentencia SELECT fuente. Debe devolver AP_ID_PREGUNTA y AP_PREGUNTA.'
-   )
-   parser.add_argument(
-      '--output-dir',
-      required=True,
-      help='Directorio de salida donde se generara el template Excel.'
-   )
-   parser.add_argument(
-      '--output-file',
-      required=True,
-      help='Nombre del archivo de salida. Debe terminar en .xlsx.'
-   )
-   parser.add_argument(
-      '--sheet-name',
-      default=DEFAULT_SHEET_NAME,
-      help=f'Nombre de la hoja Excel. Default: {DEFAULT_SHEET_NAME}'
-   )
-   parser.add_argument(
-      '--empty-template-rows',
-      type=int,
-      default=DEFAULT_EMPTY_TEMPLATE_ROWS,
-      help=f'Cantidad de filas vacias numeradas. Default: {DEFAULT_EMPTY_TEMPLATE_ROWS}'
-   )
-   args = parser.parse_args()
-
-   if not args.sql_query.strip().upper().startswith('SELECT'):
-      raise ValueError('El parametro --sql-query debe ser una sentencia SELECT.')
-
-   if not args.output_file.lower().endswith('.xlsx'):
-      raise ValueError('El parametro --output-file debe terminar en .xlsx.')
-
-   if args.empty_template_rows < 1:
-      raise ValueError('El parametro --empty-template-rows debe ser mayor o igual a 1.')
-
-   return args
+    parser = argparse.ArgumentParser(
+       description='Genera una plantilla Excel SIGEIF pivotada desde un SELECT.'
+    )
+    parser.add_argument('--sql-query', required=True,
+       help='Sentencia SELECT fuente. Debe devolver AP_ID_PREGUNTA y AP_PREGUNTA.')
+    parser.add_argument('--output-dir', required=True,
+       help='Directorio de salida donde se generara el template Excel.')
+    parser.add_argument('--output-file', required=True,
+       help='Nombre del archivo de salida. Debe terminar en .xlsx.')
+    parser.add_argument('--sheet-name', default=DEFAULT_SHEET_NAME,
+       help=f'Nombre de la hoja Excel. Default: {DEFAULT_SHEET_NAME}')
+    parser.add_argument('--empty-template-rows', type=int,
+       default=DEFAULT_EMPTY_TEMPLATE_ROWS,
+       help=f'Cantidad de filas vacias numeradas. Default: {DEFAULT_EMPTY_TEMPLATE_ROWS}')
+    parser.add_argument('--bind', action='append', default=[], metavar='NOMBRE=VALOR',
+       help='Bind numerico de la consulta; puede repetirse.')
+    args = parser.parse_args()
+    if not args.sql_query.strip().upper().startswith('SELECT'):
+       raise ValueError('El parametro --sql-query debe ser una sentencia SELECT.')
+    if not args.output_file.lower().endswith('.xlsx'):
+       raise ValueError('El parametro --output-file debe terminar en .xlsx.')
+    if args.empty_template_rows < 1:
+       raise ValueError('El parametro --empty-template-rows debe ser mayor o igual a 1.')
+    return args
 
 
 def main() -> None:
@@ -162,8 +145,17 @@ def main() -> None:
    output_dir = Path(args.output_dir).expanduser()
    output_path = output_dir / args.output_file
    sheet_name = args.sheet_name.strip() or DEFAULT_SHEET_NAME
+   bind_values: dict[str, object] = {}
+   for bind in args.bind:
+      name, separator, value = bind.partition('=')
+      if not separator or not name.strip() or not value.strip():
+         raise ValueError(f'Bind invalido: {bind}. Usa NOMBRE=VALOR.')
+      try:
+         bind_values[name.strip()] = int(value.strip())
+      except ValueError as exc:
+         raise ValueError(f'El bind debe ser numerico: {bind}') from exc
 
-   df = execute_query(args.sql_query)
+   df = execute_query(args.sql_query, bind_values)
    question_headers = build_question_headers(df)
    export_template(question_headers, output_path, args.empty_template_rows, sheet_name)
    logger.info('Total columnas pivotadas: %s', len(question_headers))
