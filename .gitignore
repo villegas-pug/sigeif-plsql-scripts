@@ -26,3 +26,6 @@ Thumbs.db
 
 # Manifiestos locales de exportacion; pueden contener binds sensibles
 py_notebooks/export_manifests/*.json
+
+# Salidas generadas de exportacion (datos y manifiestos)
+py_notebooks/output/
