@@ -1,4 +1,4 @@
-# Documentos de Office y Reportes (Excel, Word, etc.)
+﻿# Documentos de Office y Reportes (Excel, Word, etc.)
 *.xlsx
 *.xls
 *.docx
@@ -6,16 +6,23 @@
 *.csv
 *.pdf
 
-# Archivos temporales de Office (¡Evita que se suban archivos ocultos corruptos!)
+# Archivos temporales de Office
 ~$*.cx
 ~$*.xlsx
 ~$*.docx
 
-# Carpetas del sistema o entornos virtuales (Opcional pero recomendado)
+# Carpetas del sistema y entornos virtuales
 .venv/
 venv/
 __pycache__/
 .DS_Store
 Thumbs.db
-# Variables de entorno (credenciales)
+
+# Variables de entorno con credenciales
 .env
+.env.local
+.env.*.local
+!.env.example
+
+# Manifiestos locales de exportacion; pueden contener binds sensibles
+py_notebooks/export_manifests/*.json

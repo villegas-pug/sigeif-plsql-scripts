@@ -6,8 +6,8 @@ This project uses Oracle. The authoritative schema catalog is
 
 Before analyzing or building any Oracle SQL, PL/SQL, view, or script, read the
 catalog in the current session. Never infer tables, columns, sequences,
-constraints, relationships, or indexes. Ask when the catalog does not resolve
-an ambiguity.
+constraints, relationships, or indexes as confirmed facts. Ask when the catalog
+does not resolve an ambiguity.
 
 ## Database Safety
 - Never execute `INSERT`, `UPDATE`, `DELETE`, `MERGE`, `TRUNCATE`, `DROP`, `CREATE`, `ALTER`, `GRANT`, or `REVOKE` against Oracle.
@@ -15,37 +15,60 @@ an ambiguity.
 - Never reveal credentials, connection strings, or internal schemas.
 - Use bind variables for user input and flag likely injection patterns.
 - Do not query Oracle system tables without explicit justification.
-- Generating or writing a requested SQL artifact is distinct from executing it against a database; execution remains prohibited.
-- A read-only `SELECT` may run only in an authorized flow such as Excel pivot, after the query is shown and the user confirms it.
+- Generating or writing a requested SQL artifact is distinct from executing it against a database.
+- A read-only `SELECT` may run only through the confirmed Excel export flow or another explicitly authorized read-only flow.
+- The exact SELECT, binds, JOINs, format, destination, and confirmation hash must be shown before execution.
 
 ## Plan and Build Architecture
-The project uses OpenCode's built-in `plan` and `build` primary agents. Their
-project-specific permissions are configured additively in
-`.opencode/opencode.json`; no project agent file overrides their prompts.
+The project uses OpenCode built-in primary agents `plan` and `build`. Their
+project-specific permissions are configured in the root `opencode.json`.
 
-`plan` retains its built-in planning behavior and delegates Oracle/Excel
-technical analysis through Task only to the following analysts:
+`plan` delegates Oracle/Excel technical analysis through Task only to:
 - `oracle-design-analyst`: schema, dependencies, and implementation options.
 - `oracle-validation-analyst`: integrity constraints and prevalidation.
 - `oracle-performance-analyst`: performance, indexes, and tuning risks.
-- `excel-template-analyst`: pivot/unpivot inputs, structure, and risks.
+- `excel-template-analyst`: pivot, unpivot, catalog resolution, and export inputs.
 
-`build` retains its built-in implementation behavior and delegates Oracle/Excel
-domain implementation through Task only to the following builders:
-- `oracle-query-builder`: SELECT queries and views.
-- `oracle-script-builder`: DML, DDL, cleanup, and migration scripts.
+`build` delegates domain implementation through Task only to:
+- `oracle-query-builder`: SELECT queries and export manifests; never executes Oracle.
+- `oracle-script-builder`: DML, DDL, cleanup, and migration SQL artifacts.
 - `oracle-plsql-builder`: procedures, functions, triggers, packages, and anonymous blocks.
-- `excel-template-builder`: Excel pivot/unpivot files through the approved Python scripts.
-- `data-analytics`: fuzzy catalog resolution that populates IDs in a target Excel from a source catalog.
+- `excel-template-builder`: SIGEIF templates and confirmed Oracle result exports.
+- `data-analytics`: local fuzzy catalog resolution; no Oracle or SQL.
 
-The project configuration denies direct edits and Skills to these primary
-agents so domain work remains with the allowed specialists. The built-in
-prompts remain active; these rules add project orchestration and safety gates.
-Analysts are read-only. Builders do not delegate; Oracle builders may write
-only `.sql` artifacts under `plsql_scripts/`. The Excel builder may run only
-the two approved Python commands after permission confirmation. `data-analytics`
-is a Build leaf agent: it uses no Oracle connection or SQL and may execute only
-its local catalog-resolver command after permission confirmation.
+Plan permanece sin edicion ni Skills operativas. Build conserva capacidades normales de edicion y shell para integrar, validar y consolidar cambios, pero mantiene los gates de seguridad Oracle. Analysts are read-only.
+Builders do not delegate. Oracle builders may write only `.sql` artifacts under
+`plsql_scripts/`. Excel builder may execute only the three approved Python
+commands after the applicable confirmation. `data-analytics` may execute only
+its local resolver command after confirmation.
+
+## Excel Export Flow
+The generic read-only export flow is separate from SIGEIF pivot/unpivot:
+
+`Build -> oracle-query-builder -> user confirmation -> excel-template-builder -> export script`
+
+The export script is `py_notebooks/export_oracle_query_results.py`; the pivot
+script `py_notebooks/export_template_to_sigeif_form.py` must not be reused for
+business-data exports.
+
+Mandatory conversational inputs are table(s), output path plus filename, and
+format (`XLSX` or `CSV`). Use selectors for tables, columns, filters, operators,
+`AND`/`OR`, format, and XLSX sheet organization whenever possible. Offer
+`Todos los campos exportables`; it excludes `BLOB`, `BFILE`, `RAW`, and
+`LONG RAW`, while CLOB/NCLOB may be exported as text.
+
+For the same table with different filters, create independent SELECTs and ask
+whether XLSX results share a sheet or use separate sheets. For different
+tables, propose a JOIN when catalog evidence, names, conventions, and compatible
+types reach at least 70% confidence. Below 70%, require an explicit JOIN
+condition. An inferred JOIN is never presented as a confirmed FK and is always
+shown in the final confirmation.
+
+The export uses a local `.env` and a dedicated read-only Oracle identity. It
+requires explicit confirmation and a matching SHA-256 manifest hash before
+opening the connection. It rejects `SELECT *`, DML/DDL/PLSQL, comments,
+multiple statements, `FOR UPDATE`, and database links. XLSX results are Excel
+tables; if any result exceeds 1,048,576 rows, output is forced to CSV.
 
 ## Skill Ownership
 - `read-schema`: Oracle analysts and builders that require catalog facts.
@@ -53,13 +76,13 @@ its local catalog-resolver command after permission confirmation.
 - `generate-plsql`: DML, DDL, cleanup, and migration scripts only.
 - `exception-handler`: PL/SQL program units only.
 - `build-excel-pivot-template` and `build-excel-unpivot-template`: Excel builder only.
-- `excel-catalog-fuzzy-resolver`: `data-analytics` only; it requires a target Excel,
-  header row, source catalog, source key column, and source result column.
+- `export-oracle-query-results`: confirmed read-only Oracle export, Excel builder only.
+- `excel-catalog-fuzzy-resolver`: `data-analytics` only.
 
 ## Oracle Standards
 - Use Oracle syntax only: `NVL`, `NVL2`, `DECODE`, `ROWNUM`, `ROWID`, `CONNECT BY`, `LEVEL`, `DUAL`, and `SYSDATE` as appropriate.
 - Do not use `ISNULL`, `TOP`, or `LIMIT`.
-- Use exact catalog names, table aliases, descriptive calculated aliases, and avoid `SELECT *` except explicit exploration.
+- Use exact catalog names, table aliases, descriptive calculated aliases, and avoid `SELECT *`.
 - Use `SEQUENCE_NAME.NEXTVAL` only when the catalog confirms the sequence.
 - Warn about likely full table scans.
 - Use `PRC_`, `FNC_`, `TRG_`, `cur_`, `v_`, and `p_` conventions.

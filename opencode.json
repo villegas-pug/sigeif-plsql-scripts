@@ -39,7 +39,7 @@
         "glob": "allow",
         "grep": "allow",
         "list": "allow",
-        "edit": "deny",
+        "edit": "allow",
         "bash": "allow",
         "task": {
           "*": "deny",
