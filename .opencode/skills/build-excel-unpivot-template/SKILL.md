@@ -12,8 +12,9 @@ Antes de ejecutar este flujo, se debe contar obligatoriamente con:
 
 - un `input_file` `.xlsx` generado desde `build-excel-pivot-template`
 - un `output_file` `.xlsx` con ruta completa
+- un `family_map_file` `.xlsx` con `COD_FAMILIA` y `PF_ID_FAMILIA`
 
-Si falta cualquiera de esos dos datos, se debe detener la ejecucion y
+Si falta cualquiera de esos tres datos, se debe detener la ejecucion y
 preguntarlos. No se debe asumir ni inventar valores.
 
 ## Que hace
@@ -59,11 +60,12 @@ No usar para:
 
 ## Maestro de familias
 
-El script busca por defecto un archivo llamado:
+El script admite por compatibilidad un archivo llamado:
 
 `cod_familia_+_id_Familia.xlsx`
 
-en la misma carpeta del `input_file`.
+en la misma carpeta del `input_file`, pero el flujo debe recibir o validar
+explicitamente esa ruta antes de ejecutar.
 
 Ese archivo debe contener exactamente estas columnas:
 
@@ -85,12 +87,13 @@ El Excel de salida debe tener estas columnas en este orden:
 
 1. Verificar que exista `input_file`.
 2. Verificar que exista `output_file` y que termine en `.xlsx`.
-3. Leer el archivo pivotado respetando fila 1 y fila 2 como metadatos.
-4. Resolver el maestro `COD_FAMILIA | PF_ID_FAMILIA` en la misma carpeta del input.
-5. Validar que el maestro contenga las columnas requeridas.
-6. Despivotar las columnas de preguntas a filas.
-7. Mantener `AR_RESPUESTA` vacia en blanco.
-8. Exportar el resultado sin la columna `COD_FAMILIA`.
+3. Verificar que exista `family_map_file`.
+4. Leer el archivo pivotado respetando fila 1 y fila 2 como metadatos.
+5. Leer el maestro `COD_FAMILIA | PF_ID_FAMILIA` desde la ruta recibida.
+6. Validar que el maestro contenga las columnas requeridas.
+7. Despivotar las columnas de preguntas a filas.
+8. Mantener `AR_RESPUESTA` vacia en blanco.
+9. Exportar el resultado sin la columna `COD_FAMILIA`.
 
 ## Implementacion actual del proyecto
 
@@ -105,7 +108,8 @@ El flujo se debe ejecutar con una forma equivalente a esta:
 ```bash
 python py_notebooks/unpivot_sigeif_form.py \
   --input-file "./source/punche/ficha_identificacion_plantilla.xlsx" \
-  --output-file "./source/punche/ficha_identificacion_unpivot.xlsx"
+  --output-file "./source/punche/ficha_identificacion_unpivot.xlsx" \
+  --family-map-file "./source/punche/cod_familia_+_id_Familia.xlsx"
 ```
 
 ## Nota operativa

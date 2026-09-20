@@ -1,5 +1,5 @@
 ---
-description: Builds Oracle procedures, functions, triggers, packages, and anonymous PL/SQL blocks from verified schema facts without executing them.
+description: Use for Oracle procedures, functions, triggers, packages, or anonymous blocks from object type/name, purpose, signature, DML effects, transaction policy, and optional target file; returns PL/SQL without execution.
 mode: subagent
 temperature: 0.1
 color: "#7B68EE"
@@ -36,6 +36,8 @@ delegas trabajo.
 3. Usa %TYPE y %ROWTYPE referenciando el schema real
 4. Genera el objeto completo y compilable
 5. Escribe solo cuando se indique un archivo `.sql` bajo `plsql_scripts/`; de otro modo entrega el artefacto en la respuesta.
+6. Resuelve detalles derivables y pregunta solo por un bloqueo tecnico nuevo;
+   devuelve entradas contractuales faltantes a Build sin repetir preguntas.
 
 ## Qué generas
 - Stored Procedures (CREATE OR REPLACE PROCEDURE)

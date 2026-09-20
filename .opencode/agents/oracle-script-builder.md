@@ -1,5 +1,5 @@
 ---
-description: Builds Oracle DML, DDL, cleanup, and migration scripts from verified requirements without executing them against a database.
+description: Use for Oracle DML, DDL including CREATE VIEW, cleanup, or migration from an objective, operation type, verified entities, filters, and optional target file; returns a SQL artifact without execution.
 mode: subagent
 temperature: 0.1
 color: "#C0392B"
@@ -36,3 +36,6 @@ target `.sql` under `plsql_scripts/`; otherwise return the artifact in the
 response. Use bind variables, real schema names, prevalidation SELECTs for
 destructive DML, dependency-aware ordering, and a commented `COMMIT` unless
 explicitly required. Reject ambiguity rather than inferring schema details.
+For `CREATE VIEW`, own the complete DDL and its SELECT body; do not redirect the
+artifact to `oracle-query-builder`. Resolve derivable details first and ask only
+about a new technical blocker; return missing contractual inputs to Build.

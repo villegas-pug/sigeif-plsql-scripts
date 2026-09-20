@@ -136,13 +136,16 @@ WHERE
 /
 
 SELECT
-   /* f.FI_CATEGORIA_OCUPACIONAL,
-   f.* */
-   COUNT(1)
+   -- i.FI_CATEGORIA_OCUPACIONAL,
+   i.*
+   -- COUNT(1)
 FROM SSI_FAMILIA_INTEGRANTES i
 JOIN SSI_POTENCIALES_FAMILIAS f ON i.PF_ID_FAMILIA = f.PF_ID_FAMILIA
 WHERE
    f.SI_ID_SERVICIO = 1
+/
+
+SELECT * FROM SSI_CODIGOS_FAMILIAS
 /
 
 -- pívot
@@ -154,11 +157,14 @@ SELECT
 FROM SSI_ANEXOS_PREGUNTAS p
 WHERE 
    p.Si_ID_SERVICIO = 1 -- CEDIF
-   AND p.AP_NUM_ANEXO = 1
+   -- AND p.AP_NUM_ANEXO = 1 -- * Preseleccion
+   -- AND p.AP_NUM_ANEXO = 2 -- * Socio Familiar
+   AND p.AP_NUM_ANEXO = 5 -- * Evaluación Psciológica Familiar
+ORDER BY
+   p.AP_ID_PREGUNTA ASC
 /
 
 -- ! COMMIT;
-
 
 
    
