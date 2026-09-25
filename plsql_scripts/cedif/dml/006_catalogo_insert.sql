@@ -157,16 +157,43 @@ SELECT
 FROM SSI_ANEXOS_PREGUNTAS p
 WHERE 
    p.Si_ID_SERVICIO = 1 -- CEDIF
+   -- * Familia:
    -- AND p.AP_NUM_ANEXO = 1 -- * Preseleccion
    -- AND p.AP_NUM_ANEXO = 2 -- * Socio Familiar
-   AND p.AP_NUM_ANEXO = 5 -- * Evaluación Psciológica Familiar
+   -- AND p.AP_NUM_ANEXO = 5 -- * Evaluación Psciológica Familiar
+   -- AND p.AP_NUM_ANEXO = 6 -- * Evaluación Competencias Parentales
+   -- AND p.AP_NUM_ANEXO = 3 -- * Visita Domiciliaria
+
+   -- * NNA
+   -- AND p.AP_NUM_ANEXO = 1 -- * Preseleccion nna
+   -- AND p.AP_NUM_ANEXO = 8 -- * Consentimiento nna
+   -- AND p.AP_NUM_ANEXO = 9 -- * Compromiso nna
+   -- AND p.AP_NUM_ANEXO = 11 -- * Autorizacion nna
+   -- AND p.AP_NUM_ANEXO = 12 -- * Evaluación educativa nna
+   -- AND p.AP_NUM_ANEXO = 13 -- * Cotejo nna
+   AND p.AP_NUM_ANEXO = 17 -- * Egreso nna
 ORDER BY
    p.AP_ID_PREGUNTA ASC
 /
 
 -- ! COMMIT;
 
+1. `#/evaluacion-nna`. En el alta de **LISTA DE COTEJO PARA NIÑAS Y NIÑOS DE 5 AÑOS A 5 AÑOS 11 MESES** se registra el **anexo 13**
+2. `C:\work-space\sigeif-app\microservices_backend\business-domain\cedif`
+3. `C:\work-space\sigeif-app\sigeif_ssi_inabif_plsql\py_notebooks\output\cedif\13_cotejo_nna.xlsx` 
+4. ALTA
 
-   
+No eliminar columnas de A:D
+1. `#/egreso`. En el alta de **EDITAR FICHA DE EGRESO CEDIF** se registra el **anexo 17**
+2. `C:\work-space\sigeif-app\microservices_backend\business-domain\cedif`
+3. `C:\work-space\sigeif-app\sigeif_ssi_inabif_plsql\py_notebooks\output\cedif\17_egreso_nna.xlsx` 
+4. ALTA
+
+No eliminar columnas de A:D
+/
 
 
+
+
+SELECT * FROM SSI_DET_PATFAM 
+/

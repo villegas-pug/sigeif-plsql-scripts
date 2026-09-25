@@ -2346,8 +2346,20 @@ INSERT INTO TGCATALOGO(
    SELECT NULL, 119, 3, 13, 'OTRO(A) NO PARIENTE', 1, 1, SYSDATE FROM DUAL
 /
 
+INSERT INTO TGCATALOGO(
+               IDCATALOGO, 
+               CATGRUPO, 
+               CATSUBGRUPO, 
+               CATTIPO, 
+               CATDESCRIPCION, 
+               CATESTADO, 
+               CATUSUREGISTRA, 
+               CATFECREGISTRA
+) 
+   SELECT NULL, 119, 3, 11, 'TUTOR/A', 1, 1, SYSDATE FROM DUAL
+/
 
-
+-- ! COMMIT;
 
 
 DELETE FROM TGCATALOGO c

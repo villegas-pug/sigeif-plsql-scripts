@@ -89,10 +89,10 @@
 -- =============================================================
 
 CREATE OR REPLACE PROCEDURE PRC_PUNCHE_TALLERES_FAMILIAS_LISTAR (
-   p_cursor_out OUT SYS_REFCURSOR,
    p_fecha_ini  IN  DATE     DEFAULT NULL,
    p_fecha_fin  IN  DATE     DEFAULT NULL,
-   p_id_zona    IN  NUMBER   DEFAULT -1
+   p_id_zona    IN  NUMBER   DEFAULT -1,
+   p_cursor_out OUT SYS_REFCURSOR
 )
 IS
    v_error_code    NUMBER;

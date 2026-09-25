@@ -953,11 +953,12 @@ CREATE OR REPLACE TYPE O_FAMILIA_INTEGRANTE AS OBJECT (
    TIPODISCAPACIDAD VARCHAR2(200),
    TIENEDISCAPACIDAD NUMBER,
    
-   -- * Nuevo
    ALGUNINTEGRANTETIENEPROBLEMASALUD NUMBER(1),
    VIAINGRESONNACEDIF VARCHAR2(200),
    MEDIOINGRESONNACEDIF VARCHAR2(200),
    OCUPACION VARCHAR2(200),
+
+   -- * Nuevo
    OTRALENGUAMATERNA VARCHAR2(200),
    OTRACOSTUMBRE VARCHAR2(200),
    OTRAINSTITUCIONDERIVADORA VARCHAR2(200),
@@ -1120,11 +1121,12 @@ BEGIN
             FI_TIPO_DISCAPACIDAD,
             CA_TIENE_DISCAPACIDAD,
 
-            -- * Nuevo
             FI_ALGUN_INTEGRANTE_TIENE_PROBLEMA_SALUD,
             FI_VIA_INGRESO_NNA_CEDIF,
             FI_MEDIO_INGRESO_NNA_CEDIF,
             FI_OCUPACION,
+
+            -- * Nuevo
             FI_OTRA_LENGUA_MATERNA,
             FI_OTRA_COSTUMBRE,
             FI_OTRA_INSTITUCION_DERIVADORA,
@@ -1191,12 +1193,12 @@ BEGIN
             p_potencial_familia.INTEGRANTES(i).GRADOINSTRUCCION,
             p_potencial_familia.INTEGRANTES(i).TIPODISCAPACIDAD,
             p_potencial_familia.INTEGRANTES(i).TIENEDISCAPACIDAD,
-
-            -- * Nuevo
             p_potencial_familia.INTEGRANTES(i).ALGUNINTEGRANTETIENEPROBLEMASALUD,
             p_potencial_familia.INTEGRANTES(i).VIAINGRESONNACEDIF,
             p_potencial_familia.INTEGRANTES(i).MEDIOINGRESONNACEDIF,
             p_potencial_familia.INTEGRANTES(i).OCUPACION,
+
+            -- * Nuevo
             p_potencial_familia.INTEGRANTES(i).OTRALENGUAMATERNA,
             p_potencial_familia.INTEGRANTES(i).OTRACOSTUMBRE,
             p_potencial_familia.INTEGRANTES(i).OTRAINSTITUCIONDERIVADORA,
@@ -1253,58 +1255,65 @@ END;
 
 -- ! COMMIT;
 
+SELECT * FROM SSI_ZONA_INTERVENCION
+/
+
 -- 11.3 Llamar al procedimiento almacenado:
--- SELECT * FROM TGUNIDADORGANICA;
 BEGIN
    USP_GUARDAR_POTENCIAL_FAMILIA(
       1, -- CEDIF
       -- 2, -- PUNCHE
       O_POTENCIAL_FAMILIA(
-         'TMP0001-0001', 205, 197, 4, 1, '', 1, SYSDATE,
+         'TMP0001-0001', 377, 197, 4, 1, '', 1, SYSDATE, -- * Se conservan valores actuales (205/197 son de Punche; para CEDIF puro irían NULL)
          T_FAMILIA_MOTIVOS_REFERENCIA(
             O_FAMILIA_MOTIVO_REFERENCIA(1),
             O_FAMILIA_MOTIVO_REFERENCIA(2)
          ),
          T_FAMILIA_INTEGRANTES(
             O_FAMILIA_INTEGRANTE(
-               1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-               '46392613',
-               'NOMBRES',
-               'PRIMERAPE',
-               'SEGUNDOAPE',
-               'APELLIDOCASADO',
-               SYSDATE,
-               15,
-               'TELEFONO',
-               'CORREO',
-               '01',
-               '01',
-               '01',
-               'DIRECCION',
-               'REFERENCIADOMICILIARIA',
-               'GRADOSECCIONNNA',
-               1,
-               'NOMBREINSTITUCIONEDUCATIVA',
-               'PESO',
-               'TALLA',
-               22.5,
-               60.5,
-               1,
-               NULL,
-               NULL,
-               NULL,
-               NULL,
-               NULL,
-               1
+               1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,          -- 1-14: IDs catálogo
+               '46392613',                                        -- 15 NUMERODOC
+               'NOMBRES', 'PRIMERAPE', 'SEGUNDOAPE',              -- 16-18
+               'APELLIDOCASADO',                                  -- 19
+               SYSDATE,                                           -- 20 FECNAC
+               15,                                                -- 21 EDAD
+               'TELEFONO', 'CORREO',                              -- 22-23
+               '01', '01', '01',                                  -- 24-26 Dpto/Prov/Dist
+               'DIRECCION', 'REFERENCIADOMICILIARIA',             -- 27-28
+               'GRADOSECCIONNNA',                                 -- 29
+               1,                                                 -- 30 ANIO_ANT_PROMOVIDO (CHECK 0/1)
+               'NOMBREINSTITUCIONEDUCATIVA',                      -- 31
+               'PESO', 'TALLA',                                   -- 32-33
+               22.5, 60.5,                                        -- 34-35 INGRESOS/GASTOS
+               '01', '01', '01',                                  -- 36-38 * NAC: CHAR(2) (antes NUMBER 1, NULL, NULL)
+               NULL, NULL,                                        -- 39-40 OBSERVACIONES, DIAGNOSTICO
+               'ESTABLECIMIENTOSALUD',                            -- 41 * Se completó (antes NULL, desplazaba el orden)
+               '1',                                               -- 42 POR_COSTUMBRES (VARCHAR2)
+               NULL, NULL, NULL, NULL, NULL,                      -- 43-47 SIT_LAB, CERT_MED, GRADO_DISC, PERFIL_NNA, TIPO_EDU
+               NULL, NULL, NULL, NULL, NULL, NULL,                -- 48-53 VICT_FEM, GESTANTE, LACTANTE, CONADIS, GRADO_INST, TIPO_DISC
+               0,                                                 -- 54 TIENE_DISCAPACIDAD
+               0,                                                 -- 55 * ALGUN_INTEGRANTE_PROB_SALUD (CHECK 0/1; antes caía aquí el '1' final)
+               'VIAINGRESONNACEDIF', 'MEDIOINGRESONNACEDIF',      -- 56-57 * Campos CEDIF completados
+               'OCUPACION',                                       -- 58 * Completado
+               'OTRA_LENGUA', 'OTRA_COSTUMBRE', 'OTRA_INST', 'COND_LAB', 'CAT_OCUP', -- 59-63 OTRA_LENGUA, OTRA_COSTUMBRE, OTRA_INST, COND_LAB, CAT_OCUP
+               0,                                                 -- 64 CUIDADOR (0=Integrante)
+               1                                                  -- 65 * USUREGISTRA (NOT NULL en SSI_FAMILIA_INTEGRANTES)
             )
          )
       ),
       T_ANEXO_RESPUESTAS(
-         O_ANEXO_RESPUESTA(1, 'RESPUESTA 1', 'OBSERVACION 1', 1),
-         O_ANEXO_RESPUESTA(2, 'RESPUESTA 2', 'OBSERVACION 2', 1)
+         O_ANEXO_RESPUESTA(1, 'RESPUESTA 1', 'OBSERVACION 1', 1, 1), -- * 5 args (se añade USUREGISTRA)
+         O_ANEXO_RESPUESTA(2, 'RESPUESTA 2', 'OBSERVACION 2', 1, 1)
       )
    );
 END;
+/
+
+SELECT * FROM SSI_FAMILIA_INTEGRANTES i
+/* WHERE
+   i.FI_OTRA_COSTUMBRE IS NOT NULL */
+ORDER BY
+   i.FI_ID_INTEGRANTE DESC
 /
 
 -- * v2 
@@ -1699,7 +1708,7 @@ END;
 
 -- ! COMMIT;
 
--- 11.3 Llamar al procedimiento almacenado:
+-- 11.3 Llamar al procedimiento almacenado 2:
 BEGIN
    USP_GUARDAR_POTENCIAL_FAMILIA_V2(
       -- 1, -- SEDIF
