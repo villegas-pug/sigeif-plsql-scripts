@@ -2368,7 +2368,7 @@ END;
 DECLARE
    c_resultado_busqueda SYS_REFCURSOR;
 BEGIN
-   USP_LISTAR_PERSONAL_POR_DYNAMIC_PARAM(2, 'ROO', c_resultado_busqueda);
+   USP_LISTAR_PERSONAL_POR_DYNAMIC_PARAM(2, 'ROMULO ALEXANDER', c_resultado_busqueda);
    DBMS_SQL.RETURN_RESULT(c_resultado_busqueda);
 END;
 /

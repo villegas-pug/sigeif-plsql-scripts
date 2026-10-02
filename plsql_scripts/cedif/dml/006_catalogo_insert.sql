@@ -195,5 +195,25 @@ No eliminar columnas de A:D
 
 
 
-SELECT * FROM SSI_DET_PATFAM 
+SELECT * FROM SSI_DET_PATFAM dp
+
 /
+
+
+
+Con base en el análisis anterior, propón un **plan de prevención** para evitar eliminaciones lógicas incorrectas de `DetPatfamEntity` durante `updatePatfam`.
+
+Considera que actualmente se ejecuta `setEliminado(1)` cuando un registro persistido no está presente en el request.
+
+### Restricciones
+
+- **No romper ni cambiar la lógica de negocio actual del UPDATE.**
+- No eliminar el mecanismo de borrado lógico si forma parte del comportamiento esperado.
+- Identificar escenarios donde una ausencia en el request podría provocar un borrado lógico no intencional.
+- Proponer validaciones o salvaguardas antes de ejecutar `setEliminado(1)`.
+- Considerar `usuarioElimina`, `fechaElimina` y la transaccionalidad/dirty checking.
+- Priorizar cambios mínimos y de bajo riesgo.
+
+Entrega únicamente un **plan de implementación**, indicando qué modificar, dónde y por qué.
+
+> No implementes código todavía. Primero determina cómo prevenir eliminaciones accidentales preservando exactamente la semántica funcional de `updatePatfam`.

@@ -83,6 +83,7 @@ tables; if any result exceeds 1,048,576 rows, output is forced to CSV.
 - `oracle-syntax`: query, script, PL/SQL, and performance work.
 - `generate-plsql`: DML, DDL, cleanup, and migration scripts only.
 - `exception-handler`: PL/SQL program units only.
+- `build-report-list-sp`: read-only Oracle report procedures with `SYS_REFCURSOR`, `oracle-plsql-builder` only.
 - `build-excel-pivot-template` and `build-excel-unpivot-template`: Excel builder only.
 - `export-oracle-query-results`: read-only Oracle export, Excel builder only.
 - `excel-catalog-fuzzy-resolver`: `data-analytics` only.

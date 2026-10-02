@@ -14,7 +14,7 @@ permission:
   skill:
     "*": deny
     read-schema: allow
-  external_directory: deny
+  external_directory: allow
   todowrite: deny
   question: allow
   webfetch: deny
@@ -41,3 +41,8 @@ delegate work. Resolve derivable details first and return:
 Do not ask for `missing_inputs`; return them to Plan. Ask only about a new
 technical blocker that cannot be represented as a missing input or resolved
 from the caller's handoff and catalog.
+
+For read-only report procedures with `SYS_REFCURSOR`, read the descriptive
+contract in `.opencode/skills/build-report-list-sp/SKILL.md` without loading
+or executing the Skill, and report its missing inputs to Plan. That file is
+the source of truth; do not duplicate its rules here.

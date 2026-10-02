@@ -215,10 +215,72 @@ INSERT INTO TGPERSONA (
 )
 /
 
+INSERT INTO TGPERSONA (
+   IDPERSONA,
+   PERDOCUMENTO,
+   PERNRODOCUMENTO,
+   PERAPEPATERNO,
+   PERAPEMATERNO,
+   PERNOMBRE,
+   PERESTADOCIVIL,
+   PERFECNACIMIENTO,
+   PERSEXO,
+   PERTELEFONO,
+   PERCORREO,
+   PERDIRECCION,
+   PERDIRUBIGEO,
+   PERESTADO,
+   PERUSUREGISTRA,
+   PERFECHAREGISTRA
+) VALUES (
+   123467,
+   347,
+   '43475601',
+   'RUIZ',
+   'ORBE',
+   'AZUCENA DEL PILAR',
+   365,
+   TO_DATE('31/01/1985', 'DD/MM/YYYY'),
+   2,
+   '966295317',
+   'azucenaruizorbe@gmail.com',
+   'Calle Arequipa 202 – Huacho',
+   '170101',
+   1,
+   1,
+   SYSDATE
+)
+/
+
+-- AZUCENA DEL PILAR RUIZ ORBE  DNI : 43475601 TELEFONO: 966295317 CORREO: azucenaruizorbe@gmail.com Dirección : Calle Arequipa 202 – Huacho
+
 -- ============================================================
 -- 2. INSERTS EN TRPERSONAL (datos laborales)
 --    PRHPERSONA referencia al IDPERSONA insertado arriba
 -- ============================================================
+
+INSERT INTO TRPERSONAL (
+   IDPERSONAL,
+   PRHPERSONA,
+   PRHCARGO,
+   PRHESTADO,
+   PRHUSUREGISTRA,
+   PRHFECREGISTRA,
+   PRH_TELEFONO,
+   PRHCORREOINSTITUCIONAL,
+   PRH_ULTIMA_ORDEN
+) VALUES (
+   22773,
+   123467,
+   5509,
+   1,
+   1,
+   SYSDATE,
+   '966295317',
+   NULL,
+   '3010-2026'
+)
+/
 
 INSERT INTO TRPERSONAL (
    IDPERSONAL,

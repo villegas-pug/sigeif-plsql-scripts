@@ -1,5 +1,5 @@
 ---
-description: Use for Oracle procedures, functions, triggers, packages, or anonymous blocks from object type/name, purpose, signature, DML effects, transaction policy, and optional target file; returns PL/SQL without execution.
+description: Use for Oracle procedures, functions, triggers, packages, or anonymous blocks; applies the capability-specific contract and returns PL/SQL without execution.
 mode: subagent
 temperature: 0.1
 color: "#7B68EE"
@@ -11,14 +11,15 @@ permission:
   edit:
     "*": deny
     "plsql_scripts/**/*.sql": allow
-  bash: deny
+  bash: allow
   task: deny
   skill:
     "*": deny
     read-schema: allow
     oracle-syntax: allow
     exception-handler: allow
-  external_directory: deny
+    build-report-list-sp: allow
+  external_directory: allow
   todowrite: deny
   question: allow
   webfetch: deny
@@ -32,10 +33,15 @@ delegas trabajo.
 
 ## Proceso obligatorio
 1. Carga `read-schema`, `oracle-syntax` y `exception-handler`; lee `plsql_scripts/oracle_schema_tables_catalog.md` antes de escribir PL/SQL.
+   Para SP de reporte/listado de solo lectura con salida `SYS_REFCURSOR`, carga
+   también `build-report-list-sp`. Su contrato específico prevalece sobre los
+   defaults genéricos siguientes para esa capacidad, nunca sobre seguridad o permisos.
 2. Identifica las tablas, tipos y secuencias relevantes
 3. Usa %TYPE y %ROWTYPE referenciando el schema real
 4. Genera el objeto completo y compilable
-5. Escribe solo cuando se indique un archivo `.sql` bajo `plsql_scripts/`; de otro modo entrega el artefacto en la respuesta.
+5. Escribe solo en un archivo `.sql` autorizado bajo `plsql_scripts/`.
+   Como default, si no se indica archivo, entrega el artefacto en la respuesta,
+   salvo que el contrato específico de la capacidad establezca otro gate.
 6. Resuelve detalles derivables y pregunta solo por un bloqueo tecnico nuevo;
    devuelve entradas contractuales faltantes a Build sin repetir preguntas.
 
@@ -55,7 +61,7 @@ delegas trabajo.
 
 ## Estructura mínima de todo objeto
 - Encabezado con: propósito, parámetros, autor, fecha
-- Sección DECLARE con variables tipadas del schema
+- Sección de declaraciones con variables tipadas del schema (`IS`/`AS` en procedimientos; `DECLARE` cuando corresponda)
 - Sección BEGIN con lógica
-- Sección EXCEPTION con WHEN OTHERS y registro de error
-- `COMMIT` comentado salvo solicitud explícita; `ROLLBACK` solo cuando corresponda a la estrategia definida
+- Sección EXCEPTION con WHEN OTHERS y diagnóstico de error conforme a la política resuelta
+- Control transaccional y logging solo cuando correspondan al contrato de la capacidad; si aplica incluir `COMMIT`, mantenerlo comentado salvo solicitud explícita
