@@ -1412,9 +1412,9 @@ CREATE OR REPLACE TYPE T_ANEXO_RESPUESTAS_V2 AS TABLE OF O_ANEXO_RESPUESTA_V2
 -- ! COMMIT;
 
 -- 11.2 Crear el procedimiento almacenado
-CREATE OR REPLACE PROCEDURE USP_GUARDAR_POTENCIAL_FAMILIA_V2
+create or replace PROCEDURE USP_GUARDAR_POTENCIAL_FAMILIA_V2
 (
-   -- p_servicio IN NUMBER, -- * 1 ↔ CEDIF | 2 ↔ PUNCHE
+   -- p_servicio IN NUMBER, -- * 1 ¿ CEDIF | 2 ¿ PUNCHE
    p_potencial_familia IN O_POTENCIAL_FAMILIA_V2,
    p_fichas_respuestas IN T_ANEXO_RESPUESTAS_V2 DEFAULT NULL -- Opcional: Si servicio es CEDIF, recibe fichas de respuestas
 )
@@ -1426,7 +1426,7 @@ IS
 BEGIN 
 
    BEGIN
-      
+
       SAVEPOINT SP_GUARDAR_POTENCIAL_FAMILIA;
 
       -- * 1. Guardar potencial familia
@@ -1475,24 +1475,24 @@ BEGIN
          BEGIN
             UPDATE SSI_POTENCIALES_FAMILIAS
                SET 
-                  PF_COD_FAMILIA = p_potencial_familia.CODFAMILIA,
-                  ZO_ID_ZONA = p_potencial_familia.IDZONA, -- Para Punche
-                  AL_ID_ALIADO = p_potencial_familia.IDALIADO, -- Para Punche
-                  UO_ID_UNIDADORGANICA = p_potencial_familia.IDUNIDADORGANICA, -- Para Cedif
-                  SI_ID_SERVICIO = p_potencial_familia.IDSERVICIO,
-                  PF_OBSERVACIONES = p_potencial_familia.OBSERVACIONES,
-                  PF_USU_ACTUALIZA = p_potencial_familia.USUREGISTRA, -- Crea y actualiza
+                  PF_COD_FAMILIA = NVL(p_potencial_familia.CODFAMILIA, PF_COD_FAMILIA),
+                  ZO_ID_ZONA = NVL(p_potencial_familia.IDZONA, ZO_ID_ZONA), -- Para Punche
+                  AL_ID_ALIADO = NVL(p_potencial_familia.IDALIADO, AL_ID_ALIADO), -- Para Punche
+                  UO_ID_UNIDADORGANICA = NVL(p_potencial_familia.IDUNIDADORGANICA, UO_ID_UNIDADORGANICA), -- Para Cedif
+                  SI_ID_SERVICIO = NVL(p_potencial_familia.IDSERVICIO, SI_ID_SERVICIO),
+                  PF_OBSERVACIONES = NVL(p_potencial_familia.OBSERVACIONES, PF_OBSERVACIONES),
+                  PF_USU_ACTUALIZA = NVL(p_potencial_familia.USUREGISTRA, PF_USU_ACTUALIZA), -- Crea y actualiza
                   PF_FEC_ACTUALIZA = SYSDATE
-            
+
             WHERE PF_ID_FAMILIA = id_familia;
-            
+
          END;
       END IF;
 
 
       -- * 2. Guardar motivos de referencia
 
-      IF p_potencial_familia.MOTIVOSREF.COUNT > 0 THEN -- * Elimina y reemplaza motivos
+      IF p_potencial_familia.MOTIVOSREF IS NOT NULL AND p_potencial_familia.MOTIVOSREF.COUNT > 0 THEN -- * Elimina y reemplaza motivos
          DELETE FROM SSI_FAMILIA_MOTIVO_REFERENCIA mr
          WHERE mr.PF_ID_FAMILIA = id_familia;
 
@@ -1506,193 +1506,199 @@ BEGIN
       END IF;
 
       -- * 3. Guardar integrantes familia
-      FOR i IN 1..p_potencial_familia.INTEGRANTES.COUNT LOOP
+      IF p_potencial_familia.INTEGRANTES IS NOT NULL THEN
+         FOR i IN 1..p_potencial_familia.INTEGRANTES.COUNT LOOP
 
-         -- * 3.1 Evalua si el integrante ya existe
-         BEGIN
-            SELECT 
-               p.FI_ID_INTEGRANTE INTO id_integrante 
-            FROM SSI_FAMILIA_INTEGRANTES p 
-            WHERE p.FI_ID_INTEGRANTE = p_potencial_familia.INTEGRANTES(i).IDINTEGRANTE;
-         EXCEPTION
-            WHEN NO_DATA_FOUND THEN
-               id_integrante := NULL;
-         END;
-
-         IF id_integrante IS NULL THEN -- Nuevo integrante
+            -- * 3.1 Evalua si el integrante ya existe
             BEGIN
-               INSERT INTO SSI_FAMILIA_INTEGRANTES(
-                  PF_ID_FAMILIA,
-                  CA_ID_TIPDOC,
-                  CA_ID_GRADO_INST,
-                  CA_ID_TIPO_SEGURO,
-                  PA_ID_NAC,
-                  PA_ID_PAIS_NACIMIENTO,
-                  CA_ID_PARENTESCO,
-                  CA_ID_ESTADO_CIVIL,
-                  CA_ID_SEXO,
-                  CA_ID_IDIOMA,
-                  CA_ID_DISCAPACIDAD,
-                  CA_ID_DERIVADO_POR,
-                  CA_ID_SERVICIO_CUIDADOR,
-                  CP_ID_CENTRO_POBLA,
-                  CA_ID_OCUPACION,
-                  FI_NUMERO_DOC,
-                  FI_NOMBRES,
-                  FI_PRIMER_APE,
-                  FI_SEGUNDO_APE,
-                  FI_APELLIDO_CASADO,
-                  FI_FEC_NAC,
-                  FI_TELEFONO,
-                  FI_CORREO,
-                  UBI_ID_UBIGEO,
-                  UBI_ID_DEPARTAMENTO,
-                  UBI_ID_PROVINCIA,
-                  UBI_ID_DISTRITO,
-                  FI_DIRECCION,
-                  FI_REFERENCIA_DOMICILIARIA,
-                  FI_GRADO_SECCION_NNA,
-                  FI_CENTRO_POBLADO,
-                  FI_CUIDADOR,
-                  FI_USU_REGISTRA
-               ) VALUES (
-                  id_familia,
-                  p_potencial_familia.INTEGRANTES(i).IDTIPDOC,
-                  p_potencial_familia.INTEGRANTES(i).IDGRADOINST,
-                  p_potencial_familia.INTEGRANTES(i).IDTIPOSEGURO,
-                  p_potencial_familia.INTEGRANTES(i).IDNAC,
-                  p_potencial_familia.INTEGRANTES(i).IDPAISNACIMIENTO,
-                  p_potencial_familia.INTEGRANTES(i).IDPARENTESCO,
-                  p_potencial_familia.INTEGRANTES(i).IDESTADOCIVIL,
-                  p_potencial_familia.INTEGRANTES(i).IDSEXO,
-                  p_potencial_familia.INTEGRANTES(i).IDIDIOMA,
-                  p_potencial_familia.INTEGRANTES(i).IDDISCAPACIDAD,
-                  p_potencial_familia.INTEGRANTES(i).IDDERIVADOPOR,
-                  p_potencial_familia.INTEGRANTES(i).IDSERVICIOCUIDADOR,
-                  p_potencial_familia.INTEGRANTES(i).IDCENTROPOBLA,
-                  p_potencial_familia.INTEGRANTES(i).IDOCUPACION,
-                  p_potencial_familia.INTEGRANTES(i).NUMERODOC,
-                  p_potencial_familia.INTEGRANTES(i).NOMBRES,
-                  p_potencial_familia.INTEGRANTES(i).PRIMERAPE,
-                  p_potencial_familia.INTEGRANTES(i).SEGUNDOAPE,
-                  p_potencial_familia.INTEGRANTES(i).APELLIDOCASADO,
-                  p_potencial_familia.INTEGRANTES(i).FECNAC,
-                  p_potencial_familia.INTEGRANTES(i).TELEFONO,
-                  p_potencial_familia.INTEGRANTES(i).CORREO,
-                  (p_potencial_familia.INTEGRANTES(i).IDDEPARTAMENTO || p_potencial_familia.INTEGRANTES(i).IDPROVINCIA || p_potencial_familia.INTEGRANTES(i).IDDISTRITO), -- UBI_ID_UBIGEO
-                  p_potencial_familia.INTEGRANTES(i).IDDEPARTAMENTO,
-                  p_potencial_familia.INTEGRANTES(i).IDPROVINCIA,
-                  p_potencial_familia.INTEGRANTES(i).IDDISTRITO,
-                  p_potencial_familia.INTEGRANTES(i).DIRECCION,
-                  p_potencial_familia.INTEGRANTES(i).REFERENCIADOMICILIARIA,
-                  p_potencial_familia.INTEGRANTES(i).GRADOSECCIONNNA,
-                  p_potencial_familia.INTEGRANTES(i).CENTROPOBLADO,
-                  p_potencial_familia.INTEGRANTES(i).CUIDADOR,
-                  p_potencial_familia.USUREGISTRA
-               );
-               
-            END;
-         ELSE -- Actualizar integrante
-            BEGIN
-               UPDATE SSI_FAMILIA_INTEGRANTES
-                  SET
-                     PF_ID_FAMILIA = id_familia,
-                     CA_ID_TIPDOC = p_potencial_familia.INTEGRANTES(i).IDTIPDOC,
-                     CA_ID_GRADO_INST = p_potencial_familia.INTEGRANTES(i).IDGRADOINST,
-                     CA_ID_TIPO_SEGURO = p_potencial_familia.INTEGRANTES(i).IDTIPOSEGURO,
-                     PA_ID_NAC = p_potencial_familia.INTEGRANTES(i).IDNAC,
-                     PA_ID_PAIS_NACIMIENTO = p_potencial_familia.INTEGRANTES(i).IDPAISNACIMIENTO,
-                     CA_ID_PARENTESCO = p_potencial_familia.INTEGRANTES(i).IDPARENTESCO,
-                     CA_ID_ESTADO_CIVIL = p_potencial_familia.INTEGRANTES(i).IDESTADOCIVIL,
-                     CA_ID_SEXO = p_potencial_familia.INTEGRANTES(i).IDSEXO,
-                     CA_ID_IDIOMA = p_potencial_familia.INTEGRANTES(i).IDIDIOMA,
-                     CA_ID_DISCAPACIDAD = p_potencial_familia.INTEGRANTES(i).IDDISCAPACIDAD,
-                     CA_ID_DERIVADO_POR = p_potencial_familia.INTEGRANTES(i).IDDERIVADOPOR,
-                     CA_ID_SERVICIO_CUIDADOR = p_potencial_familia.INTEGRANTES(i).IDSERVICIOCUIDADOR,
-                     CP_ID_CENTRO_POBLA = p_potencial_familia.INTEGRANTES(i).IDCENTROPOBLA,
-                     CA_ID_OCUPACION = p_potencial_familia.INTEGRANTES(i).IDOCUPACION,
-                     FI_NUMERO_DOC = p_potencial_familia.INTEGRANTES(i).NUMERODOC,
-                     FI_NOMBRES = p_potencial_familia.INTEGRANTES(i).NOMBRES,
-                     FI_PRIMER_APE = p_potencial_familia.INTEGRANTES(i).PRIMERAPE,
-                     FI_SEGUNDO_APE = p_potencial_familia.INTEGRANTES(i).SEGUNDOAPE,
-                     FI_APELLIDO_CASADO = p_potencial_familia.INTEGRANTES(i).APELLIDOCASADO,
-                     FI_FEC_NAC = p_potencial_familia.INTEGRANTES(i).FECNAC,
-                     FI_TELEFONO = p_potencial_familia.INTEGRANTES(i).TELEFONO,
-                     FI_CORREO = p_potencial_familia.INTEGRANTES(i).CORREO,
-
-                     UBI_ID_UBIGEO = (p_potencial_familia.INTEGRANTES(i).IDDEPARTAMENTO || p_potencial_familia.INTEGRANTES(i).IDPROVINCIA || p_potencial_familia.INTEGRANTES(i).IDDISTRITO), -- UBI_ID_UBIGEO
-
-                     UBI_ID_DEPARTAMENTO = p_potencial_familia.INTEGRANTES(i).IDDEPARTAMENTO,
-                     UBI_ID_PROVINCIA = p_potencial_familia.INTEGRANTES(i).IDPROVINCIA,
-                     UBI_ID_DISTRITO = p_potencial_familia.INTEGRANTES(i).IDDISTRITO,
-                     FI_DIRECCION = p_potencial_familia.INTEGRANTES(i).DIRECCION,
-                     FI_REFERENCIA_DOMICILIARIA = p_potencial_familia.INTEGRANTES(i).REFERENCIADOMICILIARIA,
-                     FI_GRADO_SECCION_NNA = p_potencial_familia.INTEGRANTES(i).GRADOSECCIONNNA,
-                     FI_CENTRO_POBLADO = p_potencial_familia.INTEGRANTES(i).CENTROPOBLADO,
-                     FI_CUIDADOR = p_potencial_familia.INTEGRANTES(i).CUIDADOR,
-                     FI_USU_ACTUALIZA = p_potencial_familia.USUREGISTRA,
-                     FI_FEC_ACTUALIZA = SYSDATE
-                  
-               WHERE FI_ID_INTEGRANTE = id_integrante;
-
+               SELECT
+                  p.FI_ID_INTEGRANTE INTO id_integrante
+               FROM SSI_FAMILIA_INTEGRANTES p
+               WHERE p.FI_ID_INTEGRANTE = p_potencial_familia.INTEGRANTES(i).IDINTEGRANTE;
+            EXCEPTION
+               WHEN NO_DATA_FOUND THEN
+                  id_integrante := NULL;
             END;
 
-         END IF;
-         
-         -- ! Cleanup:
-         id_integrante := NULL;
-
-      END LOOP;
-
-      -- * 4. Guardar respuestas
-      FOR i IN 1..p_fichas_respuestas.COUNT LOOP
-
-         -- * 4.1 Evalua si la respuesta ya existe
-         BEGIN
-            SELECT 
-               p.AR_ID_RESPUESTA INTO id_respuesta 
-            FROM SSI_ANEXOS_RESPUESTAS p 
-            WHERE p.AR_ID_RESPUESTA = p_fichas_respuestas(i).IDRESPUESTA;
-         EXCEPTION
-            WHEN NO_DATA_FOUND THEN
-               id_respuesta := NULL;
-         END;
-         IF id_respuesta IS NULL THEN -- Nueva respuesta
-            BEGIN
-               INSERT INTO SSI_ANEXOS_RESPUESTAS(
-                  PF_ID_FAMILIA,
-                  AP_ID_PREGUNTA,
-                  AR_RESPUESTA,
-                  AR_OBSERVACION,
-                  AR_USU_REGISTRA
-               ) VALUES (
-                  id_familia,
-                  p_fichas_respuestas(i).IDPREGUNTA,
-                  p_fichas_respuestas(i).RESPUESTA,
-                  p_fichas_respuestas(i).OBSERVACION,
-                  p_potencial_familia.USUREGISTRA
-               );
-            
-            END;
-            ELSE -- Actualizar respuesta
+            IF id_integrante IS NULL THEN -- Nuevo integrante
                BEGIN
-                  UPDATE SSI_ANEXOS_RESPUESTAS
-                     SET
-                        PF_ID_FAMILIA = id_familia,
-                        AP_ID_PREGUNTA = p_fichas_respuestas(i).IDPREGUNTA,
-                        AR_RESPUESTA = p_fichas_respuestas(i).RESPUESTA,
-                        AR_OBSERVACION = p_fichas_respuestas(i).OBSERVACION,
-                        AR_USU_MODIFICA = p_potencial_familia.USUREGISTRA,
-                        AR_FECHA_MODIFICA = SYSDATE
-                  WHERE AR_ID_RESPUESTA = id_respuesta;
+                  INSERT INTO SSI_FAMILIA_INTEGRANTES(
+                     PF_ID_FAMILIA,
+                     CA_ID_TIPDOC,
+                     CA_ID_GRADO_INST,
+                     CA_ID_TIPO_SEGURO,
+                     PA_ID_NAC,
+                     PA_ID_PAIS_NACIMIENTO,
+                     CA_ID_PARENTESCO,
+                     CA_ID_ESTADO_CIVIL,
+                     CA_ID_SEXO,
+                     CA_ID_IDIOMA,
+                     CA_ID_DISCAPACIDAD,
+                     CA_ID_DERIVADO_POR,
+                     CA_ID_SERVICIO_CUIDADOR,
+                     CP_ID_CENTRO_POBLA,
+                     CA_ID_OCUPACION,
+                     FI_NUMERO_DOC,
+                     FI_NOMBRES,
+                     FI_PRIMER_APE,
+                     FI_SEGUNDO_APE,
+                     FI_APELLIDO_CASADO,
+                     FI_FEC_NAC,
+                     FI_TELEFONO,
+                     FI_CORREO,
+                     UBI_ID_UBIGEO,
+                     UBI_ID_DEPARTAMENTO,
+                     UBI_ID_PROVINCIA,
+                     UBI_ID_DISTRITO,
+                     FI_DIRECCION,
+                     FI_REFERENCIA_DOMICILIARIA,
+                     FI_GRADO_SECCION_NNA,
+                     FI_CENTRO_POBLADO,
+                     FI_CUIDADOR,
+                     FI_USU_REGISTRA
+                  ) VALUES (
+                     id_familia,
+                     p_potencial_familia.INTEGRANTES(i).IDTIPDOC,
+                     p_potencial_familia.INTEGRANTES(i).IDGRADOINST,
+                     p_potencial_familia.INTEGRANTES(i).IDTIPOSEGURO,
+                     p_potencial_familia.INTEGRANTES(i).IDNAC,
+                     p_potencial_familia.INTEGRANTES(i).IDPAISNACIMIENTO,
+                     p_potencial_familia.INTEGRANTES(i).IDPARENTESCO,
+                     p_potencial_familia.INTEGRANTES(i).IDESTADOCIVIL,
+                     p_potencial_familia.INTEGRANTES(i).IDSEXO,
+                     p_potencial_familia.INTEGRANTES(i).IDIDIOMA,
+                     p_potencial_familia.INTEGRANTES(i).IDDISCAPACIDAD,
+                     p_potencial_familia.INTEGRANTES(i).IDDERIVADOPOR,
+                     p_potencial_familia.INTEGRANTES(i).IDSERVICIOCUIDADOR,
+                     p_potencial_familia.INTEGRANTES(i).IDCENTROPOBLA,
+                     p_potencial_familia.INTEGRANTES(i).IDOCUPACION,
+                     p_potencial_familia.INTEGRANTES(i).NUMERODOC,
+                     p_potencial_familia.INTEGRANTES(i).NOMBRES,
+                     p_potencial_familia.INTEGRANTES(i).PRIMERAPE,
+                     p_potencial_familia.INTEGRANTES(i).SEGUNDOAPE,
+                     p_potencial_familia.INTEGRANTES(i).APELLIDOCASADO,
+                     p_potencial_familia.INTEGRANTES(i).FECNAC,
+                     p_potencial_familia.INTEGRANTES(i).TELEFONO,
+                     p_potencial_familia.INTEGRANTES(i).CORREO,
+                     (p_potencial_familia.INTEGRANTES(i).IDDEPARTAMENTO || p_potencial_familia.INTEGRANTES(i).IDPROVINCIA || p_potencial_familia.INTEGRANTES(i).IDDISTRITO), -- UBI_ID_UBIGEO
+                     p_potencial_familia.INTEGRANTES(i).IDDEPARTAMENTO,
+                     p_potencial_familia.INTEGRANTES(i).IDPROVINCIA,
+                     p_potencial_familia.INTEGRANTES(i).IDDISTRITO,
+                     p_potencial_familia.INTEGRANTES(i).DIRECCION,
+                     p_potencial_familia.INTEGRANTES(i).REFERENCIADOMICILIARIA,
+                     p_potencial_familia.INTEGRANTES(i).GRADOSECCIONNNA,
+                     p_potencial_familia.INTEGRANTES(i).CENTROPOBLADO,
+                     p_potencial_familia.INTEGRANTES(i).CUIDADOR,
+                     p_potencial_familia.USUREGISTRA
+                  );
 
                END;
+            ELSE -- Actualizar integrante
+               BEGIN
+                  UPDATE SSI_FAMILIA_INTEGRANTES
+                     SET
+                        PF_ID_FAMILIA = id_familia,
+                        CA_ID_TIPDOC = NVL(p_potencial_familia.INTEGRANTES(i).IDTIPDOC, CA_ID_TIPDOC),
+                        CA_ID_GRADO_INST = NVL(p_potencial_familia.INTEGRANTES(i).IDGRADOINST, CA_ID_GRADO_INST),
+                        CA_ID_TIPO_SEGURO = NVL(p_potencial_familia.INTEGRANTES(i).IDTIPOSEGURO, CA_ID_TIPO_SEGURO),
+                        PA_ID_NAC = NVL(p_potencial_familia.INTEGRANTES(i).IDNAC, PA_ID_NAC),
+                        PA_ID_PAIS_NACIMIENTO = NVL(p_potencial_familia.INTEGRANTES(i).IDPAISNACIMIENTO, PA_ID_PAIS_NACIMIENTO),
+                        CA_ID_PARENTESCO = NVL(p_potencial_familia.INTEGRANTES(i).IDPARENTESCO, CA_ID_PARENTESCO),
+                        CA_ID_ESTADO_CIVIL = NVL(p_potencial_familia.INTEGRANTES(i).IDESTADOCIVIL, CA_ID_ESTADO_CIVIL),
+                        CA_ID_SEXO = NVL(p_potencial_familia.INTEGRANTES(i).IDSEXO, CA_ID_SEXO),
+                        CA_ID_IDIOMA = NVL(p_potencial_familia.INTEGRANTES(i).IDIDIOMA, CA_ID_IDIOMA),
+                        CA_ID_DISCAPACIDAD = NVL(p_potencial_familia.INTEGRANTES(i).IDDISCAPACIDAD, CA_ID_DISCAPACIDAD),
+                        CA_ID_DERIVADO_POR = NVL(p_potencial_familia.INTEGRANTES(i).IDDERIVADOPOR, CA_ID_DERIVADO_POR),
+                        CA_ID_SERVICIO_CUIDADOR = NVL(p_potencial_familia.INTEGRANTES(i).IDSERVICIOCUIDADOR, CA_ID_SERVICIO_CUIDADOR),
+                        CP_ID_CENTRO_POBLA = NVL(p_potencial_familia.INTEGRANTES(i).IDCENTROPOBLA, CP_ID_CENTRO_POBLA),
+                        CA_ID_OCUPACION = NVL(p_potencial_familia.INTEGRANTES(i).IDOCUPACION, CA_ID_OCUPACION),
+                        FI_NUMERO_DOC = NVL(p_potencial_familia.INTEGRANTES(i).NUMERODOC, FI_NUMERO_DOC),
+                        FI_NOMBRES = NVL(p_potencial_familia.INTEGRANTES(i).NOMBRES, FI_NOMBRES),
+                        FI_PRIMER_APE = NVL(p_potencial_familia.INTEGRANTES(i).PRIMERAPE, FI_PRIMER_APE),
+                        FI_SEGUNDO_APE = NVL(p_potencial_familia.INTEGRANTES(i).SEGUNDOAPE, FI_SEGUNDO_APE),
+                        FI_APELLIDO_CASADO = NVL(p_potencial_familia.INTEGRANTES(i).APELLIDOCASADO, FI_APELLIDO_CASADO),
+                        FI_FEC_NAC = NVL(p_potencial_familia.INTEGRANTES(i).FECNAC, FI_FEC_NAC),
+                        FI_TELEFONO = NVL(p_potencial_familia.INTEGRANTES(i).TELEFONO, FI_TELEFONO),
+                        FI_CORREO = NVL(p_potencial_familia.INTEGRANTES(i).CORREO, FI_CORREO),
+
+                        UBI_ID_UBIGEO = NVL(p_potencial_familia.INTEGRANTES(i).IDDEPARTAMENTO, UBI_ID_DEPARTAMENTO)
+                                        || NVL(p_potencial_familia.INTEGRANTES(i).IDPROVINCIA, UBI_ID_PROVINCIA)
+                                        || NVL(p_potencial_familia.INTEGRANTES(i).IDDISTRITO, UBI_ID_DISTRITO),
+
+                        UBI_ID_DEPARTAMENTO = NVL(p_potencial_familia.INTEGRANTES(i).IDDEPARTAMENTO, UBI_ID_DEPARTAMENTO),
+                        UBI_ID_PROVINCIA = NVL(p_potencial_familia.INTEGRANTES(i).IDPROVINCIA, UBI_ID_PROVINCIA),
+                        UBI_ID_DISTRITO = NVL(p_potencial_familia.INTEGRANTES(i).IDDISTRITO, UBI_ID_DISTRITO),
+                        FI_DIRECCION = NVL(p_potencial_familia.INTEGRANTES(i).DIRECCION, FI_DIRECCION),
+                        FI_REFERENCIA_DOMICILIARIA = NVL(p_potencial_familia.INTEGRANTES(i).REFERENCIADOMICILIARIA, FI_REFERENCIA_DOMICILIARIA),
+                        FI_GRADO_SECCION_NNA = NVL(p_potencial_familia.INTEGRANTES(i).GRADOSECCIONNNA, FI_GRADO_SECCION_NNA),
+                        FI_CENTRO_POBLADO = NVL(p_potencial_familia.INTEGRANTES(i).CENTROPOBLADO, FI_CENTRO_POBLADO),
+                        FI_CUIDADOR = NVL(p_potencial_familia.INTEGRANTES(i).CUIDADOR, FI_CUIDADOR),
+                        FI_USU_ACTUALIZA = NVL(p_potencial_familia.USUREGISTRA, FI_USU_ACTUALIZA),
+                        FI_FEC_ACTUALIZA = SYSDATE
+
+                     WHERE FI_ID_INTEGRANTE = id_integrante;
+
+               END;
+
             END IF;
 
             -- ! Cleanup:
-            id_respuesta := NULL;
+            id_integrante := NULL;
 
-      END LOOP;
+         END LOOP;
+      END IF;
+
+      -- * 4. Guardar respuestas
+      IF p_fichas_respuestas IS NOT NULL THEN
+         FOR i IN 1..p_fichas_respuestas.COUNT LOOP
+
+            -- * 4.1 Evalua si la respuesta ya existe
+            BEGIN
+               SELECT 
+                  p.AR_ID_RESPUESTA INTO id_respuesta 
+               FROM SSI_ANEXOS_RESPUESTAS p 
+               WHERE p.AR_ID_RESPUESTA = p_fichas_respuestas(i).IDRESPUESTA;
+            EXCEPTION
+               WHEN NO_DATA_FOUND THEN
+                  id_respuesta := NULL;
+            END;
+            IF id_respuesta IS NULL THEN -- Nueva respuesta
+               BEGIN
+                  INSERT INTO SSI_ANEXOS_RESPUESTAS(
+                     PF_ID_FAMILIA,
+                     AP_ID_PREGUNTA,
+                     AR_RESPUESTA,
+                     AR_OBSERVACION,
+                     AR_USU_REGISTRA
+                  ) VALUES (
+                     id_familia,
+                     p_fichas_respuestas(i).IDPREGUNTA,
+                     p_fichas_respuestas(i).RESPUESTA,
+                     p_fichas_respuestas(i).OBSERVACION,
+                     p_potencial_familia.USUREGISTRA
+                  );
+
+               END;
+               ELSE -- Actualizar respuesta
+                  BEGIN
+                     UPDATE SSI_ANEXOS_RESPUESTAS
+                        SET
+                           PF_ID_FAMILIA = id_familia,
+                           AP_ID_PREGUNTA = NVL(p_fichas_respuestas(i).IDPREGUNTA, AP_ID_PREGUNTA),
+                           AR_RESPUESTA = NVL(p_fichas_respuestas(i).RESPUESTA, AR_RESPUESTA),
+                           AR_OBSERVACION = NVL(p_fichas_respuestas(i).OBSERVACION, AR_OBSERVACION),
+                           AR_USU_MODIFICA = NVL(p_potencial_familia.USUREGISTRA, AR_USU_MODIFICA),
+                           AR_FECHA_MODIFICA = SYSDATE
+                     WHERE AR_ID_RESPUESTA = id_respuesta;
+
+                  END;
+               END IF;
+
+               -- ! Cleanup:
+               id_respuesta := NULL;
+
+         END LOOP;
+      END IF;
 
       COMMIT;
 
