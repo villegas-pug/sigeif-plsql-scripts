@@ -1,13 +1,10 @@
-# Oracle SQL Project - Global Rules
+# Project Rules
 
 ## Schema Source of Truth
-This project uses Oracle. The authoritative schema catalog is
-`plsql_scripts/oracle_schema_tables_catalog.md`.
-
-Before analyzing or building any Oracle SQL, PL/SQL, view, or script, read the
-catalog in the current session. Never infer tables, columns, sequences,
-constraints, relationships, or indexes as confirmed facts. Ask when the catalog
-does not resolve an ambiguity.
+Oracle: leer `plsql_scripts/oracle_schema_tables_catalog.md` en la sesión antes
+de analizar o generar SQL, PL/SQL, vistas o scripts. No afirmar tablas, columnas,
+secuencias, constraints, relaciones o índices no confirmados; preguntar las
+ambigüedades que el catálogo no resuelva.
 
 ## Database Safety
 - Never execute `INSERT`, `UPDATE`, `DELETE`, `MERGE`, `TRUNCATE`, `DROP`, `CREATE`, `ALTER`, `GRANT`, or `REVOKE` against Oracle.
@@ -19,64 +16,68 @@ does not resolve an ambiguity.
 - A read-only `SELECT` may run only through the canonical Excel export flow or another explicitly authorized read-only flow.
 - The exact SELECT, binds, JOINs, format, destination, and integrity hash must be recorded before execution.
 
-## Plan and Build Architecture
-The project uses OpenCode built-in primary agents `plan` and `build`. Their
-project-specific prompts and permissions are configured in
-`.opencode/agents/plan.md` and `.opencode/agents/build.md`; root
-`opencode.json` contains only shared project configuration.
+## Orchestration
 
-`plan` delegates Oracle/Excel technical analysis through Task only to:
-- `oracle-design-analyst`: schema, dependencies, and implementation options.
-- `oracle-validation-analyst`: integrity constraints and prevalidation.
-- `oracle-performance-analyst`: performance, indexes, and tuning risks.
-- `excel-template-analyst`: pivot, unpivot, catalog resolution, and export inputs.
+Delegación obligatoria por capacidad, sin sustituir especialistas con Skills.
+Planning: capability-first y delegate-first, delegar contexto antes de preguntar.
+Implementation: clasificar y pedir solo entradas obligatorias ausentes o inválidas.
 
-Planning is capability-first and delegate-first: Plan routes the available
-context before asking the user. Each analyst owns its input contract and returns
-`capability`, `required_inputs`, `resolved_inputs`, `missing_inputs`,
-`assumptions`, and `risks`. Plan asks only for reported `missing_inputs` and
-redelegates only when the answers change the technical analysis, assumptions,
-or routing.
+| Phase | Capability | Specialist |
+|---|---|---|
+| Planning | Schema, diseño y dependencias Oracle | `oracle-design-analyst` |
+| Planning | DML destructivo, limpieza o migración | `oracle-design-analyst` + `oracle-validation-analyst` |
+| Planning | Performance estática | `oracle-performance-analyst` |
+| Planning | Pivot, unpivot, fuzzy y exportación | `excel-template-analyst`; añadir diseño Oracle para schema, varias tablas o JOIN |
+| Implementation | SELECT y metadatos de exportación | `oracle-query-builder` |
+| Implementation | DML, DDL, CREATE VIEW, limpieza y migración | `oracle-script-builder` |
+| Implementation | Unidades PL/SQL | `oracle-plsql-builder` |
+| Implementation | Templates, manifiestos y exportación | `excel-template-builder` |
+| Implementation | Fuzzy Excel local, sin Oracle ni SQL | `data-analytics` |
 
-`build` delegates domain implementation through Task only to:
-- `oracle-query-builder`: SELECT queries and structured export query data; never executes Oracle.
-- `oracle-script-builder`: DML, DDL (including `CREATE VIEW`), cleanup, and migration SQL artifacts.
-- `oracle-plsql-builder`: procedures, functions, triggers, packages, and anonymous blocks.
-- `excel-template-builder`: SIGEIF templates, export manifests, and Oracle result exports.
-- `data-analytics`: local fuzzy catalog resolution; no Oracle or SQL.
+Analysts: solo lectura, contrato propio y respuesta con `capability`,
+`required_inputs`, `resolved_inputs`, `missing_inputs`, `assumptions`, `risks`.
+El orquestador pregunta faltantes/decisiones y redelega solo si cambian análisis,
+supuestos o routing. No duplicar contratos de especialistas/Skills. El handoff
+incluye capacidad, entradas, contexto, aceptación, destino y gates.
 
-Plan permanece sin edicion ni Skills operativas. Build conserva capacidades normales de edicion y shell para integrar, validar y consolidar cambios, pero mantiene los gates de seguridad Oracle. Analysts are read-only and own their capability contracts; root rules and Plan must not duplicate those input lists.
-Builders do not delegate. Oracle builders may write only `.sql` artifacts under
-`plsql_scripts/`. Excel builder may execute only the three approved Python
-commands after the applicable input gate. `data-analytics` may execute only
-its local resolver command after confirmation.
+Planning consulta Skills locales/externas sin editar ni ejecutar pasos operativos.
+Implementation edita/usa shell para integrar o validar dentro de sus permisos.
+Skills no amplían permisos ni eliminan gates Oracle. El orquestador nunca conecta
+ni ejecuta Oracle; builders no delegan. Builders Oracle escriben solo `.sql` bajo
+`plsql_scripts/`; Excel ejecuta solo sus tres comandos aprobados tras el gate;
+fuzzy solo su resolver local tras confirmación. Preguntas técnicas excepcionales
+se rigen por el contrato y las herramientas del harness.
+
+Para SP read-only con `SYS_REFCURSOR`, consultar el contrato descriptivo de
+`build-report-list-sp` en la ruta de Skills del harness antes de delegar; pedir
+solo entradas obligatorias faltantes o inválidas, sin duplicar sus reglas.
+CREATE VIEW completo pertenece exclusivamente a `oracle-script-builder`.
+
+Diferencias por harness: OpenCode usa primarios `plan`/`build` en
+`.opencode/agents/`, `Task` y configuración compartida en `opencode.json`;
+Claude usa su complemento `CLAUDE.md`. Los permisos los impone cada harness,
+no estas instrucciones de comportamiento.
 
 ## Excel Export Flow
-The generic read-only export flow is separate from SIGEIF pivot/unpivot:
+Exportación read-only separada de pivot/unpivot SIGEIF:
+`Orchestrator -> oracle-query-builder -> excel-template-builder -> export script`
 
-`Build -> oracle-query-builder -> excel-template-builder -> export script`
+Usar `py_notebooks/export_oracle_query_results.py`; nunca reutilizar el pivot
+`py_notebooks/export_template_to_sigeif_form.py` para datos de negocio.
+El analyst posee el contrato de planificación y reporta faltantes al orquestador;
+el builder valida el operativo antes de ejecutar. No duplicar esos contratos.
 
-The export script is `py_notebooks/export_oracle_query_results.py`; the pivot
-script `py_notebooks/export_template_to_sigeif_form.py` must not be reused for
-business-data exports.
+Misma tabla con filtros distintos: SELECTs independientes y preguntar hojas
+compartidas/separadas para XLSX. Tablas distintas: proponer JOIN con evidencia
+de catálogo, nombres, convenciones y tipos compatibles a confianza >=70%; bajo
+70% exigir condición explícita. Registrar inferencias en manifiesto, nunca como
+FK confirmada sin evidencia.
 
-`excel-template-analyst` owns the planning input contract and reports unresolved
-inputs to Plan. `excel-template-builder` validates the operational contract
-before execution. Do not duplicate either contract in Plan or root rules.
-
-For the same table with different filters, create independent SELECTs and ask
-whether XLSX results share a sheet or use separate sheets. For different
-tables, propose a JOIN when catalog evidence, names, conventions, and compatible
-types reach at least 70% confidence. Below 70%, require an explicit JOIN
-condition. An inferred JOIN is never presented as a confirmed FK and is always
-recorded in the final manifest.
-
-The export uses a local `.env` and a dedicated read-only Oracle identity.
-`excel-template-builder` creates the canonical manifest and automatically adds
-its SHA-256 integrity hash without requesting user confirmation. It rejects
-`SELECT *`, DML/DDL/PLSQL, comments,
-multiple statements, `FOR UPDATE`, and database links. XLSX results are Excel
-tables; if any result exceeds 1,048,576 rows, output is forced to CSV.
+Usar `.env` local e identidad Oracle read-only. El builder crea el manifiesto
+canónico y agrega automáticamente SHA-256 (`confirmed_query_hash`), sin pedir
+confirmación conversacional del hash. Rechazar SELECT *, DML/DDL/PLSQL,
+comentarios, múltiples sentencias, FOR UPDATE y database links. XLSX contiene
+tablas Excel; cualquier resultado >1,048,576 filas fuerza CSV.
 
 ## Skill Ownership
 - `read-schema`: Oracle analysts and builders that require catalog facts.
@@ -97,6 +98,3 @@ tables; if any result exceeds 1,048,576 rows, output is forced to CSV.
 - Use `PRC_`, `FNC_`, `TRG_`, `cur_`, `v_`, and `p_` conventions.
 - PL/SQL requires a header, three-space indentation, and an `EXCEPTION` section with `WHEN OTHERS`, `SQLCODE`, and `SQLERRM` where applicable.
 - Destructive scripts require prevalidation and FK-aware order. Keep `COMMIT` commented unless explicitly requested.
-
-## Language
-Respond in Spanish by default.

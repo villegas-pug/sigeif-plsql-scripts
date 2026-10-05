@@ -1,6 +1,6 @@
 ---
 name: build-report-list-sp
-description: Use ONLY when generating read-only Oracle report procedures with SYS_REFCURSOR output for PUNCHE or CEDIF from explicit service, report XLSX template, objective and SQL output inputs. Owned by oracle-plsql-builder; never executes Oracle or exports results.
+description: Use ONLY when generating read-only Oracle report procedures with SYS_REFCURSOR output for PUNCHE or CEDIF from explicit service, objective and SQL output inputs, plus an optional report XLSX template. Owned by oracle-plsql-builder; never executes Oracle or exports results.
 compatibility: opencode
 ---
 
@@ -20,33 +20,42 @@ sin cargar ni ejecutar la Skill. Solo el builder la carga operativamente.
 
 ## Inputs y gate obligatorio
 
-### Cuatro inputs explícitos obligatorios
+### Tres inputs obligatorios y una plantilla opcional
 
-Recibir del usuario o de un handoff confirmado estos cuatro datos antes de
-generar. Las etiquetas `$1` a `$4` son del contrato conversacional, no parámetros
-de ejecución Oracle; el usuario no está obligado a escribir las etiquetas.
+Recibir del usuario o de un handoff confirmado `$1`, `$3` y `$4` antes de
+generar; `$2` es opcional. Las etiquetas `$1` a `$4` son del contrato conversacional,
+no parámetros de ejecución Oracle; el usuario no está obligado a escribir las etiquetas.
 
 | Orden | Input | Información y validación |
 |---|---|---|
-| `$1` | `SERVICIO` | PUNCHE o CEDIF, indicado explícitamente. No deducirlo de rutas, plantilla, SQL o IDs. |
-| `$2` | `PLANTILLA_REPORTE` | Archivo XLSX adjunto o ruta inequívoca y accesible de la plantilla del resultado esperado. Pedir hoja si hay varias candidatas. No es código SQL ni un SP existente; una referencia SQL o una lista de columnas no lo sustituye. |
-| `$3` | `OBJETIVO` | Qué registros debe listar, qué resultado se espera y reglas de negocio conocidas. No exigir tablas ni mapeos técnicos derivables después del análisis. |
-| `$4` | `OUTPUT_SP` | Directorio o archivo .sql explícitamente autorizado bajo plsql_scripts/ donde se creará el SP. No es la ubicación de una nueva Skill. |
+| `$1` | `SERVICIO` | Obligatorio. PUNCHE o CEDIF, indicado explícitamente. No deducirlo de rutas, plantilla, SQL o IDs. |
+| `$2` | `PLANTILLA_REPORTE` | **Opcional.** Archivo XLSX adjunto o ruta inequívoca y accesible de la plantilla del resultado esperado. Pedir hoja si hay varias candidatas. No es código SQL ni un SP existente. |
+| `$3` | `OBJETIVO` | Obligatorio. Qué registros debe listar, qué resultado se espera y reglas de negocio conocidas. No exigir tablas ni mapeos técnicos derivables después del análisis. |
+| `$4` | `OUTPUT_SP` | Obligatorio. Directorio o archivo .sql, nuevo o existente, explícitamente autorizado bajo plsql_scripts/. No es la ubicación de una nueva Skill. |
 
-Si cualquiera falta, está vacío, es ambiguo, ilegible o inválido, detenerse antes
-de generar y devolverlo en `missing_inputs` con el motivo. No inventar ni deducir
-estos cuatro valores de referencias. Conservar los recibidos y pedir solo los
-faltantes o inválidos, en orden `$1` a `$4`, por medio del agente principal.
+Si `$1`, `$3` o `$4` faltan, están vacíos, son ambiguos o inválidos, detenerse
+antes de generar y devolverlos en `missing_inputs` con el motivo. Si `$2` se
+entrega pero es ilegible, ambiguo o inválido, también detener y devolverlo. No
+inventar ni deducir `$1`, `$3` ni `$4` de referencias. Conservar los recibidos y
+pedir solo los faltantes o inválidos, en orden `$1` a `$4`, por medio del agente principal.
+
+Con plantilla, sus columnas y orden definen el resultado. Sin plantilla, derivar
+columnas, orden y alias de `OBJETIVO`, del catálogo y de las referencias SQL/SP o
+la lista de columnas que aporte el usuario; registrar la lista propuesta en
+`assumptions` y devolver al principal solo si columnas o grano son ambiguos. No
+crear columnas sin fuente verificada en el catálogo.
 
 ### Formulario para solicitudes sin contexto
 
-Ante «Quiero crear un SP a partir de una plantilla, ¿qué necesitas?», reportar
-como faltantes para que el agente principal solicite explícitamente:
+Ante «Quiero crear un SP, ¿qué necesitas?», reportar como faltantes para que el
+agente principal solicite explícitamente:
 
 1. **$1 SERVICIO:** PUNCHE o CEDIF.
-2. **$2 PLANTILLA_REPORTE:** adjunta o indica la ruta del XLSX del resultado esperado; hoja si es ambigua.
-3. **$3 OBJETIVO:** qué información devolver, registros a incluir y reglas conocidas.
-4. **$4 OUTPUT_SP:** directorio o archivo .sql de destino bajo plsql_scripts/.
+2. **$3 OBJETIVO:** qué información devolver, registros a incluir y reglas conocidas.
+3. **$4 OUTPUT_SP:** directorio o archivo .sql (nuevo o existente) de destino bajo plsql_scripts/.
+
+Informar además que **$2 PLANTILLA_REPORTE** es opcional: si el usuario tiene el XLSX
+del resultado esperado, que lo adjunte o indique su ruta (y hoja si es ambigua).
 
 No preguntar «¿consultará o insertará/actualizará/eliminará?»: esta capacidad es
 exclusivamente read-only. Si la solicitud exige DML, devolverla para otra capacidad.
@@ -61,9 +70,13 @@ se permite proponer nombre/correlativo según convención, pero obtener acuerdo
 del usuario mediante el agente principal, no asignarlo unilateralmente.
 
 Un directorio inexistente bloquea la generación: devolver a Build para resolver
-su creación autorizada o pedir otra ruta. Comprobar si el archivo final existe;
-indicar una ruta existente no es permiso para sobrescribir cambios del usuario.
-Conservar el gate de confirmación explícita para reemplazarlos.
+su creación autorizada o pedir otra ruta. Comprobar si el archivo final existe.
+Si `OUTPUT_SP` es un archivo `.sql` existente, el SP se **añade al final** sin
+eliminar ni modificar su contenido previo (separar con una línea en blanco; si el
+archivo no termina en salto de línea, añadirlo primero). Antes de añadir, leer el
+archivo y verificar que no contenga ya un procedimiento con el mismo nombre; si
+existe, devolver el conflicto a Build en lugar de duplicarlo o reemplazarlo.
+Reemplazar o borrar contenido existente sigue requiriendo confirmación explícita.
 Antes de generar deben quedar resueltos el archivo final acordado, la existencia
 del directorio y los permisos aplicables; no generar y dejar solo la escritura pendiente.
 
@@ -84,16 +97,17 @@ usuario un mapeo exhaustivo cuando los campos se resuelvan inequívocamente.
 
 ### Opcionales
 
-Nombre exacto del SP, SQL/SP de referencia, documentación,
-código productor/consumidor y ejemplos anonimizados. El output ya es obligatorio;
-las referencias SQL son guías técnicas, no sustitutos de la plantilla XLSX.
+Plantilla XLSX del resultado esperado, nombre exacto del SP, SQL/SP de referencia,
+documentación, código productor/consumidor y ejemplos anonimizados. El output ya
+es obligatorio. Con plantilla, esta manda sobre columnas y orden; sin ella, las
+referencias SQL son guías técnicas para derivarlos, siempre verificadas en catálogo.
 Los valores de fechas y zona no son inputs necesarios para generar el SP:
 son argumentos de ejecución del consumidor.
 
 ## Flujo
 
 1. Validar alcance: generar un artefacto read-only, no ejecutarlo ni exportarlo.
-   Validar primero los cuatro inputs explícitos. Si falla el gate, devolver
+   Validar primero `$1`, `$3`, `$4` y `$2` si se entregó. Si falla el gate, devolver
    los faltantes sin generar un SP; no iniciar una implementación parcial.
 2. Cargar `read-schema`, `oracle-syntax` y `exception-handler`. Leer en la sesión
    `plsql_scripts/oracle_schema_tables_catalog.md` y las referencias pertinentes.
@@ -103,7 +117,8 @@ son argumentos de ejecución del consumidor.
 4. Revisar ambigüedades antes de implementar. Devolver a Build únicamente los
    faltantes bloqueantes, su impacto y la decisión requerida; no repetir preguntas.
 5. Generar solo con el contrato resuelto. Escribir únicamente en el archivo final
-   autorizado `.sql` bajo `plsql_scripts/`. La ausencia de `OUTPUT_SP` bloquea
+   autorizado `.sql` bajo `plsql_scripts/` (añadiendo al final si ya existe, sin
+   alterar su contenido). La ausencia de `OUTPUT_SP` bloquea
    esta capacidad; no sustituir el destino con una entrega de código en respuesta.
 6. Revisar estáticamente y entregar mapeo, inferencias, riesgos e invocaciones
    manuales separadas. No afirmar compilación o equivalencia de resultados.
@@ -252,8 +267,10 @@ completo como nombre de 003 ni decisiones locales como reglas multiservicio.
 
 ## Checklist y criterios de éxito
 
-- [ ] Los cuatro inputs explícitos son válidos; ningún faltante asumido o inventado.
+- [ ] `$1`, `$3` y `$4` son válidos (y `$2` si se entregó); ningún faltante asumido o inventado.
+- [ ] Sin plantilla, columnas/orden/alias derivados quedan registrados como supuestos.
 - [ ] Output bajo plsql_scripts/, nombre final acordado y permisos resueltos.
+- [ ] Si el output era un archivo existente, el SP se añadió al final sin alterar el contenido previo ni duplicar el nombre.
 - [ ] Catálogo leído; nombres/tipos verificados; inferencias registradas, no FK ficticias.
 - [ ] Servicio, sujeto, grano, cardinalidad y mapeo de salida sustentados.
 - [ ] Cuidador 0/1/N y alcance familiar/individual/mixto tratados cuando apliquen.

@@ -65,8 +65,10 @@
 --   BV porcentaje proteccion=1666, BW diagnostico proteccion=1665,
 --   BX porcentaje riesgo=1664, BY diagnostico riesgo=1503.
 --   No invertir estos IDs ni recalcular con las formulas Excel.
--- * Fecha442 y todos los items/puntajes/porcentajes/diagnosticos permanecen
---   AR_RESPUESTA VARCHAR2(4000), sin traduccion ni conversion de salida.
+-- * Items/puntajes/porcentajes/diagnosticos permanecen AR_RESPUESTA
+--   VARCHAR2(4000), sin traduccion ni conversion. Fecha442 final:
+--   VARCHAR2(10) DD/MM/YYYY o NULL; TRIM ASCII, DD/MM/YYYY/ISO estrictos
+--   gregorianos. Parser/DATE internos intactos; admision/calculos sin cambio.
 --   MAX(CASE) es solo pivote DESPUES de RN_VALOR=1, no maximo arbitrario.
 -- * Fecha442: DD/MM/YYYY estricto, 10 caracteres ASCII, sin TRIM. Se valida
 --   calendario gregoriano (anios0001-9999, meses, dias y bisiestos). Cada
@@ -339,7 +341,38 @@ BEGIN
          fi.FI_SEGUNDO_APE AS SEG_APE_USU,                -- 05 E
          fi.FI_NOMBRES AS NOM_USU,                        -- 06 F
          af.SF_NOMBRE AS ETAPA,                          -- 07 G
-         piv.FEC_APLICACION AS FEC_APLICACION,            -- 08 H
+         CAST(CASE
+            WHEN LENGTH(TRIM(piv.FEC_APLICACION)) = 10
+               AND REGEXP_LIKE(TRIM(piv.FEC_APLICACION), '^[0-9]{2}/[0-9]{2}/[0-9]{4}$', 'c')
+            THEN CASE
+               WHEN TO_NUMBER(SUBSTR(TRIM(piv.FEC_APLICACION), 7, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND 9999
+                  AND TO_NUMBER(SUBSTR(TRIM(piv.FEC_APLICACION), 4, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND 12
+                  AND TO_NUMBER(SUBSTR(TRIM(piv.FEC_APLICACION), 1, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND
+                     CASE TO_NUMBER(SUBSTR(TRIM(piv.FEC_APLICACION), 4, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''')
+                        WHEN 2 THEN 28 + CASE
+                           WHEN MOD(TO_NUMBER(SUBSTR(TRIM(piv.FEC_APLICACION), 7, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 400) = 0
+                              OR (MOD(TO_NUMBER(SUBSTR(TRIM(piv.FEC_APLICACION), 7, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 4) = 0
+                                 AND MOD(TO_NUMBER(SUBSTR(TRIM(piv.FEC_APLICACION), 7, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 100) <> 0)
+                           THEN 1 ELSE 0 END
+                        WHEN 4 THEN 30 WHEN 6 THEN 30 WHEN 9 THEN 30 WHEN 11 THEN 30 ELSE 31 END
+               THEN TRIM(piv.FEC_APLICACION)
+               ELSE NULL END
+            WHEN LENGTH(TRIM(piv.FEC_APLICACION)) = 10
+               AND REGEXP_LIKE(TRIM(piv.FEC_APLICACION), '^[0-9]{4}-[0-9]{2}-[0-9]{2}$', 'c')
+            THEN CASE
+               WHEN TO_NUMBER(SUBSTR(TRIM(piv.FEC_APLICACION), 1, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND 9999
+                  AND TO_NUMBER(SUBSTR(TRIM(piv.FEC_APLICACION), 6, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND 12
+                  AND TO_NUMBER(SUBSTR(TRIM(piv.FEC_APLICACION), 9, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND
+                     CASE TO_NUMBER(SUBSTR(TRIM(piv.FEC_APLICACION), 6, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''')
+                        WHEN 2 THEN 28 + CASE
+                           WHEN MOD(TO_NUMBER(SUBSTR(TRIM(piv.FEC_APLICACION), 1, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 400) = 0
+                              OR (MOD(TO_NUMBER(SUBSTR(TRIM(piv.FEC_APLICACION), 1, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 4) = 0
+                                 AND MOD(TO_NUMBER(SUBSTR(TRIM(piv.FEC_APLICACION), 1, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 100) <> 0)
+                           THEN 1 ELSE 0 END
+                        WHEN 4 THEN 30 WHEN 6 THEN 30 WHEN 9 THEN 30 WHEN 11 THEN 30 ELSE 31 END
+               THEN SUBSTR(TRIM(piv.FEC_APLICACION), 9, 2) || '/' || SUBSTR(TRIM(piv.FEC_APLICACION), 6, 2) || '/' || SUBSTR(TRIM(piv.FEC_APLICACION), 1, 4)
+               ELSE NULL END
+            ELSE NULL END AS VARCHAR2(10)) AS FEC_APLICACION,            -- 08 H
          piv.PREGUNTA_01 AS PREGUNTA_01,                  -- 09 I
          piv.PREGUNTA_02 AS PREGUNTA_02,                  -- 10 J
          piv.PREGUNTA_03 AS PREGUNTA_03,                  -- 11 K
@@ -459,7 +492,7 @@ END PRC_PUNCHE_DIAGNOSTICO_FAMILIAR_LISTAR;
 -- Sin IDs ficticios: -1/NULL todas; sustituir solo por una zona conocida.
 -- =============================================================
 
--- Caso 1: sin filtros; fechas ausentes/invalidas conservan texto y fila.
+-- Caso 1: sin filtros; fechas ausentes/invalidas dan NULL sin excluir fila.
 -- DECLARE
 --    v_cursor SYS_REFCURSOR;
 --    v_error_code NUMBER;

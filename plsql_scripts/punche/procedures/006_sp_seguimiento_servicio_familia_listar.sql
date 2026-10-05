@@ -35,8 +35,9 @@
 -- ninguna ultima respuesta elegible no aparece. No es filtro por una
 -- fecha unica de aplicacion (V1 no aporta aqui una clave de aplicacion).
 -- Una ultima respuesta con texto NULL no recupera el texto anterior.
--- G=4318 se entrega como texto original; no conversion NLS ni mascara
--- inventada. G NO es la fecha del filtro.
+-- G=4318: salida final VARCHAR2(10) DD/MM/YYYY o NULL; TRIM ASCII y
+-- DD/MM/YYYY/ISO estrictos, calendario gregoriano. Fuente interna intacta.
+-- G NO es la fecha del filtro; invalidos no excluyen filas.
 --
 -- TEMPORALIDAD: mismos predicados efectivos de 003, sin TRUNC:
 -- registro >= p_fecha_ini; registro < p_fecha_fin + 1. Para dias completos
@@ -223,7 +224,38 @@ BEGIN
          cat.CATDESCRIPCION AS PARENTESCO_NNA,
          TRIM(pe.PERNOMBRE || ' ' || pe.PERAPEPATERNO || ' '
             || pe.PERAPEMATERNO) AS ACOMPANANTE_RESPONSABLE,
-         res.FECHA_SEGUIMIENTO,
+         CAST(CASE
+            WHEN LENGTH(TRIM(res.FECHA_SEGUIMIENTO)) = 10
+               AND REGEXP_LIKE(TRIM(res.FECHA_SEGUIMIENTO), '^[0-9]{2}/[0-9]{2}/[0-9]{4}$', 'c')
+            THEN CASE
+               WHEN TO_NUMBER(SUBSTR(TRIM(res.FECHA_SEGUIMIENTO), 7, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND 9999
+                  AND TO_NUMBER(SUBSTR(TRIM(res.FECHA_SEGUIMIENTO), 4, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND 12
+                  AND TO_NUMBER(SUBSTR(TRIM(res.FECHA_SEGUIMIENTO), 1, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND
+                     CASE TO_NUMBER(SUBSTR(TRIM(res.FECHA_SEGUIMIENTO), 4, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''')
+                        WHEN 2 THEN 28 + CASE
+                           WHEN MOD(TO_NUMBER(SUBSTR(TRIM(res.FECHA_SEGUIMIENTO), 7, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 400) = 0
+                              OR (MOD(TO_NUMBER(SUBSTR(TRIM(res.FECHA_SEGUIMIENTO), 7, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 4) = 0
+                                 AND MOD(TO_NUMBER(SUBSTR(TRIM(res.FECHA_SEGUIMIENTO), 7, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 100) <> 0)
+                           THEN 1 ELSE 0 END
+                        WHEN 4 THEN 30 WHEN 6 THEN 30 WHEN 9 THEN 30 WHEN 11 THEN 30 ELSE 31 END
+               THEN TRIM(res.FECHA_SEGUIMIENTO)
+               ELSE NULL END
+            WHEN LENGTH(TRIM(res.FECHA_SEGUIMIENTO)) = 10
+               AND REGEXP_LIKE(TRIM(res.FECHA_SEGUIMIENTO), '^[0-9]{4}-[0-9]{2}-[0-9]{2}$', 'c')
+            THEN CASE
+               WHEN TO_NUMBER(SUBSTR(TRIM(res.FECHA_SEGUIMIENTO), 1, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND 9999
+                  AND TO_NUMBER(SUBSTR(TRIM(res.FECHA_SEGUIMIENTO), 6, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND 12
+                  AND TO_NUMBER(SUBSTR(TRIM(res.FECHA_SEGUIMIENTO), 9, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND
+                     CASE TO_NUMBER(SUBSTR(TRIM(res.FECHA_SEGUIMIENTO), 6, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''')
+                        WHEN 2 THEN 28 + CASE
+                           WHEN MOD(TO_NUMBER(SUBSTR(TRIM(res.FECHA_SEGUIMIENTO), 1, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 400) = 0
+                              OR (MOD(TO_NUMBER(SUBSTR(TRIM(res.FECHA_SEGUIMIENTO), 1, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 4) = 0
+                                 AND MOD(TO_NUMBER(SUBSTR(TRIM(res.FECHA_SEGUIMIENTO), 1, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 100) <> 0)
+                           THEN 1 ELSE 0 END
+                        WHEN 4 THEN 30 WHEN 6 THEN 30 WHEN 9 THEN 30 WHEN 11 THEN 30 ELSE 31 END
+               THEN SUBSTR(TRIM(res.FECHA_SEGUIMIENTO), 9, 2) || '/' || SUBSTR(TRIM(res.FECHA_SEGUIMIENTO), 6, 2) || '/' || SUBSTR(TRIM(res.FECHA_SEGUIMIENTO), 1, 4)
+               ELSE NULL END
+            ELSE NULL END AS VARCHAR2(10)) AS FECHA_SEGUIMIENTO,
          res.SESIONES_PROGRAMACION,
          res.TALLERES_PROGRAMACION,
          res.TEMA_ULTIMA_SESION,

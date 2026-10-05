@@ -75,7 +75,8 @@
 --   no se copia esa conversion ni se asume ID/CATTIPO/indice de opciones.
 --   T/V conservan el texto almacenado, no normalizan ni decodifican
 --   posibles codificaciones legacy sin un contrato especifico de estas.
--- * G/N son DATE nativos, sin formato/NLS implicito. M es VARCHAR2(50),
+-- * G/N: DATE internos intactos; salida VARCHAR2(10) DD/MM/YYYY o NULL,
+--   EXTRACT gregoriano, dominio positivo, sin mostrar hora. M es VARCHAR2(50),
 --   conserva ceros iniciales. O usa FI_EDAD, sin recalculo.
 -- * Mapeo A-X:
 --   A ROW_NUMBER; B CF_CODIGO; C ZO_DESCRIPCION;
@@ -159,14 +160,22 @@ BEGIN
          dep.UBILOCALIDAD                            AS DEP_RES,
          prov.UBILOCALIDAD                           AS PROV_RES,
          dist.UBILOCALIDAD                           AS DIS_RES,
-         fi.FI_FEC_REGISTRA                          AS FEC_DX,
+         CAST(CASE WHEN fi.FI_FEC_REGISTRA >= DATE '0001-01-01' THEN
+            TO_CHAR(EXTRACT(DAY FROM fi.FI_FEC_REGISTRA), 'FM00', 'NLS_NUMERIC_CHARACTERS=''.,''') || '/'
+            || TO_CHAR(EXTRACT(MONTH FROM fi.FI_FEC_REGISTRA), 'FM00', 'NLS_NUMERIC_CHARACTERS=''.,''') || '/'
+            || TO_CHAR(EXTRACT(YEAR FROM fi.FI_FEC_REGISTRA), 'FM0000', 'NLS_NUMERIC_CHARACTERS=''.,''')
+            ELSE NULL END AS VARCHAR2(10)) AS FEC_DX,
          fi.FI_PRIMER_APE                            AS PRI_APE_USU,
          fi.FI_SEGUNDO_APE                           AS SEG_APE_USU,
          fi.FI_NOMBRES                               AS NOM_USU,
          par.CATDESCRIPCION                          AS PARENT_USU,
          doc.CATDESCRIPCION                          AS TIP_DOC_USU,
          fi.FI_NUMERO_DOC                            AS NRO_DOC_USU,
-         fi.FI_FEC_NAC                               AS FECHA_NAC,
+         CAST(CASE WHEN fi.FI_FEC_NAC >= DATE '0001-01-01' THEN
+            TO_CHAR(EXTRACT(DAY FROM fi.FI_FEC_NAC), 'FM00', 'NLS_NUMERIC_CHARACTERS=''.,''') || '/'
+            || TO_CHAR(EXTRACT(MONTH FROM fi.FI_FEC_NAC), 'FM00', 'NLS_NUMERIC_CHARACTERS=''.,''') || '/'
+            || TO_CHAR(EXTRACT(YEAR FROM fi.FI_FEC_NAC), 'FM0000', 'NLS_NUMERIC_CHARACTERS=''.,''')
+            ELSE NULL END AS VARCHAR2(10)) AS FECHA_NAC,
          fi.FI_EDAD                                  AS EDAD_USU,
          sex.CATDESCRIPCION                          AS SEX_USU,
          leng.CATDESCRIPCION                         AS LENG_MAT,

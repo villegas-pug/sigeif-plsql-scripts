@@ -17,9 +17,8 @@ permission:
     oracle-plsql-builder: allow
     excel-template-builder: allow
     data-analytics: allow
-  skill:
-    "*": deny
-  external_directory: deny
+  skill: allow
+  external_directory: allow
   todowrite: deny
   question: allow
   webfetch: deny
@@ -67,3 +66,8 @@ integrar, validar o consolidar una implementacion. No cargues Skills operativas
 para sustituir a los builders ni llames analysts para evadir Planning. Nunca
 conectes a Oracle ni ejecutes SQL desde este primario; los gates de seguridad
 Oracle siguen siendo obligatorios.
+
+Puedes cargar y leer Skills descubiertas por OpenCode, incluidas las de fuentes
+externas, y seguir sus pasos compatibles con los permisos y reglas del proyecto.
+Las Skills no amplian permisos ni sustituyen la delegacion obligatoria a builders
+de Oracle y Excel. Conserva las autorizaciones de ejecucion y los gates de seguridad.

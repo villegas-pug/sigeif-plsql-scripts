@@ -14,6 +14,8 @@
 --   p_id_zona IN NUMBER DEFAULT -1: NULL/-1 = todas las zonas;
 --      otro valor filtra PF.ZO_ID_ZONA; ID inexistente: cursor vacio.
 --   p_cursor_out OUT SYS_REFCURSOR: 25 columnas, orden A-Y.
+--      FECHA_REGISTRO final VARCHAR2(10) DD/MM/YYYY o NULL; DATE interno
+--      y hora fisica intactos, formato gregoriano mediante EXTRACT.
 -- Autor   : OpenCode (oracle-plsql-builder)
 -- Fecha   : 2026-10-01
 -- Alcance : Solo lectura; SQL estatico, sin transacciones ni logging DML.
@@ -21,7 +23,7 @@
 -- CONTRATO Y TRAZABILIDAD
 -- * Plantilla: 7_reporte_familias_pre-identificacion_pre-calificacion.xlsx,
 --   hoja visible FAM_REF, encabezados fila 2. Fila 3 heredada NO define
---   aliases. Categorias es auxiliar/oculta. No se agregan columnas de
+--   aliases. Categorias es auxiliar/oculta. No se agregan columnas de1
 --   adulto mayor/discapacidad, totales, correo o geografia del cuidador.
 -- * Poblacion: PF.SI_ID_SERVICIO=2, PF_ESTADO=1, PF_ELIMINADO=0.
 --   Zona es enriquecimiento LEFT JOIN, sin exigir actividad ni servicio
@@ -256,7 +258,11 @@ BEGIN
             ELSE TO_CHAR(rpt.CORRELATIVO, 'TM9')
          END AS NRO_FAMILIA,
          rpt.ZONA_INTERVENCION,
-         rpt.FECHA_REGISTRO,
+         CAST(CASE WHEN rpt.FECHA_REGISTRO >= DATE '0001-01-01' THEN
+            TO_CHAR(EXTRACT(DAY FROM rpt.FECHA_REGISTRO), 'FM00', 'NLS_NUMERIC_CHARACTERS=''.,''') || '/'
+            || TO_CHAR(EXTRACT(MONTH FROM rpt.FECHA_REGISTRO), 'FM00', 'NLS_NUMERIC_CHARACTERS=''.,''') || '/'
+            || TO_CHAR(EXTRACT(YEAR FROM rpt.FECHA_REGISTRO), 'FM0000', 'NLS_NUMERIC_CHARACTERS=''.,''')
+            ELSE NULL END AS VARCHAR2(10)) AS FECHA_REGISTRO,
          rpt.INSTITUCION_REFERENTE,
          rpt.REPRESENTANTE_REFERENTE,
          rpt.TELEFONO_REFERENTE,

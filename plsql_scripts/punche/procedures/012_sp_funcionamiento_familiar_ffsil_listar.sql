@@ -45,7 +45,9 @@
 --   a la secuencia de generacion local. No prioridad extra por tipo.
 --   Ausencia => NULL; nunca fallback silencioso a PF_COD_FAMILIA.
 -- * Salida A-H: NUMERO, ZONA_INTERV, COD_FAM, PRI_APE_USU, SEG_APE_USU,
---   NOM_USU, FASE (SF_NOMBRE), FEC_EVAL (932, texto original).
+--   NOM_USU, FASE (SF_NOMBRE), FEC_EVAL (932, salida VARCHAR2(10)
+--   DD/MM/YYYY o NULL; TRIM ASCII y DD/MM/YYYY/ISO estrictos gregorianos).
+--   Parser/DATE internos intactos; invalidos no cambian admision ni calculos.
 --   I-V: 933 DEC_FAM, 934 ARM_CASA, 935 RESP_CASA, 936 CARINO,
 --   937 EXPRES_CLAR, 938 SOBRE_DEF, 939 EXP_FAM, 940 AYUDA_FAM,
 --   941 DISTR_TAREA, 942 COST_MODIF, 943 CONV_NO_TEMOR, 944 BUSCA_AYUDA,
@@ -271,7 +273,38 @@ BEGIN
                AND fi.FI_ELIMINADO = 0
          ) AS NOM_USU,
          af.SF_NOMBRE AS FASE,
-         piv.FEC_EVAL AS FEC_EVAL,
+         CAST(CASE
+            WHEN LENGTH(TRIM(piv.FEC_EVAL)) = 10
+               AND REGEXP_LIKE(TRIM(piv.FEC_EVAL), '^[0-9]{2}/[0-9]{2}/[0-9]{4}$', 'c')
+            THEN CASE
+               WHEN TO_NUMBER(SUBSTR(TRIM(piv.FEC_EVAL), 7, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND 9999
+                  AND TO_NUMBER(SUBSTR(TRIM(piv.FEC_EVAL), 4, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND 12
+                  AND TO_NUMBER(SUBSTR(TRIM(piv.FEC_EVAL), 1, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND
+                     CASE TO_NUMBER(SUBSTR(TRIM(piv.FEC_EVAL), 4, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''')
+                        WHEN 2 THEN 28 + CASE
+                           WHEN MOD(TO_NUMBER(SUBSTR(TRIM(piv.FEC_EVAL), 7, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 400) = 0
+                              OR (MOD(TO_NUMBER(SUBSTR(TRIM(piv.FEC_EVAL), 7, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 4) = 0
+                                 AND MOD(TO_NUMBER(SUBSTR(TRIM(piv.FEC_EVAL), 7, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 100) <> 0)
+                           THEN 1 ELSE 0 END
+                        WHEN 4 THEN 30 WHEN 6 THEN 30 WHEN 9 THEN 30 WHEN 11 THEN 30 ELSE 31 END
+               THEN TRIM(piv.FEC_EVAL)
+               ELSE NULL END
+            WHEN LENGTH(TRIM(piv.FEC_EVAL)) = 10
+               AND REGEXP_LIKE(TRIM(piv.FEC_EVAL), '^[0-9]{4}-[0-9]{2}-[0-9]{2}$', 'c')
+            THEN CASE
+               WHEN TO_NUMBER(SUBSTR(TRIM(piv.FEC_EVAL), 1, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND 9999
+                  AND TO_NUMBER(SUBSTR(TRIM(piv.FEC_EVAL), 6, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND 12
+                  AND TO_NUMBER(SUBSTR(TRIM(piv.FEC_EVAL), 9, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND
+                     CASE TO_NUMBER(SUBSTR(TRIM(piv.FEC_EVAL), 6, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''')
+                        WHEN 2 THEN 28 + CASE
+                           WHEN MOD(TO_NUMBER(SUBSTR(TRIM(piv.FEC_EVAL), 1, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 400) = 0
+                              OR (MOD(TO_NUMBER(SUBSTR(TRIM(piv.FEC_EVAL), 1, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 4) = 0
+                                 AND MOD(TO_NUMBER(SUBSTR(TRIM(piv.FEC_EVAL), 1, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 100) <> 0)
+                           THEN 1 ELSE 0 END
+                        WHEN 4 THEN 30 WHEN 6 THEN 30 WHEN 9 THEN 30 WHEN 11 THEN 30 ELSE 31 END
+               THEN SUBSTR(TRIM(piv.FEC_EVAL), 9, 2) || '/' || SUBSTR(TRIM(piv.FEC_EVAL), 6, 2) || '/' || SUBSTR(TRIM(piv.FEC_EVAL), 1, 4)
+               ELSE NULL END
+            ELSE NULL END AS VARCHAR2(10)) AS FEC_EVAL,
          piv.DEC_FAM AS DEC_FAM,
          piv.ARM_CASA AS ARM_CASA,
          piv.RESP_CASA AS RESP_CASA,

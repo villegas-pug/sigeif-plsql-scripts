@@ -626,3 +626,204 @@ WHERE
       4332
     ) -- (932)
 /
+
+-- =============================================================
+-- Tipo    : PROCEDURE
+-- Nombre  : PRC_ANEXOS_RESP_ZONA_LISTAR
+-- Proposito: Lista anexos con sus respuestas y la zona de intervencion de
+--            la familia, para un servicio explicito (1=CEDIF, 2=PUNCHE).
+--            Reporte plano; el pivot se realiza despues (Excel).
+-- Grano   : Una fila por (PF_ID_FAMILIA, SF_ID_FASE, AP_ID_PREGUNTA) con
+--            su ULTIMA respuesta vigente.
+-- Parametros:
+--   p_id_servicio IN SSI_ANEXOS_PREGUNTAS.SI_ID_SERVICIO%TYPE: obligatorio
+--      (1=CEDIF, 2=PUNCHE); NULL => ORA-20001 controlado.
+--   p_id_zona IN SSI_ZONA_INTERVENCION.ZO_ID_ZONA%TYPE DEFAULT -1:
+--      NULL/-1 todas las zonas; otro valor filtra esa zona.
+--   p_num_anexo IN SSI_ANEXOS_PREGUNTAS.AP_NUM_ANEXO%TYPE DEFAULT -1:
+--      NULL/-1 todos los anexos; otro valor filtra ese anexo.
+--   p_cursor_out OUT SYS_REFCURSOR: columnas ordenadas por zona, familia,
+--      anexo, grupo, pregunta y fase.
+-- Autor   : Claude (oracle-plsql-builder)
+-- Fecha   : 2026-10-04
+-- Alcance : Solo lectura, SELECT estatico, sin control transaccional.
+-- =============================================================
+-- CONTRATO / TRAZABILIDAD
+-- * Fuente: SSI_ANEXOS_RESPUESTAS (V1). No se mezcla con V2.
+-- * Sujeto: familia (PF_ID_FAMILIA NOT NULL). Respuestas individuales por
+--   FI_ID_INTEGRANTE sin familia quedan fuera (no se deriva familia desde
+--   integrante; SUPUESTO por falta de evidencia).
+-- * Latest: mayor AR_ID_RESPUESTA por familia/fase/pregunta, calculado
+--   sobre respuestas AR_ELIMINADO=0 de preguntas del servicio/anexo
+--   solicitados. SF_ID_FASE NULL forma su propio grupo. AR_ID_RESPUESTA
+--   mayor no prueba cronologia (criterio aceptado en el plan).
+-- * Poblacion: pf.SI_ID_SERVICIO = p_id_servicio, PF_ELIMINADO=0,
+--   NVL(AP_ELIMINADO,0)=0. Sin filtros de estado, AN_ESTADO, aptitud ni
+--   estado de zona/fase.
+-- * Zona CEDIF: mismo vinculo que PUNCHE (pf.ZO_ID_ZONA); INFERENCIA no
+--   verificada para CEDIF.
+-- * Respuestas: AR_RESPUESTA y AR_PUNTAJE tal cual, sin conversion.
+-- * Supuesto: ANX_NOMBRE de SSI_ANEXO no se incluye (sin vinculo probado).
+-- * AR_ID_RESPUESTA se agrega como columna de trazabilidad del latest.
+-- JOINs INFERIDOS (el catalogo no documenta FK/UNIQUE):
+-- * cr.AP_ID_PREGUNTA=ap.AP_ID_PREGUNTA: N:1, 95%, INNER (pregunta requerida).
+-- * cr.PF_ID_FAMILIA=pf.PF_ID_FAMILIA: N:1, 95%, INNER (familia requerida).
+-- * pf.ZO_ID_ZONA=zi.ZO_ID_ZONA: 0:1, 95%, LEFT; zona especifica exige
+--   coincidencia (convierte efectivamente a INNER solo con ese filtro).
+-- * cr.SF_ID_FASE=af.SF_ID_FASE: 0:1, 95%, LEFT.
+--   Evidencia: nombres/tipos NUMBER compatibles y precedentes SP013/014.
+-- RIESGOS / REVISION
+-- * Posible full scan de SSI_ANEXOS_RESPUESTAS; el ranking (ROW_NUMBER) y el
+--   OR-NULL de filtros aumentan costo. Sin indices ni planes verificados.
+-- * Con p_num_anexo = todos y servicio CEDIF el volumen puede ser alto.
+-- * Si la zona de CEDIF no se vincula por familia, ZONA saldra NULL o
+--   filtrara de menos/mas de lo esperado.
+-- * Cursor vacio no lanza NO_DATA_FOUND; el caller debe consumir y cerrar el
+--   OUT y manejar errores durante FETCH.
+-- * Revision exclusivamente estatica; NO compilado ni ejecutado en Oracle.
+-- =============================================================
+
+CREATE OR REPLACE PROCEDURE PRC_ANEXOS_RESP_ZONA_LISTAR (
+   p_id_servicio IN SSI_ANEXOS_PREGUNTAS.SI_ID_SERVICIO%TYPE,
+   p_id_zona     IN SSI_ZONA_INTERVENCION.ZO_ID_ZONA%TYPE DEFAULT -1,
+   p_num_anexo   IN SSI_ANEXOS_PREGUNTAS.AP_NUM_ANEXO%TYPE DEFAULT -1,
+   p_cursor_out  OUT SYS_REFCURSOR
+)
+IS
+   e_servicio_requerido EXCEPTION;
+   v_error_code    NUMBER;
+   v_error_message VARCHAR2(4000);
+   v_diagnostico   VARCHAR2(4000);
+BEGIN
+   IF p_id_servicio IS NULL THEN
+      RAISE e_servicio_requerido;
+   END IF;
+
+   OPEN p_cursor_out FOR
+      WITH cte_resp AS (
+         SELECT
+            ar.AR_ID_RESPUESTA AS AR_ID_RESPUESTA,
+            ar.PF_ID_FAMILIA AS PF_ID_FAMILIA,
+            ar.SF_ID_FASE AS SF_ID_FASE,
+            ar.AP_ID_PREGUNTA AS AP_ID_PREGUNTA,
+            ar.AR_RESPUESTA AS AR_RESPUESTA,
+            ar.AR_PUNTAJE AS AR_PUNTAJE,
+            ar.AR_FECHA_REGISTRA AS AR_FECHA_REGISTRA,
+            ar.AR_FECHA_MODIFICA AS AR_FECHA_MODIFICA,
+            ROW_NUMBER() OVER (
+               PARTITION BY ar.PF_ID_FAMILIA, ar.SF_ID_FASE, ar.AP_ID_PREGUNTA
+               ORDER BY ar.AR_ID_RESPUESTA DESC
+            ) AS RN_VALOR
+         FROM SSI_ANEXOS_RESPUESTAS ar
+         WHERE ar.AR_ELIMINADO = 0
+            AND ar.PF_ID_FAMILIA IS NOT NULL
+            AND EXISTS (
+               SELECT 1
+               FROM SSI_ANEXOS_PREGUNTAS ap
+               WHERE ap.AP_ID_PREGUNTA = ar.AP_ID_PREGUNTA
+                  AND ap.SI_ID_SERVICIO = p_id_servicio
+                  AND NVL(ap.AP_ELIMINADO, 0) = 0
+                  AND (p_num_anexo IS NULL OR p_num_anexo = -1
+                       OR ap.AP_NUM_ANEXO = p_num_anexo)
+            )
+      )
+      SELECT
+         zi.ZO_ID_ZONA AS ZO_ID_ZONA,
+         zi.ZO_DESCRIPCION AS ZONA_INTERV,
+         pf.SI_ID_SERVICIO AS SI_ID_SERVICIO,
+         pf.PF_ID_FAMILIA AS PF_ID_FAMILIA,
+         pf.PF_COD_FAMILIA AS PF_COD_FAMILIA,
+         ap.AP_NUM_ANEXO AS AP_NUM_ANEXO,
+         ap.AP_NUM_GRUPO AS AP_NUM_GRUPO,
+         ap.AP_ID_PREGUNTA AS AP_ID_PREGUNTA,
+         ap.AP_NUM_PREGUNTA AS AP_NUM_PREGUNTA,
+         ap.AP_PREGUNTA AS AP_PREGUNTA,
+         cr.AR_ID_RESPUESTA AS AR_ID_RESPUESTA,
+         cr.AR_RESPUESTA AS AR_RESPUESTA,
+         cr.AR_PUNTAJE AS AR_PUNTAJE,
+         cr.SF_ID_FASE AS SF_ID_FASE,
+         af.SF_NOMBRE AS FASE,
+         cr.AR_FECHA_REGISTRA AS AR_FECHA_REGISTRA,
+         cr.AR_FECHA_MODIFICA AS AR_FECHA_MODIFICA
+      FROM cte_resp cr
+      JOIN SSI_ANEXOS_PREGUNTAS ap
+         ON ap.AP_ID_PREGUNTA = cr.AP_ID_PREGUNTA
+      JOIN SSI_POTENCIALES_FAMILIAS pf
+         ON pf.PF_ID_FAMILIA = cr.PF_ID_FAMILIA
+         AND pf.SI_ID_SERVICIO = p_id_servicio
+      LEFT JOIN SSI_ZONA_INTERVENCION zi
+         ON zi.ZO_ID_ZONA = pf.ZO_ID_ZONA
+      LEFT JOIN SSI_ANEXO_FASES af
+         ON af.SF_ID_FASE = cr.SF_ID_FASE
+      WHERE cr.RN_VALOR = 1
+         AND pf.PF_ELIMINADO = 0
+         AND (p_id_zona IS NULL OR p_id_zona = -1 OR zi.ZO_ID_ZONA = p_id_zona)
+      ORDER BY zi.ZO_ID_ZONA ASC NULLS LAST,
+         pf.PF_ID_FAMILIA ASC,
+         ap.AP_NUM_ANEXO ASC,
+         ap.AP_NUM_GRUPO ASC,
+         ap.AP_NUM_PREGUNTA ASC,
+         cr.SF_ID_FASE ASC NULLS LAST;
+EXCEPTION
+   WHEN e_servicio_requerido THEN
+      RAISE_APPLICATION_ERROR(-20001,
+         'PRC_ANEXOS_RESP_ZONA_LISTAR: p_id_servicio es obligatorio (1=CEDIF, 2=PUNCHE).');
+   WHEN OTHERS THEN
+      v_error_code := SQLCODE;
+      v_error_message := SQLERRM;
+      v_diagnostico := 'Error en PRC_ANEXOS_RESP_ZONA_LISTAR ['
+         || TO_CHAR(v_error_code) || ']: ' || v_error_message;
+      -- Acotar en bytes sin partir caracteres multibyte; preservar pila.
+      WHILE LENGTHB(v_diagnostico) > 2048 LOOP
+         v_diagnostico := SUBSTR(v_diagnostico, 1, LENGTH(v_diagnostico) - 1);
+      END LOOP;
+      RAISE_APPLICATION_ERROR(-20999, v_diagnostico, TRUE);
+END PRC_ANEXOS_RESP_ZONA_LISTAR;
+/
+
+-- ! COMMIT;
+
+-- =============================================================
+-- Invocaciones MANUALES: NO EJECUTADAS, totalmente comentadas.
+-- DBMS_SQL.RETURN_RESULT requiere Oracle 12c+ y cliente compatible con
+-- resultados implicitos. Alternativamente consumir/cerrar el OUT desde
+-- el caller, manejando tambien errores durante FETCH. No son tests.
+-- =============================================================
+-- Caso 1: PUNCHE (2), todas las zonas y todos los anexos.
+-- DECLARE
+--    v_cursor SYS_REFCURSOR;
+-- BEGIN
+--    PRC_ANEXOS_RESP_ZONA_LISTAR(
+--       p_id_servicio => 2,
+--       p_id_zona => -1,
+--       p_num_anexo => -1,
+--       p_cursor_out => v_cursor
+--    );
+--    DBMS_SQL.RETURN_RESULT(v_cursor);
+-- END;
+-- /
+-- Caso 2: CEDIF (1), todas las zonas, un anexo (sustituir <num_anexo>).
+-- DECLARE
+--    v_cursor SYS_REFCURSOR;
+-- BEGIN
+--    PRC_ANEXOS_RESP_ZONA_LISTAR(
+--       p_id_servicio => 1,
+--       p_id_zona => NULL,
+--       p_num_anexo => <num_anexo>, -- Sustituir por numero de anexo valido.
+--       p_cursor_out => v_cursor
+--    );
+--    DBMS_SQL.RETURN_RESULT(v_cursor);
+-- END;
+-- /
+-- Caso 3: PUNCHE (2), una zona (sustituir <id_zona>), todos los anexos.
+-- DECLARE
+--    v_cursor SYS_REFCURSOR;
+-- BEGIN
+--    PRC_ANEXOS_RESP_ZONA_LISTAR(
+--       p_id_servicio => 2,
+--       p_id_zona => <id_zona>, -- Sustituir por zona valida.
+--       p_cursor_out => v_cursor
+--    );
+--    DBMS_SQL.RETURN_RESULT(v_cursor);
+-- END;
+-- /

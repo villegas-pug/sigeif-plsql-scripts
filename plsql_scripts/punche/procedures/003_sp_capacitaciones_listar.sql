@@ -87,12 +87,12 @@
 --     NULL.
 --   * SEXO y FECHA_NACIMIENTO: la serialización no los incluye; se
 --     devuelven como literales NULL (CAST(NULL AS VARCHAR2(1)) y
---     CAST(NULL AS DATE)).
+--     CAST(NULL AS DATE) interno; salida FECHA_NACIMIENTO VARCHAR2(10)).
 --   * FECHA_INICIO / FECHA_FIN (campos 8 y 9): se devuelven como
---     texto tal cual viene serializado (VARCHAR2). No se aplica
---     TO_DATE: el formato serializado no está especificado y un
---     casteo forzado arriesgaría ORA-01830/01861 sobre datos
---     históricos.
+--     VARCHAR2(10) DD/MM/YYYY o NULL solo en el SELECT final. Tras TRIM
+--     ASCII se aceptan DD/MM/YYYY e ISO YYYY-MM-DD gregorianos validos;
+--     invalidos/ausentes -> NULL, sin TO_DATE ni exclusion de filas.
+--     La extraccion y los tipos internos permanecen intactos.
 --   * CODIGO_FAMILIA: LEFT JOIN con una vista agregada de
 --     SSI_CODIGOS_FAMILIAS (CF_TIPO_CODIGO = 1 = código de
 --     familia, CF_ESTADO = 1, CF_ELIMINADO = 0, MAX(CF_CODIGO)
@@ -146,13 +146,75 @@ BEGIN
          sub.PARENTESCO,
          sub.DNI,
          sub.SEXO,
-         sub.FECHA_NACIMIENTO,
+         CAST(NULL AS VARCHAR2(10)) AS FECHA_NACIMIENTO,
          sub.INSTITUCION_CAPACITADORA,
          sub.TIPO_INSTITUCION,
          sub.LINEA_CAPACITACION,
          sub.TEMA_PROGRAMA,
-         sub.FECHA_INICIO,
-         sub.FECHA_FIN,
+         CAST(CASE
+            WHEN LENGTH(TRIM(sub.FECHA_INICIO)) = 10
+               AND REGEXP_LIKE(TRIM(sub.FECHA_INICIO), '^[0-9]{2}/[0-9]{2}/[0-9]{4}$', 'c')
+            THEN CASE
+               WHEN TO_NUMBER(SUBSTR(TRIM(sub.FECHA_INICIO), 7, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND 9999
+                  AND TO_NUMBER(SUBSTR(TRIM(sub.FECHA_INICIO), 4, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND 12
+                  AND TO_NUMBER(SUBSTR(TRIM(sub.FECHA_INICIO), 1, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND
+                     CASE TO_NUMBER(SUBSTR(TRIM(sub.FECHA_INICIO), 4, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''')
+                        WHEN 2 THEN 28 + CASE
+                           WHEN MOD(TO_NUMBER(SUBSTR(TRIM(sub.FECHA_INICIO), 7, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 400) = 0
+                              OR (MOD(TO_NUMBER(SUBSTR(TRIM(sub.FECHA_INICIO), 7, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 4) = 0
+                                 AND MOD(TO_NUMBER(SUBSTR(TRIM(sub.FECHA_INICIO), 7, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 100) <> 0)
+                           THEN 1 ELSE 0 END
+                        WHEN 4 THEN 30 WHEN 6 THEN 30 WHEN 9 THEN 30 WHEN 11 THEN 30 ELSE 31 END
+               THEN TRIM(sub.FECHA_INICIO)
+               ELSE NULL END
+            WHEN LENGTH(TRIM(sub.FECHA_INICIO)) = 10
+               AND REGEXP_LIKE(TRIM(sub.FECHA_INICIO), '^[0-9]{4}-[0-9]{2}-[0-9]{2}$', 'c')
+            THEN CASE
+               WHEN TO_NUMBER(SUBSTR(TRIM(sub.FECHA_INICIO), 1, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND 9999
+                  AND TO_NUMBER(SUBSTR(TRIM(sub.FECHA_INICIO), 6, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND 12
+                  AND TO_NUMBER(SUBSTR(TRIM(sub.FECHA_INICIO), 9, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND
+                     CASE TO_NUMBER(SUBSTR(TRIM(sub.FECHA_INICIO), 6, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''')
+                        WHEN 2 THEN 28 + CASE
+                           WHEN MOD(TO_NUMBER(SUBSTR(TRIM(sub.FECHA_INICIO), 1, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 400) = 0
+                              OR (MOD(TO_NUMBER(SUBSTR(TRIM(sub.FECHA_INICIO), 1, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 4) = 0
+                                 AND MOD(TO_NUMBER(SUBSTR(TRIM(sub.FECHA_INICIO), 1, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 100) <> 0)
+                           THEN 1 ELSE 0 END
+                        WHEN 4 THEN 30 WHEN 6 THEN 30 WHEN 9 THEN 30 WHEN 11 THEN 30 ELSE 31 END
+               THEN SUBSTR(TRIM(sub.FECHA_INICIO), 9, 2) || '/' || SUBSTR(TRIM(sub.FECHA_INICIO), 6, 2) || '/' || SUBSTR(TRIM(sub.FECHA_INICIO), 1, 4)
+               ELSE NULL END
+            ELSE NULL END AS VARCHAR2(10)) AS FECHA_INICIO,
+         CAST(CASE
+            WHEN LENGTH(TRIM(sub.FECHA_FIN)) = 10
+               AND REGEXP_LIKE(TRIM(sub.FECHA_FIN), '^[0-9]{2}/[0-9]{2}/[0-9]{4}$', 'c')
+            THEN CASE
+               WHEN TO_NUMBER(SUBSTR(TRIM(sub.FECHA_FIN), 7, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND 9999
+                  AND TO_NUMBER(SUBSTR(TRIM(sub.FECHA_FIN), 4, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND 12
+                  AND TO_NUMBER(SUBSTR(TRIM(sub.FECHA_FIN), 1, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND
+                     CASE TO_NUMBER(SUBSTR(TRIM(sub.FECHA_FIN), 4, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''')
+                        WHEN 2 THEN 28 + CASE
+                           WHEN MOD(TO_NUMBER(SUBSTR(TRIM(sub.FECHA_FIN), 7, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 400) = 0
+                              OR (MOD(TO_NUMBER(SUBSTR(TRIM(sub.FECHA_FIN), 7, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 4) = 0
+                                 AND MOD(TO_NUMBER(SUBSTR(TRIM(sub.FECHA_FIN), 7, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 100) <> 0)
+                           THEN 1 ELSE 0 END
+                        WHEN 4 THEN 30 WHEN 6 THEN 30 WHEN 9 THEN 30 WHEN 11 THEN 30 ELSE 31 END
+               THEN TRIM(sub.FECHA_FIN)
+               ELSE NULL END
+            WHEN LENGTH(TRIM(sub.FECHA_FIN)) = 10
+               AND REGEXP_LIKE(TRIM(sub.FECHA_FIN), '^[0-9]{4}-[0-9]{2}-[0-9]{2}$', 'c')
+            THEN CASE
+               WHEN TO_NUMBER(SUBSTR(TRIM(sub.FECHA_FIN), 1, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND 9999
+                  AND TO_NUMBER(SUBSTR(TRIM(sub.FECHA_FIN), 6, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND 12
+                  AND TO_NUMBER(SUBSTR(TRIM(sub.FECHA_FIN), 9, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND
+                     CASE TO_NUMBER(SUBSTR(TRIM(sub.FECHA_FIN), 6, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''')
+                        WHEN 2 THEN 28 + CASE
+                           WHEN MOD(TO_NUMBER(SUBSTR(TRIM(sub.FECHA_FIN), 1, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 400) = 0
+                              OR (MOD(TO_NUMBER(SUBSTR(TRIM(sub.FECHA_FIN), 1, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 4) = 0
+                                 AND MOD(TO_NUMBER(SUBSTR(TRIM(sub.FECHA_FIN), 1, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 100) <> 0)
+                           THEN 1 ELSE 0 END
+                        WHEN 4 THEN 30 WHEN 6 THEN 30 WHEN 9 THEN 30 WHEN 11 THEN 30 ELSE 31 END
+               THEN SUBSTR(TRIM(sub.FECHA_FIN), 9, 2) || '/' || SUBSTR(TRIM(sub.FECHA_FIN), 6, 2) || '/' || SUBSTR(TRIM(sub.FECHA_FIN), 1, 4)
+               ELSE NULL END
+            ELSE NULL END AS VARCHAR2(10)) AS FECHA_FIN,
          sub.CONCLUSION,
          sub.CERTIFICACION
       FROM (

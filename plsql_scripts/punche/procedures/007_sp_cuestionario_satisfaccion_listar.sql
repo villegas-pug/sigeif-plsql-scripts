@@ -55,7 +55,10 @@
 -- TO_NUMBER solo dentro de CASE con guarda de digitos ASCII y NLS explicito.
 -- Conversion conservada, sin filtrar. Sin limites admite registros NULL;
 -- con algun limite, un registro NULL no admite por si solo la ficha.
--- H conserva el texto. Parametros conservan horas; usar medianoche para dias.
+-- DATE/parser internos intactos (sin TRIM). H final VARCHAR2(10) DD/MM/YYYY
+-- o NULL: parser independiente con TRIM ASCII, DD/MM/YYYY/ISO estrictos
+-- y calendario gregoriano; no cambia prevalidacion ni admision.
+-- Parametros conservan horas; usar medianoche para dias.
 -- Extremos NULL abiertos; rango invertido -> vacio. No TRUNC de parametros.
 --
 -- Cuidador = FI_CUIDADOR=1, no eliminado, sin exigir actividad actual.
@@ -421,7 +424,38 @@ BEGIN
                THEN ' ' || TRIM(cui.FI_SEGUNDO_APE) END) AS NOMBRE_CUIDADOR,
          cui.FI_NUMERO_DOC AS DNI,
          cat.CATDESCRIPCION AS PARENTESCO_NNA,
-         fic.FECHA_TEXTO AS FECHA_APLICACION_FICHA,
+         CAST(CASE
+            WHEN LENGTH(TRIM(fic.FECHA_TEXTO)) = 10
+               AND REGEXP_LIKE(TRIM(fic.FECHA_TEXTO), '^[0-9]{2}/[0-9]{2}/[0-9]{4}$', 'c')
+            THEN CASE
+               WHEN TO_NUMBER(SUBSTR(TRIM(fic.FECHA_TEXTO), 7, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND 9999
+                  AND TO_NUMBER(SUBSTR(TRIM(fic.FECHA_TEXTO), 4, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND 12
+                  AND TO_NUMBER(SUBSTR(TRIM(fic.FECHA_TEXTO), 1, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND
+                     CASE TO_NUMBER(SUBSTR(TRIM(fic.FECHA_TEXTO), 4, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''')
+                        WHEN 2 THEN 28 + CASE
+                           WHEN MOD(TO_NUMBER(SUBSTR(TRIM(fic.FECHA_TEXTO), 7, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 400) = 0
+                              OR (MOD(TO_NUMBER(SUBSTR(TRIM(fic.FECHA_TEXTO), 7, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 4) = 0
+                                 AND MOD(TO_NUMBER(SUBSTR(TRIM(fic.FECHA_TEXTO), 7, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 100) <> 0)
+                           THEN 1 ELSE 0 END
+                        WHEN 4 THEN 30 WHEN 6 THEN 30 WHEN 9 THEN 30 WHEN 11 THEN 30 ELSE 31 END
+               THEN TRIM(fic.FECHA_TEXTO)
+               ELSE NULL END
+            WHEN LENGTH(TRIM(fic.FECHA_TEXTO)) = 10
+               AND REGEXP_LIKE(TRIM(fic.FECHA_TEXTO), '^[0-9]{4}-[0-9]{2}-[0-9]{2}$', 'c')
+            THEN CASE
+               WHEN TO_NUMBER(SUBSTR(TRIM(fic.FECHA_TEXTO), 1, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND 9999
+                  AND TO_NUMBER(SUBSTR(TRIM(fic.FECHA_TEXTO), 6, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND 12
+                  AND TO_NUMBER(SUBSTR(TRIM(fic.FECHA_TEXTO), 9, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND
+                     CASE TO_NUMBER(SUBSTR(TRIM(fic.FECHA_TEXTO), 6, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''')
+                        WHEN 2 THEN 28 + CASE
+                           WHEN MOD(TO_NUMBER(SUBSTR(TRIM(fic.FECHA_TEXTO), 1, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 400) = 0
+                              OR (MOD(TO_NUMBER(SUBSTR(TRIM(fic.FECHA_TEXTO), 1, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 4) = 0
+                                 AND MOD(TO_NUMBER(SUBSTR(TRIM(fic.FECHA_TEXTO), 1, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 100) <> 0)
+                           THEN 1 ELSE 0 END
+                        WHEN 4 THEN 30 WHEN 6 THEN 30 WHEN 9 THEN 30 WHEN 11 THEN 30 ELSE 31 END
+               THEN SUBSTR(TRIM(fic.FECHA_TEXTO), 9, 2) || '/' || SUBSTR(TRIM(fic.FECHA_TEXTO), 6, 2) || '/' || SUBSTR(TRIM(fic.FECHA_TEXTO), 1, 4)
+               ELSE NULL END
+            ELSE NULL END AS VARCHAR2(10)) AS FECHA_APLICACION_FICHA,
          fic.P01_SESIONES,
          fic.P02_TALLERES,
          fic.P03_TRATO_ACOMPANANTE,

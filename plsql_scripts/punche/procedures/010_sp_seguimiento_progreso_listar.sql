@@ -13,6 +13,9 @@
 --      No se truncan parametros; NULL deja abierto el extremo respectivo.
 --   p_id_zona IN NUMBER DEFAULT -1: NULL/-1 todas; otro valor filtra zona.
 --   p_cursor_out OUT SYS_REFCURSOR: 15 columnas; FECHA_EVALUACION es texto.
+--      Salida final VARCHAR2(10) DD/MM/YYYY o NULL; TRIM ASCII y
+--      DD/MM/YYYY/ISO estrictos gregorianos. Parser/DATE internos intactos,
+--      incluidos sus formatos originales; no cambia admision ni calculos.
 -- Autor   : OpenCode (oracle-plsql-builder)
 -- Fecha   : 2026-10-01
 -- Alcance : Solo lectura; SELECT estatico, sin control transaccional.
@@ -236,7 +239,38 @@ BEGIN
          cui.FI_PRIMER_APE AS PRIMER_APELLIDO,
          cui.FI_SEGUNDO_APE AS SEGUNDO_APELLIDO,
          cui.FI_NOMBRES AS NOMBRES,
-         piv.FECHA_EVALUACION AS FECHA_EVALUACION,
+         CAST(CASE
+            WHEN LENGTH(TRIM(piv.FECHA_EVALUACION)) = 10
+               AND REGEXP_LIKE(TRIM(piv.FECHA_EVALUACION), '^[0-9]{2}/[0-9]{2}/[0-9]{4}$', 'c')
+            THEN CASE
+               WHEN TO_NUMBER(SUBSTR(TRIM(piv.FECHA_EVALUACION), 7, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND 9999
+                  AND TO_NUMBER(SUBSTR(TRIM(piv.FECHA_EVALUACION), 4, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND 12
+                  AND TO_NUMBER(SUBSTR(TRIM(piv.FECHA_EVALUACION), 1, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND
+                     CASE TO_NUMBER(SUBSTR(TRIM(piv.FECHA_EVALUACION), 4, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''')
+                        WHEN 2 THEN 28 + CASE
+                           WHEN MOD(TO_NUMBER(SUBSTR(TRIM(piv.FECHA_EVALUACION), 7, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 400) = 0
+                              OR (MOD(TO_NUMBER(SUBSTR(TRIM(piv.FECHA_EVALUACION), 7, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 4) = 0
+                                 AND MOD(TO_NUMBER(SUBSTR(TRIM(piv.FECHA_EVALUACION), 7, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 100) <> 0)
+                           THEN 1 ELSE 0 END
+                        WHEN 4 THEN 30 WHEN 6 THEN 30 WHEN 9 THEN 30 WHEN 11 THEN 30 ELSE 31 END
+               THEN TRIM(piv.FECHA_EVALUACION)
+               ELSE NULL END
+            WHEN LENGTH(TRIM(piv.FECHA_EVALUACION)) = 10
+               AND REGEXP_LIKE(TRIM(piv.FECHA_EVALUACION), '^[0-9]{4}-[0-9]{2}-[0-9]{2}$', 'c')
+            THEN CASE
+               WHEN TO_NUMBER(SUBSTR(TRIM(piv.FECHA_EVALUACION), 1, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND 9999
+                  AND TO_NUMBER(SUBSTR(TRIM(piv.FECHA_EVALUACION), 6, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND 12
+                  AND TO_NUMBER(SUBSTR(TRIM(piv.FECHA_EVALUACION), 9, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND
+                     CASE TO_NUMBER(SUBSTR(TRIM(piv.FECHA_EVALUACION), 6, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''')
+                        WHEN 2 THEN 28 + CASE
+                           WHEN MOD(TO_NUMBER(SUBSTR(TRIM(piv.FECHA_EVALUACION), 1, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 400) = 0
+                              OR (MOD(TO_NUMBER(SUBSTR(TRIM(piv.FECHA_EVALUACION), 1, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 4) = 0
+                                 AND MOD(TO_NUMBER(SUBSTR(TRIM(piv.FECHA_EVALUACION), 1, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 100) <> 0)
+                           THEN 1 ELSE 0 END
+                        WHEN 4 THEN 30 WHEN 6 THEN 30 WHEN 9 THEN 30 WHEN 11 THEN 30 ELSE 31 END
+               THEN SUBSTR(TRIM(piv.FECHA_EVALUACION), 9, 2) || '/' || SUBSTR(TRIM(piv.FECHA_EVALUACION), 6, 2) || '/' || SUBSTR(TRIM(piv.FECHA_EVALUACION), 1, 4)
+               ELSE NULL END
+            ELSE NULL END AS VARCHAR2(10)) AS FECHA_EVALUACION,
          pe.PERNOMBRE || ' ' || pe.PERAPEPATERNO || ' ' || pe.PERAPEMATERNO AS ACOMPANANTE_FAMILIAR,
          piv.CUMPLIMIENTO_COMPROMISOS_OBJ_1_2 AS CUMPLIMIENTO_COMPROMISOS_OBJ_1_2,
          piv.CAP_EMPRENDIMIENTO AS CAP_EMPRENDIMIENTO,

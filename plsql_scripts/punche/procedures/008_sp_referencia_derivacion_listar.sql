@@ -63,7 +63,9 @@
 --   Resto de respuestas se devuelve como texto original: no se supone
 --   que un numero sea indice de AP_OPCIONES o ID de TGCATALOGO. No existe
 --   evidencia local suficiente de esas codificaciones. No conversion NLS
---   de edades/fechas/documentos; Q es texto capturado, no serial Excel.
+--   de edades/documentos. Q final VARCHAR2(10) DD/MM/YYYY o NULL: TRIM
+--   ASCII, DD/MM/YYYY/ISO estrictos y calendario gregoriano, no serial Excel.
+--   Fuente interna intacta; invalidos/ausentes no excluyen filas.
 -- * 1644: split por PRIMER '|', preserva vacios inicial/intermedio/final.
 --   Sin '|' (legacy incompleto): motivo completo y seguimiento NULL.
 --   Mas de un '|' se rechaza (no hay contrato de escapes). Semicolon solo
@@ -290,7 +292,38 @@ BEGIN
             ELSE com.REQUIERE
          END AS REQUIERE,
          com.ENTIDAD_DESTINO AS ENTIDAD_DESTINO,
-         com.FECHA_DERIVACION_REFERENCIA AS FECHA_DERIVACION_REFERENCIA,
+         CAST(CASE
+            WHEN LENGTH(TRIM(com.FECHA_DERIVACION_REFERENCIA)) = 10
+               AND REGEXP_LIKE(TRIM(com.FECHA_DERIVACION_REFERENCIA), '^[0-9]{2}/[0-9]{2}/[0-9]{4}$', 'c')
+            THEN CASE
+               WHEN TO_NUMBER(SUBSTR(TRIM(com.FECHA_DERIVACION_REFERENCIA), 7, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND 9999
+                  AND TO_NUMBER(SUBSTR(TRIM(com.FECHA_DERIVACION_REFERENCIA), 4, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND 12
+                  AND TO_NUMBER(SUBSTR(TRIM(com.FECHA_DERIVACION_REFERENCIA), 1, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND
+                     CASE TO_NUMBER(SUBSTR(TRIM(com.FECHA_DERIVACION_REFERENCIA), 4, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''')
+                        WHEN 2 THEN 28 + CASE
+                           WHEN MOD(TO_NUMBER(SUBSTR(TRIM(com.FECHA_DERIVACION_REFERENCIA), 7, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 400) = 0
+                              OR (MOD(TO_NUMBER(SUBSTR(TRIM(com.FECHA_DERIVACION_REFERENCIA), 7, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 4) = 0
+                                 AND MOD(TO_NUMBER(SUBSTR(TRIM(com.FECHA_DERIVACION_REFERENCIA), 7, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 100) <> 0)
+                           THEN 1 ELSE 0 END
+                        WHEN 4 THEN 30 WHEN 6 THEN 30 WHEN 9 THEN 30 WHEN 11 THEN 30 ELSE 31 END
+               THEN TRIM(com.FECHA_DERIVACION_REFERENCIA)
+               ELSE NULL END
+            WHEN LENGTH(TRIM(com.FECHA_DERIVACION_REFERENCIA)) = 10
+               AND REGEXP_LIKE(TRIM(com.FECHA_DERIVACION_REFERENCIA), '^[0-9]{4}-[0-9]{2}-[0-9]{2}$', 'c')
+            THEN CASE
+               WHEN TO_NUMBER(SUBSTR(TRIM(com.FECHA_DERIVACION_REFERENCIA), 1, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND 9999
+                  AND TO_NUMBER(SUBSTR(TRIM(com.FECHA_DERIVACION_REFERENCIA), 6, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND 12
+                  AND TO_NUMBER(SUBSTR(TRIM(com.FECHA_DERIVACION_REFERENCIA), 9, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND
+                     CASE TO_NUMBER(SUBSTR(TRIM(com.FECHA_DERIVACION_REFERENCIA), 6, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''')
+                        WHEN 2 THEN 28 + CASE
+                           WHEN MOD(TO_NUMBER(SUBSTR(TRIM(com.FECHA_DERIVACION_REFERENCIA), 1, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 400) = 0
+                              OR (MOD(TO_NUMBER(SUBSTR(TRIM(com.FECHA_DERIVACION_REFERENCIA), 1, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 4) = 0
+                                 AND MOD(TO_NUMBER(SUBSTR(TRIM(com.FECHA_DERIVACION_REFERENCIA), 1, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 100) <> 0)
+                           THEN 1 ELSE 0 END
+                        WHEN 4 THEN 30 WHEN 6 THEN 30 WHEN 9 THEN 30 WHEN 11 THEN 30 ELSE 31 END
+               THEN SUBSTR(TRIM(com.FECHA_DERIVACION_REFERENCIA), 9, 2) || '/' || SUBSTR(TRIM(com.FECHA_DERIVACION_REFERENCIA), 6, 2) || '/' || SUBSTR(TRIM(com.FECHA_DERIVACION_REFERENCIA), 1, 4)
+               ELSE NULL END
+            ELSE NULL END AS VARCHAR2(10)) AS FECHA_DERIVACION_REFERENCIA,
          com.ACOMPANANTE_FAMILIAR AS ACOMPANANTE_FAMILIAR,
          com.NOMBRE_RESPONSABLE AS NOMBRE_RESPONSABLE,
          com.DOCUMENTO_RESPONSABLE AS DOCUMENTO_RESPONSABLE,

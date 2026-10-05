@@ -16,9 +16,8 @@ permission:
     oracle-validation-analyst: allow
     oracle-performance-analyst: allow
     excel-template-analyst: allow
-  skill:
-    "*": deny
-  external_directory: deny
+  skill: allow
+  external_directory: allow
   todowrite: deny
   question: allow
   webfetch: deny
@@ -62,4 +61,9 @@ Plan es propietario de formular al usuario las preguntas contractuales y de
 decision que los analysts reporten. Los analysts resuelven detalles derivables,
 devuelven faltantes contractuales sin preguntarlos y solo pueden plantear un
 bloqueo tecnico nuevo no resoluble con el contexto recibido. No edites, no
-ejecutes bash, no cargues Skills, no delegues a builders y no ejecutes SQL.
+ejecutes bash, no delegues a builders y no ejecutes SQL.
+
+Puedes cargar y leer Skills descubiertas por OpenCode, incluidas las de fuentes
+externas, para consultar instrucciones y preparar planes. No ejecutes sus pasos
+operativos. Las Skills no amplian permisos ni sustituyen la delegacion obligatoria
+a analysts de Oracle y Excel; conserva sus contratos y los gates de seguridad.

@@ -59,7 +59,10 @@
 --   py_notebooks/data/SSI_ANEXOS_PREGUNTAS.xlsx; resultados en ese XLSX.
 --   4332 es mapeo EXPRESO DEL USUARIO, no corroborado por seed/XLSX local.
 --   No sustituir IDs por antiguos 988/991-993; salida fecha4332 textual.
--- * Todas las respuestas y resultados: AR_RESPUESTA tal cual, sin TRIM,
+-- * Salida final fecha4332: VARCHAR2(10) DD/MM/YYYY o NULL; TRIM ASCII,
+--   DD/MM/YYYY/ISO estrictos gregorianos. Parser/DATE internos intactos;
+--   invalidos/ausentes no cambian admision ni calculos.
+-- * Las demas respuestas y resultados: AR_RESPUESTA tal cual, sin TRIM,
 --   traduccion, conversion numerica, recalculo ni uso de AR_PUNTAJE.
 --   MAX(CASE) solo pivota DESPUES de RN_VALOR=1, no elige textos latest.
 -- * Direccion, distrito, instrucciones y adjunto NO existen en plantilla:
@@ -69,12 +72,12 @@
 --   de formar DATE gregoriano por dias desde DATE '0001-01-01'.
 --   Sin TO_DATE, NLS_DATE_FORMAT ni NLS_CALENDAR; TO_NUMBER con mascara
 --   y NLS numerico explicitos, solo sobre digitos ya validados.
---   Sin limites: conservar fila/texto aunque fecha ausente/NULL/invalida.
+--   Sin limites: conservar fila aunque fecha ausente/NULL/invalida.
 --   Filtro de ficha completa: alguna respuesta vigente cumple ambos extremos
 --   sobre AR_FECHA_REGISTRA; MAX de 0/1 transporta existencia, no fecha.
 --   No se exige4332; conversion conservada sin filtrar. Con limites, un
 --   registro NULL no admite por si solo la evaluacion.
---   No recuperar una fecha anterior ni modificar texto de salida.
+--   No recuperar una fecha anterior; solo normalizar fecha en SELECT final.
 -- * Limites confirmados: >= p_fecha_ini y < p_fecha_fin+1, sin truncar.
 --   Se conserva la hora del registro fisico. No nueva validacion
 --   de rango: inicio>fin puede retornar filas si inicio<fin+1.
@@ -307,7 +310,38 @@ BEGIN
             WHERE cui.PF_ID_FAMILIA = pf.PF_ID_FAMILIA
          ) AS NOM_USU,
          af.SF_NOMBRE AS ETAPA,
-         piv.FEC_EVAL AS FEC_EVAL,
+         CAST(CASE
+            WHEN LENGTH(TRIM(piv.FEC_EVAL)) = 10
+               AND REGEXP_LIKE(TRIM(piv.FEC_EVAL), '^[0-9]{2}/[0-9]{2}/[0-9]{4}$', 'c')
+            THEN CASE
+               WHEN TO_NUMBER(SUBSTR(TRIM(piv.FEC_EVAL), 7, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND 9999
+                  AND TO_NUMBER(SUBSTR(TRIM(piv.FEC_EVAL), 4, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND 12
+                  AND TO_NUMBER(SUBSTR(TRIM(piv.FEC_EVAL), 1, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND
+                     CASE TO_NUMBER(SUBSTR(TRIM(piv.FEC_EVAL), 4, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''')
+                        WHEN 2 THEN 28 + CASE
+                           WHEN MOD(TO_NUMBER(SUBSTR(TRIM(piv.FEC_EVAL), 7, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 400) = 0
+                              OR (MOD(TO_NUMBER(SUBSTR(TRIM(piv.FEC_EVAL), 7, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 4) = 0
+                                 AND MOD(TO_NUMBER(SUBSTR(TRIM(piv.FEC_EVAL), 7, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 100) <> 0)
+                           THEN 1 ELSE 0 END
+                        WHEN 4 THEN 30 WHEN 6 THEN 30 WHEN 9 THEN 30 WHEN 11 THEN 30 ELSE 31 END
+               THEN TRIM(piv.FEC_EVAL)
+               ELSE NULL END
+            WHEN LENGTH(TRIM(piv.FEC_EVAL)) = 10
+               AND REGEXP_LIKE(TRIM(piv.FEC_EVAL), '^[0-9]{4}-[0-9]{2}-[0-9]{2}$', 'c')
+            THEN CASE
+               WHEN TO_NUMBER(SUBSTR(TRIM(piv.FEC_EVAL), 1, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND 9999
+                  AND TO_NUMBER(SUBSTR(TRIM(piv.FEC_EVAL), 6, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND 12
+                  AND TO_NUMBER(SUBSTR(TRIM(piv.FEC_EVAL), 9, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND
+                     CASE TO_NUMBER(SUBSTR(TRIM(piv.FEC_EVAL), 6, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''')
+                        WHEN 2 THEN 28 + CASE
+                           WHEN MOD(TO_NUMBER(SUBSTR(TRIM(piv.FEC_EVAL), 1, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 400) = 0
+                              OR (MOD(TO_NUMBER(SUBSTR(TRIM(piv.FEC_EVAL), 1, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 4) = 0
+                                 AND MOD(TO_NUMBER(SUBSTR(TRIM(piv.FEC_EVAL), 1, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 100) <> 0)
+                           THEN 1 ELSE 0 END
+                        WHEN 4 THEN 30 WHEN 6 THEN 30 WHEN 9 THEN 30 WHEN 11 THEN 30 ELSE 31 END
+               THEN SUBSTR(TRIM(piv.FEC_EVAL), 9, 2) || '/' || SUBSTR(TRIM(piv.FEC_EVAL), 6, 2) || '/' || SUBSTR(TRIM(piv.FEC_EVAL), 1, 4)
+               ELSE NULL END
+            ELSE NULL END AS VARCHAR2(10)) AS FEC_EVAL,
          piv.DES_HOG AS DES_HOG,
          piv.ENTR_RELAC AS ENTR_RELAC,
          piv.MUJER_TRAB AS MUJER_TRAB,

@@ -58,7 +58,8 @@
 --   TO_DATE, DEFAULT ON CONVERSION ERROR ni version reciente de Oracle.
 --   TO_NUMBER esta dentro de CASE con guardas de digitos ASCII y usa
 --   mascara/NLS explicitos. No se confia en el orden de filtros WHERE.
---   Fecha textual invalida/ausente -> NULL en J, que sigue siendo DATE.
+--   Fecha textual invalida/ausente -> NULL. DATE interno intacto; J final
+--   VARCHAR2(10) DD/MM/YYYY por EXTRACT gregoriano, sin mostrar hora.
 --   El filtro admite la ficha completa si alguna respuesta elegible cumple
 --   ambos extremos sobre su AR_FECHA_REGISTRA, sin exigir pregunta4317.
 --   Sin limites admite tambien registros NULL; con limites, un registro
@@ -238,12 +239,18 @@ BEGIN
          zi.ZO_ID_ZONA AS COD_ZON,
          zi.ZO_DESCRIPCION AS ZONA_INTERVENCION,
          cod.CODIGO_FAMILIA,
-         TRIM(fi.FI_NOMBRES || ' ' || fi.FI_PRIMER_APE || ' ' || fi.FI_SEGUNDO_APE) AS NOMBRE_ADOLESCENTE,
+         TRIM(fi.FI_NOMBRES) AS NOMBRE_ADOLESCENTE,
+         TRIM(fi.FI_PRIMER_APE) AS PRI_APE_ADOLESCENTE,
+         TRIM(fi.FI_SEGUNDO_APE) AS SEG_APE_ADOLESCENTE,
          fic.SEXO_ADOLESCENTE,
          fic.EDAD_ADOLESCENTE,
          cat.CATDESCRIPCION AS PARENTESCO_CON_NNA,
          af.SF_NOMBRE AS ETAPA,
-         fec.FECHA_APLICACION_FICHA,
+         CAST(CASE WHEN fec.FECHA_APLICACION_FICHA >= DATE '0001-01-01' THEN
+            TO_CHAR(EXTRACT(DAY FROM fec.FECHA_APLICACION_FICHA), 'FM00', 'NLS_NUMERIC_CHARACTERS=''.,''') || '/'
+            || TO_CHAR(EXTRACT(MONTH FROM fec.FECHA_APLICACION_FICHA), 'FM00', 'NLS_NUMERIC_CHARACTERS=''.,''') || '/'
+            || TO_CHAR(EXTRACT(YEAR FROM fec.FECHA_APLICACION_FICHA), 'FM0000', 'NLS_NUMERIC_CHARACTERS=''.,''')
+            ELSE NULL END AS VARCHAR2(10)) AS FECHA_APLICACION_FICHA,
          fic.P01_PANDILLAS,
          fic.P02_PELEAS_ARMAS,
          fic.P03_LLEVA_ARMA,

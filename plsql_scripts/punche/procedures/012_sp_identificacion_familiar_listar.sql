@@ -80,9 +80,11 @@
 --   No incluir preguntas 417..422, adjunto 924 ni columnas de totales.
 -- * BD: AR_RESPUESTA1537 original. DESAPROBADO del Excel no acredita
 --   codificacion numerica: no traducir ni calcular el estado.
--- * BE: AR_RESPUESTA1719 original, NO PF_FECHA_COMPROMISO. N/AO son
---   DATE nativas; BE es texto. dd/mm/aaaa y seriales del Excel no validan
---   almacenamiento de 1719 ni autorizan TO_DATE con mascara supuesta.
+-- * BE: fuente AR_RESPUESTA1719, NO PF_FECHA_COMPROMISO. Solo salida final:
+--   VARCHAR2(10) DD/MM/YYYY o NULL; TRIM ASCII, DD/MM/YYYY e ISO estrictos
+--   con calendario gregoriano. Visibilidad del bloque intacta, sin TO_DATE.
+--   N/AO: DATE internos y horas intactos; salida VARCHAR2(10) gregoriana
+--   mediante EXTRACT, dominio positivo. Invalidos/ausentes -> NULL.
 -- * BF: 396 original si contiene caracteres no whitespace; si no,
 --   nombre completo del personal PF.PER_ID_PERSONAL -> TRPERSONAL ->
 --   TGPERSONA. BG: PERNRODOCUMENTO SOLO si BF usa ese respaldo con nombre
@@ -323,7 +325,11 @@ BEGIN
          -- M (13)
          fi.FI_NOMBRES AS NOMBRES_CUIDADOR,
          -- N (14)
-         fi.FI_FEC_NAC AS FECHA_NACIMIENTO,
+         CAST(CASE WHEN fi.FI_FEC_NAC >= DATE '0001-01-01' THEN
+            TO_CHAR(EXTRACT(DAY FROM fi.FI_FEC_NAC), 'FM00', 'NLS_NUMERIC_CHARACTERS=''.,''') || '/'
+            || TO_CHAR(EXTRACT(MONTH FROM fi.FI_FEC_NAC), 'FM00', 'NLS_NUMERIC_CHARACTERS=''.,''') || '/'
+            || TO_CHAR(EXTRACT(YEAR FROM fi.FI_FEC_NAC), 'FM0000', 'NLS_NUMERIC_CHARACTERS=''.,''')
+            ELSE NULL END AS VARCHAR2(10)) AS FECHA_NACIMIENTO,
          -- O (15)
          fi.FI_EDAD AS EDAD,
          -- P (16)
@@ -383,7 +389,11 @@ BEGIN
          -- AN (40)
          al.AL_TIPO_ALIADO AS TIPO_ALIADO,
          -- AO (41)
-         fam.PF_FEC_REGISTRA AS FECHA_REGISTRO_REFERENCIA,
+         CAST(CASE WHEN fam.PF_FEC_REGISTRA >= DATE '0001-01-01' THEN
+            TO_CHAR(EXTRACT(DAY FROM fam.PF_FEC_REGISTRA), 'FM00', 'NLS_NUMERIC_CHARACTERS=''.,''') || '/'
+            || TO_CHAR(EXTRACT(MONTH FROM fam.PF_FEC_REGISTRA), 'FM00', 'NLS_NUMERIC_CHARACTERS=''.,''') || '/'
+            || TO_CHAR(EXTRACT(YEAR FROM fam.PF_FEC_REGISTRA), 'FM0000', 'NLS_NUMERIC_CHARACTERS=''.,''')
+            ELSE NULL END AS VARCHAR2(10)) AS FECHA_REGISTRO_REFERENCIA,
          -- AP (42)
          al.AL_REPRESENTANTE AS REPRESENTANTE_REFERENTE,
          -- AQ (43)
@@ -419,7 +429,38 @@ BEGIN
             THEN est.AR_RESPUESTA END AS ESTADO_IDENTIFICACION_FAMILIAR,
          -- BE (57)
          CASE WHEN (p_fecha_ini IS NULL AND p_fecha_fin IS NULL) OR blo.BLOQUE_ADMITIDO = 1
-            THEN comp.AR_RESPUESTA END AS FECHA_COMPROMISO_FAMILIAR,
+            THEN CAST(CASE
+               WHEN LENGTH(TRIM(comp.AR_RESPUESTA)) = 10
+                  AND REGEXP_LIKE(TRIM(comp.AR_RESPUESTA), '^[0-9]{2}/[0-9]{2}/[0-9]{4}$', 'c')
+               THEN CASE
+                  WHEN TO_NUMBER(SUBSTR(TRIM(comp.AR_RESPUESTA), 7, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND 9999
+                     AND TO_NUMBER(SUBSTR(TRIM(comp.AR_RESPUESTA), 4, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND 12
+                     AND TO_NUMBER(SUBSTR(TRIM(comp.AR_RESPUESTA), 1, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND
+                        CASE TO_NUMBER(SUBSTR(TRIM(comp.AR_RESPUESTA), 4, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''')
+                           WHEN 2 THEN 28 + CASE
+                              WHEN MOD(TO_NUMBER(SUBSTR(TRIM(comp.AR_RESPUESTA), 7, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 400) = 0
+                                 OR (MOD(TO_NUMBER(SUBSTR(TRIM(comp.AR_RESPUESTA), 7, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 4) = 0
+                                    AND MOD(TO_NUMBER(SUBSTR(TRIM(comp.AR_RESPUESTA), 7, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 100) <> 0)
+                              THEN 1 ELSE 0 END
+                           WHEN 4 THEN 30 WHEN 6 THEN 30 WHEN 9 THEN 30 WHEN 11 THEN 30 ELSE 31 END
+                  THEN TRIM(comp.AR_RESPUESTA)
+                  ELSE NULL END
+               WHEN LENGTH(TRIM(comp.AR_RESPUESTA)) = 10
+                  AND REGEXP_LIKE(TRIM(comp.AR_RESPUESTA), '^[0-9]{4}-[0-9]{2}-[0-9]{2}$', 'c')
+               THEN CASE
+                  WHEN TO_NUMBER(SUBSTR(TRIM(comp.AR_RESPUESTA), 1, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND 9999
+                     AND TO_NUMBER(SUBSTR(TRIM(comp.AR_RESPUESTA), 6, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND 12
+                     AND TO_NUMBER(SUBSTR(TRIM(comp.AR_RESPUESTA), 9, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''') BETWEEN 1 AND
+                        CASE TO_NUMBER(SUBSTR(TRIM(comp.AR_RESPUESTA), 6, 2), '99', 'NLS_NUMERIC_CHARACTERS=''.,''')
+                           WHEN 2 THEN 28 + CASE
+                              WHEN MOD(TO_NUMBER(SUBSTR(TRIM(comp.AR_RESPUESTA), 1, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 400) = 0
+                                 OR (MOD(TO_NUMBER(SUBSTR(TRIM(comp.AR_RESPUESTA), 1, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 4) = 0
+                                    AND MOD(TO_NUMBER(SUBSTR(TRIM(comp.AR_RESPUESTA), 1, 4), '9999', 'NLS_NUMERIC_CHARACTERS=''.,'''), 100) <> 0)
+                              THEN 1 ELSE 0 END
+                           WHEN 4 THEN 30 WHEN 6 THEN 30 WHEN 9 THEN 30 WHEN 11 THEN 30 ELSE 31 END
+                  THEN SUBSTR(TRIM(comp.AR_RESPUESTA), 9, 2) || '/' || SUBSTR(TRIM(comp.AR_RESPUESTA), 6, 2) || '/' || SUBSTR(TRIM(comp.AR_RESPUESTA), 1, 4)
+                  ELSE NULL END
+               ELSE NULL END AS VARCHAR2(10)) END AS FECHA_COMPROMISO_FAMILIAR,
          -- BF (58)
          CASE WHEN REGEXP_LIKE(aco.AR_RESPUESTA, '[^[:space:]]')
             THEN CASE WHEN (p_fecha_ini IS NULL AND p_fecha_fin IS NULL) OR blo.BLOQUE_ADMITIDO = 1
