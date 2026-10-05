@@ -43,6 +43,6 @@ technical blocker that cannot be represented as a missing input or resolved
 from the caller's handoff and catalog.
 
 For read-only report procedures with `SYS_REFCURSOR`, read the descriptive
-contract in `.opencode/skills/build-report-list-sp/SKILL.md` without loading
+contract in `.claude/skills/build-report-list-sp/SKILL.md` without loading
 or executing the Skill, and report its missing inputs to Plan. That file is
 the source of truth; do not duplicate its rules here.

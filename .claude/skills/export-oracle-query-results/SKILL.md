@@ -1,30 +1,22 @@
 ---
 name: export-oracle-query-results
 description: Exporta SELECT Oracle read-only a XLSX/CSV con tablas verificadas, columnas explícitas, binds, manifiesto auto-hasheado y conexión local; exclusivo del builder Excel.
-compatibility: claude-code
-metadata:
-  harness-sync:
-    version: 1
-    origin: {harness: opencode, name: export-oracle-query-results, path: .opencode/skills/export-oracle-query-results/SKILL.md}
-    source_sha256: 432e5cfa0a9af33159ef9a1a9d00a9e62333154452a0569c6a7f8dcfe4a6f311
-    transformations: [adapt-compatibility, normalize-instructions, relay-selectors-to-main]
-    losses: [native-specialist-question-selector]
-    generated_sha256: 2ec1ddc8f8e7ad7344a36cca6a24e499f878d82f0d6a265bafefd2118deb48f1
-    synced_at: "2026-10-04T12:27:02Z"
+compatibility: opencode, claude-code
 ---
 
 # Export Oracle Query Results
 
 Extrae resultados read-only a XLSX/CSV; no reutiliza pivot ni permite escrituras
 Oracle. Solo `excel-template-builder` ejecuta el flujo con datos de consulta
-recibidos de `oracle-query-builder` a través del agente principal.
+recibidos de `oracle-query-builder` a través del orquestador.
 
 ## Mandatory Inputs
 
-Requiere tablas, salida con ruta/nombre y formato XLSX/CSV. El principal usa
-AskUserQuestion si está disponible para seleccionar tablas del catálogo,
-columnas, filtros, operadores, AND/OR, formato y organización de hojas; en
-otro caso pregunta por texto. El subagente devuelve faltantes al principal.
+Requiere tablas, salida con ruta/nombre y formato XLSX/CSV. El orquestador usa
+la herramienta de preguntas con selectores del harness, si está disponible, para
+seleccionar tablas del catálogo, columnas, filtros, operadores, AND/OR, formato
+y organización de hojas; en otro caso pregunta por texto. El especialista
+devuelve faltantes al orquestador.
 
 La selección incluye `Todos los campos exportables`: excluye BLOB/BFILE/RAW/
 LONG RAW; CLOB/NCLOB como texto están permitidos. No inventar valores.
@@ -32,7 +24,7 @@ LONG RAW; CLOB/NCLOB como texto están permitidos. No inventar valores.
 ## Query and JOIN
 
 - Misma tabla con filtros distintos: consultas independientes, sin JOIN;
-  preguntar mediante el principal si XLSX comparte hoja o usa hojas separadas.
+  preguntar mediante el orquestador si XLSX comparte hoja o usa hojas separadas.
 - Tablas distintas: proponer JOIN si catálogo, nombres y tipos sostienen
   confianza >=70%; bajo ese umbral exigir condición explícita.
 - Registrar todo JOIN inferido en SELECT y manifiesto; no rotularlo como FK
@@ -79,7 +71,7 @@ Para revisar el hash sin conexión, cuando esté autorizado:
 python py_notebooks/export_oracle_query_results.py --manifest <manifest.json> --print-query-hash
 ```
 
-La aprobación técnica de Bash permanece; no es confirmación de negocio del
+La aprobación técnica del comando permanece; no es confirmación de negocio del
 hash. El script rechaza salidas existentes. XLSX: tablas estructuradas; CSV:
 UTF-8 con protección frente a formula injection. Si cualquier resultado supera
 1,048,576 filas, forzar CSV; múltiples resultados CSV generan archivos separados.

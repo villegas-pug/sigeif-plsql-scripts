@@ -1,16 +1,7 @@
 ---
 name: oracle-syntax
 description: Verifica sintaxis Oracle nativa, alias, nomenclatura y formato de SQL/PLSQL; usar en generación o revisión por los especialistas autorizados.
-compatibility: claude-code
-metadata:
-  harness-sync:
-    version: 1
-    origin: {harness: opencode, name: oracle-syntax, path: .opencode/skills/oracle-syntax/SKILL.md}
-    source_sha256: 5bd88994622c0bdfce4f1cb629a5825212760426b05b67b03d0dfc5ac79c87e7
-    transformations: [adapt-compatibility, normalize-instructions]
-    losses: []
-    generated_sha256: 71fb8462134f54b77e95ffb958de79cab7211a98dd0062e69148af28f72a022d
-    synced_at: "2026-10-04T12:27:02Z"
+compatibility: opencode, claude-code
 ---
 
 # Oracle Syntax
@@ -26,8 +17,7 @@ No conecta, ejecuta ni compila Oracle.
 - Filas: `ROWNUM <= n` en 11g/anterior; `FETCH FIRST n ROWS ONLY` en 12c+.
   Nunca LIMIT ni TOP.
 - Fechas: SYSDATE, TRUNC, ADD_MONTHS, MONTHS_BETWEEN, LAST_DAY, TO_DATE y
-  TO_CHAR. Conservar la regla del origen: no NOW/GETDATE, ni CURRENT_TIMESTAMP
-  sin TO_CHAR en los patrones de esta Skill.
+  TO_CHAR. No usar NOW ni GETDATE, ni CURRENT_TIMESTAMP sin TO_CHAR.
 - Conversiones: TO_NUMBER, TO_CHAR, TO_DATE con máscara; CAST solo si no hay
   equivalente Oracle adecuado en el patrón del proyecto.
 - Concatenar con `||`; evitar CONCAT cuando haya más de dos operandos.
@@ -71,6 +61,20 @@ Tres espacios de indentación, palabras clave y objetos en mayúsculas, variable
 y alias en minúsculas. Una columna por línea cuando SELECT tenga más de tres;
 alinear AS de alias cuando existan varios. IS/AS en unidades y DECLARE en bloques.
 
-Header obligatorio: tipo, nombre, propósito, parámetros, autor y fecha. No
-inventar autor ni presentar ejemplos como objetos del catálogo. Mantener el
+Header obligatorio en todo objeto:
+
+```sql
+-- =============================================================
+-- Tipo   : [ PROCEDURE | FUNCTION | TRIGGER | PACKAGE ]
+-- Nombre : [ NOMBRE_DEL_OBJETO ]
+-- Propósito: [ descripción breve ]
+-- Parámetros:
+--   p_param1 IN  tipo  — descripción
+--   p_param2 OUT tipo  — descripción
+-- Autor  : [ REEMPLAZAR: nombre del autor ]
+-- Fecha  : [ REEMPLAZAR: fecha de creación ]
+-- =============================================================
+```
+
+No inventar autor ni presentar ejemplos como objetos del catálogo. Mantener el
 encabezado y las excepciones del contrato específico.

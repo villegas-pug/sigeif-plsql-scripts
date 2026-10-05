@@ -1,16 +1,7 @@
 ---
 name: generate-plsql
 description: Genera scripts Oracle DML, DDL, limpieza y migración del proyecto SIGEIF; no usar para SELECT general, análisis de validación ni unidades PL/SQL.
-compatibility: claude-code
-metadata:
-  harness-sync:
-    version: 1
-    origin: {harness: opencode, name: generate-plsql, path: .opencode/skills/generate-plsql/SKILL.md}
-    source_sha256: 8fecea40c0969c28fe8e9f95d8cb76b38ea77e417f0d17cdaa8992de75c41506
-    transformations: [adapt-compatibility, normalize-instructions, relay-inputs-to-main]
-    losses: []
-    generated_sha256: ddf2117551f1f1a1c1621535472aef29c453535c84aa31e7a7f978c16d7d21e2
-    synced_at: "2026-10-04T12:27:02Z"
+compatibility: opencode, claude-code
 ---
 
 # Generate Oracle Scripts
@@ -24,7 +15,7 @@ triggers, packages o bloques PL/SQL. Nunca ejecuta Oracle.
 Requiere objetivo funcional, tipo (DML/DDL/limpieza/migración), tablas o dominio
 o entidades, filtro principal cuando aplique y archivo destino si se pide
 insertar o modificar un `.sql`. Sin contexto suficiente, detener y devolver
-faltantes al principal; no inferir ni generar código parcial.
+faltantes al orquestador; no inferir ni generar código parcial.
 
 Para crear/definir/modificar tablas exige prefijo de tabla, prefijo de campos,
 nombre funcional, campos y significado o descripción suficiente, PK esperada y

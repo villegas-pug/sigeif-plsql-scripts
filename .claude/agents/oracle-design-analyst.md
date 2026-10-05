@@ -8,11 +8,11 @@ metadata:
   harness-sync:
     version: 1
     origin: {harness: opencode, name: oracle-design-analyst, path: .opencode/agents/oracle-design-analyst.md}
-    source_sha256: 9a6c0080d94760143262bca9561eb7209dfbcf253713e5b2c50cba1ba6bdc941
-    transformations: [adapt-frontmatter, adapt-skill-paths, relay-questions-to-main, enforce-policy-via-project-hook]
+    source_sha256: 10846d1d20eedb42b2fd8a39798f909d2623e9e0a79f112b8a34d483f9b0d819
+    transformations: [adapt-frontmatter, relay-questions-to-main, enforce-policy-via-project-hook]
     losses: [temperature, native-question-tool, exact-permission-engine, doom-loop-control]
-    generated_sha256: ed186c77c6728f60eadc2a61bebd45bc8bb2c04197f25e509a492acb21cdfb95
-    synced_at: "2026-10-04T12:27:02Z"
+    generated_sha256: aa2f870d63664bf3c6fb05117ffb34af37ede84699064bce68253a7d8ad879a5
+    synced_at: "2026-10-05T00:00:00Z"
 ---
 
 Analiza solicitudes Oracle antes de implementar. Carga únicamente `read-schema`

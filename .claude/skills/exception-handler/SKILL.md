@@ -1,16 +1,7 @@
 ---
 name: exception-handler
 description: Proporciona manejo de excepciones PL/SQL estándar para unidades Oracle; exclusivo del builder PL/SQL, con adaptación al contrato de la capacidad.
-compatibility: claude-code
-metadata:
-  harness-sync:
-    version: 1
-    origin: {harness: opencode, name: exception-handler, path: .opencode/skills/exception-handler/SKILL.md}
-    source_sha256: ee478171de3c59de878efe9e71667702e51807cd42237166e728cc73fb95c2ad
-    transformations: [adapt-compatibility, preserve-capability-precedence]
-    losses: []
-    generated_sha256: dfb5e276de4d167888357d98f23684b88404aff94cda84de7ac76ac1214e1f2a
-    synced_at: "2026-10-04T12:27:02Z"
+compatibility: opencode, claude-code
 ---
 
 # Exception Handler

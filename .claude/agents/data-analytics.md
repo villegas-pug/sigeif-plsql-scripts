@@ -8,11 +8,11 @@ metadata:
   harness-sync:
     version: 1
     origin: {harness: opencode, name: data-analytics, path: .opencode/agents/data-analytics.md}
-    source_sha256: 6b451df6bbfa82a5371a02d390f4da1eb01305ecc9db81e83cb989a132c8efbe
-    transformations: [adapt-frontmatter, adapt-resolver-path, relay-questions-to-main, enforce-policy-via-project-hook]
+    source_sha256: 0c87cc4ae6780266ece6380fb343509b1692df1a7efa64cf00ccf3b2aea17785
+    transformations: [adapt-frontmatter, relay-questions-to-main, enforce-policy-via-project-hook]
     losses: [temperature, hidden, native-question-tool, exact-permission-engine, doom-loop-control]
-    generated_sha256: f82218dd390593506da55c35efb4dfcc26f2e7785455f85006888c45c3922c96
-    synced_at: "2026-10-04T12:27:02Z"
+    generated_sha256: d4ff5cf67d6a7f3f38d0acd751a925999c9e4d97258f61a760623ec290c7bf42
+    synced_at: "2026-10-05T00:00:00Z"
 ---
 
 Eres el resolvedor local de catálogos Excel, un especialista hoja de

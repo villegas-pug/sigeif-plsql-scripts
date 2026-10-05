@@ -16,17 +16,17 @@
     "harness-sync": {
       "version": 1,
       "origin_harness": "opencode",
-      "transformations": ["adapt-per-agent-policy-to-hook", "relay-specialist-questions-to-main", "adapt-resolver-path"],
+      "transformations": ["adapt-per-agent-policy-to-hook", "relay-specialist-questions-to-main"],
       "losses": ["native-specialist-question-tool", "exact-permission-precedence", "hook-failure-enforcement", "doom-loop-control", "native-external-directory-engine", "literal-command-only"],
-      "synced_at": "2026-10-04T12:27:02Z",
+      "synced_at": "2026-10-05T00:00:00Z",
       "hash_scope": "canonical-json-without-generated-sha256-and-synced-at",
-      "generated_sha256": "f08ac65387612743cb28f7c391aab023dfa21395f49aa98bdda2f658c4edfe66",
+      "generated_sha256": "e198980855c12a12beea09ec98ff017e20b38e9fef59630df5ba008d2e6cffba",
       "source_files": {
-        "AGENTS.md": "5a74755964435148fd4a501a54ba6ff3360b4715f11d2752d4bae5ba8df46650",
+        "AGENTS.md": "24949f244c7e3253b4963ae2437e1cadf822d608868e801654beb496387c8f9c",
         "opencode.json": "ede92ce76a989245865ec6861bc78a36b374cc042f230869ad6db9ddef5d76f4",
         ".opencode/agents/plan.md": "15fdd0eafbeb3060c46aeeb5860be25d1407e4592a40619e7e804101e609eb11",
-        ".opencode/agents/build.md": "69fd4053bdb32357f2be08b902e07ce33944eed0f82ff2b3ae7dbee9129b71dd",
-        ".opencode/agents/oracle-design-analyst.md": "9a6c0080d94760143262bca9561eb7209dfbcf253713e5b2c50cba1ba6bdc941",
+        ".opencode/agents/build.md": "feea3a1946150dbae7e56ef6431dd88534ff4dcd52983cf88069671b6dc3eb3d",
+        ".opencode/agents/oracle-design-analyst.md": "10846d1d20eedb42b2fd8a39798f909d2623e9e0a79f112b8a34d483f9b0d819",
         ".opencode/agents/oracle-validation-analyst.md": "e397cf3bb12d4535214fe1a57733799e00cbf02c6faa671a6854d0faceccd4a9",
         ".opencode/agents/oracle-performance-analyst.md": "deef005f3872b7e3a781001c6af8ec234d9da7de22d7ebc676876e9383aa2d3f",
         ".opencode/agents/excel-template-analyst.md": "0a69a537b768549e046dbb4eabaeea1c839290a9d16fde3c00939915f2cb9141",
@@ -34,23 +34,12 @@
         ".opencode/agents/oracle-script-builder.md": "1330c7f4f892384fb3eab0454fdf5cec01f610a05572d3b93a405201daf211fa",
         ".opencode/agents/oracle-plsql-builder.md": "8d3ca2c97c9f5ee89d04004d01ce1ff5d09590b27f4fb8549d1908daf46d873d",
         ".opencode/agents/excel-template-builder.md": "bb947f2399c014369746565e247498c268450367462ab6c687c02f0aaea9e6dd",
-        ".opencode/agents/data-analytics.md": "6b451df6bbfa82a5371a02d390f4da1eb01305ecc9db81e83cb989a132c8efbe",
-        ".opencode/skills/build-excel-pivot-template/SKILL.md": "85736604bef71751eb753659ebd77426ac8e79b543e8690dc045daefce79da28",
-        ".opencode/skills/build-excel-unpivot-template/SKILL.md": "93cafcbf718142dee8b577eadbec623827bf905fcd8519cf90a56ca9a7f50daa",
-        ".opencode/skills/build-report-list-sp/SKILL.md": "d24212c5428dc2c3a0e99e27bc5469c63389d61bdd1ada541c7a95a3576de1ae",
-        ".opencode/skills/excel-catalog-fuzzy-resolver/SKILL.md": "c94882fd0b884ce8aa831e1349ab177a9bd3b07b48e6b9c61e8b298ef6a1a399",
-        ".opencode/skills/excel-catalog-fuzzy-resolver/scripts/resolver.py": "bb771d66732bb2de120881975cb7feb9865bc742d5f49127dde11926f9349cfa",
-        ".opencode/skills/excel-catalog-fuzzy-resolver/scripts/aliases_es.json": "9aff4a997bce27758b21ba669d6bb8c0526fdb1716643be4c81aa34076fabeec",
-        ".opencode/skills/exception-handler/SKILL.md": "ee478171de3c59de878efe9e71667702e51807cd42237166e728cc73fb95c2ad",
-        ".opencode/skills/export-oracle-query-results/SKILL.md": "432e5cfa0a9af33159ef9a1a9d00a9e62333154452a0569c6a7f8dcfe4a6f311",
-        ".opencode/skills/generate-plsql/SKILL.md": "8fecea40c0969c28fe8e9f95d8cb76b38ea77e417f0d17cdaa8992de75c41506",
-        ".opencode/skills/oracle-syntax/SKILL.md": "5bd88994622c0bdfce4f1cb629a5825212760426b05b67b03d0dfc5ac79c87e7",
-        ".opencode/skills/read-schema/SKILL.md": "cb5c5aecad448b8f687fa383af7616350632ab012ac56b049bd09fc5b06141cb"
+        ".opencode/agents/data-analytics.md": "0c87cc4ae6780266ece6380fb343509b1692df1a7efa64cf00ccf3b2aea17785"
       },
       "generated_files": {
         ".claude/settings.json": "dbde8f3df4727dc53ac399b33379781482b9b93d30eb6dd4ae7d3cee7b82e2d5",
         ".claude/hooks/permission_guard.py": "963b80ad25b2a038b3bc9f061a725c1695a8bd013d0e533236a07d772dd72042",
-        ".claude/hooks/validate_harness.py": "5a579bf946dec50f1a0ee175e0e229083f6234856b7af1b9d8569ce68b9cafb6"
+        ".claude/hooks/validate_harness.py": "b54404bc9986fab470ca18b8699478e7709df62ec407e2d6592082d98b12e234"
       }
     }
   }

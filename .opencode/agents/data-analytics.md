@@ -12,7 +12,7 @@ permission:
   edit: deny
   bash:
     "*": deny
-    "python .opencode/skills/excel-catalog-fuzzy-resolver/scripts/resolver.py *": ask
+    "python .claude/skills/excel-catalog-fuzzy-resolver/scripts/resolver.py *": ask
   task: deny
   skill:
     "*": deny

@@ -49,7 +49,7 @@ detalles derivables y solo preguntan por bloqueos tecnicos nuevos.
 
 Para SP de reporte/listado de solo lectura con `SYS_REFCURSOR`, antes de delegar
 lee el contrato descriptivo en
-`.opencode/skills/build-report-list-sp/SKILL.md` (sin cargar la Skill operativa).
+`.claude/skills/build-report-list-sp/SKILL.md` (sin cargar la Skill operativa).
 Solicita únicamente los faltantes o inválidos según ese contrato antes de llamar
 a `oracle-plsql-builder`; la Skill es la fuente de verdad, sin duplicar sus reglas aquí.
 

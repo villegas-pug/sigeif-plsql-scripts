@@ -14,6 +14,9 @@ import yaml
 ROOT = Path(__file__).resolve().parents[2]
 CLAUDE = ROOT / ".claude"
 NORMALIZATION = "utf8-lf-without-generated-sha256-and-synced-at"
+SHARED_COMPATIBILITY = "opencode, claude-code"
+# Las Skills son fuente única compartida; no deben depender de un harness.
+HARNESS_SPECIFIC = re.compile(r"\.opencode/|AskUserQuestion|`question`|harness-sync")
 
 
 def sha256(content):
@@ -52,7 +55,23 @@ def validate(print_hashes=False):
     assert len(agents) == len(skills) == 9
     assert not (CLAUDE / "agents/plan.md").exists()
     assert not (CLAUDE / "agents/build.md").exists()
-    documents = agents + skills + [ROOT / "CLAUDE.md"]
+    for duplicate in (ROOT / ".opencode/skills", ROOT / ".agents/skills"):
+        assert not duplicate.exists(), f"Skills duplicadas fuera de la fuente única: {duplicate}"
+    skill_names = set()
+    for path in skills:
+        text = path.read_text(encoding="utf-8")
+        assert text.startswith("---\n"), path
+        frontmatter = yaml.safe_load(text.split("---", 2)[1])
+        assert frontmatter["name"] == path.parent.name and frontmatter["description"], path
+        assert frontmatter.get("compatibility") == SHARED_COMPATIBILITY, path
+        assert "metadata" not in frontmatter, f"Skill compartida con provenance generada: {path}"
+        for item in path.parent.rglob("*"):
+            if item.is_file() and item.suffix in {".md", ".json", ".py"}:
+                match = HARNESS_SPECIFIC.search(item.read_text(encoding="utf-8"))
+                assert match is None, f"Referencia específica de harness '{match.group(0)}': {item}"
+        skill_names.add(path.parent.name)
+    json.loads((CLAUDE / "skills/excel-catalog-fuzzy-resolver/scripts/aliases_es.json").read_text(encoding="utf-8"))
+    documents = agents + [ROOT / "CLAUDE.md"]
     origins = set()
     hashes = {}
     source_count = 0
@@ -79,23 +98,9 @@ def validate(print_hashes=False):
                 tools = [item.strip() for item in tools.split(",")]
             assert tools == policy["agents"][name]["tools"], path
             assert "Agent" not in tools and "AskUserQuestion" not in tools
-        if path in skills:
-            assert frontmatter["name"] == path.parent.name
-            assert frontmatter["description"] and frontmatter["compatibility"] == "claude-code"
-            original = source_path(origin["path"]).parent
-            expected = {item.relative_to(original).as_posix() for item in original.rglob("*") if item.is_file()}
-            actual = {item.relative_to(path.parent).as_posix() for item in path.parent.rglob("*") if item.is_file()}
-            assert expected == actual, f"Adjuntos ausentes o inesperados: {path}"
-            for item in provenance.get("files", []):
-                assert sha256((path.parent / item["path"]).read_bytes()) == item["sha256"]
-                source_count += 1
+            assert "omitClaudeMd" not in frontmatter, f"El especialista perdería CLAUDE.md/AGENTS.md: {path}"
     for path in sorted((CLAUDE / "hooks").glob("*.py")):
         ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
-    copied = CLAUDE / "skills/excel-catalog-fuzzy-resolver/scripts"
-    original = ROOT / ".opencode/skills/excel-catalog-fuzzy-resolver/scripts"
-    for name in ("resolver.py", "aliases_es.json"):
-        assert (copied / name).read_bytes() == (original / name).read_bytes(), f"Adjunto modificado: {name}"
-    json.loads((copied / "aliases_es.json").read_text(encoding="utf-8"))
     for name in ("settings.json", "hooks/permission_guard.py", "hooks/validate_harness.py"):
         path = CLAUDE / name
         hashes[path.relative_to(ROOT).as_posix()] = sha256(path.read_bytes())
@@ -111,12 +116,13 @@ def validate(print_hashes=False):
         assert rule["external_directory"] == permissions["external_directory"]
         original_skills = permissions["skill"]
         assert rule["skills"] == [key for key, value in original_skills.items() if value == "allow"]
+        assert set(rule["skills"]) <= skill_names, f"Skill inexistente en la política de {name}"
         original_edit = permissions["edit"]
         assert rule["edit"] == ([key for key, value in original_edit.items() if value == "allow"] if isinstance(original_edit, dict) else [])
         original_bash = permissions["bash"]
         assert rule["bash"] == ("ask-listed" if isinstance(original_bash, dict) else original_bash)
         if isinstance(original_bash, dict):
-            commands = [key.removesuffix(" *").replace(".opencode/skills/", ".claude/skills/") for key, value in original_bash.items() if value == "ask"]
+            commands = [key.removesuffix(" *") for key, value in original_bash.items() if value == "ask"]
             assert rule["commands"] == commands
     normalized_policy = copy.deepcopy(policy)
     policy_provenance = normalized_policy["metadata"]["harness-sync"]
@@ -129,7 +135,7 @@ def validate(print_hashes=False):
     if print_hashes:
         print(json.dumps(hashes, indent=2, ensure_ascii=False))
     else:
-        print(f"Validación estática correcta: 9 agentes, 9 Skills, {source_count} orígenes/adjuntos, JSON, AST y provenance íntegros.")
+        print(f"Validación estática correcta: 9 agentes, 9 Skills compartidas, {source_count} orígenes, JSON, AST y provenance íntegros.")
         print("No se ejecutó ningún agente, hook, resolvedor, exportación, prueba ni SQL.")
 
 
